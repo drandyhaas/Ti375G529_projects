@@ -31,6 +31,8 @@ def open_ft_usb_device(device_type, device_name):
             import ftd3xx                                                                                               # import #
         except:
             return None, 'Failed to import ftd3xx'
+
+        print("listDevices():",ftd3xx.listDevices())
         
         for device_id in range(16):
             
@@ -96,10 +98,10 @@ class USB_FTX232H_FT60X_sync245mode():
         '''
         
         for device_type, device_name in device_to_open_list:
-            
+
             usb, message = open_ft_usb_device(device_type, device_name)
             print(message)
-            
+
             if not usb is None:
                 
                 self.device_type = device_type
