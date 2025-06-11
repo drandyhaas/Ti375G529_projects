@@ -1,0 +1,4 @@
+/FT601_loopback/outflow/*
+/FT601_loopback/work_pnr/*
+/FT601_loopback/work_syn/run_efx_map.sh
+/FT601_loopback/.lock
