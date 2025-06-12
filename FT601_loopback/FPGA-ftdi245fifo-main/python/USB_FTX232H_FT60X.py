@@ -31,8 +31,6 @@ def open_ft_usb_device(device_type, device_name):
             import ftd3xx                                                                                               # import #
         except:
             return None, 'Failed to import ftd3xx'
-
-        print("listDevices():",ftd3xx.listDevices())
         
         for device_id in range(16):
             

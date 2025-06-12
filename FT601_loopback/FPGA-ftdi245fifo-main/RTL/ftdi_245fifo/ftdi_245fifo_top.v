@@ -10,9 +10,9 @@
 
 module ftdi_245fifo_top #(
     parameter  TX_EW      = 2 ,          // TX data stream width,  0=8bit, 1=16bit, 2=32bit, 3=64bit, 4=128bit ...
-    parameter  TX_EA      = 10,          // TX FIFO depth = 2^TX_EA
-    parameter  RX_EW      = 2 ,          // RX data stream width,  0=8bit, 1=16bit, 2=32bit, 3=64bit, 4=128bit ...
-    parameter  RX_EA      = 10,          // RX FIFO depth = 2^RX_EA
+    parameter  TX_EA      = 14,          // TX FIFO depth = 2^TX_EA
+    parameter  RX_EW      = 0 ,          // RX data stream width,  0=8bit, 1=16bit, 2=32bit, 3=64bit, 4=128bit ...
+    parameter  RX_EA      = 8,          // RX FIFO depth = 2^RX_EA
     parameter  CHIP_TYPE  = "FT601",   // can be "FTx232H", "FT600", "FT601"
     parameter  SIMULATION = 0            // 0:for normal use    1:enable assert for simulation
 ) ( 

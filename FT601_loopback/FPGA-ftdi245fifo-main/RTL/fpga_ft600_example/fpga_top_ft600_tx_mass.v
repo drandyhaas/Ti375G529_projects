@@ -10,16 +10,16 @@
 //--------------------------------------------------------------------------------------------------------
 
 module fpga_top_ft600_tx_mass (
-    input  wire         clk,            // main clock, connect to on-board crystal oscillator
+    input  wire         clk_100,            // main clock, connect to on-board crystal oscillator
     
     output wire  [ 3:0] LED,
     
     // USB3.0 (FT600 chip) ------------------------------------------------------------
-    //output wire         ftdi_resetn,    // to FT600's pin10 (RESET_N) , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-    //output wire         ftdi_wakeupn,   // to FT600's pin11 (WAKEUP_N), !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-    //output wire         ftdi_gpio0,     // to FT600's pin12 (GPIO0)   , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-    //output wire         ftdi_gpio1,     // to FT600's pin13 (GPIO1)   , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-    //output wire         ftdi_siwu,      // to FT600's pin6  (SIWU_N)  , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+    output wire         ftdi_resetn,    // to FT600's pin10 (RESET_N) , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+    output wire         ftdi_wakeupn,   // to FT600's pin11 (WAKEUP_N), !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+    output wire         ftdi_gpio0,     // to FT600's pin12 (GPIO0)   , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+    output wire         ftdi_gpio1,     // to FT600's pin13 (GPIO1)   , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+    output wire         ftdi_siwu,      // to FT600's pin6  (SIWU_N)  , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
     input  wire         ftdi_clk,       // to FT600's pin43 (CLK)
     input  wire         ftdi_rxf_n,     // to FT600's pin5  (RXF_N)
     input  wire         ftdi_txe_n,     // to FT600's pin4  (TXE_N)
@@ -38,11 +38,11 @@ module fpga_top_ft600_tx_mass (
 
 
 
-//assign ftdi_resetn = 1'b1;  // 1=normal operation          , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-//assign ftdi_wakeupn= 1'b0;  // 0=wake up                   , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-//assign ftdi_gpio0  = 1'b0;  // GPIO[1:0]=00 = 245fifo mode , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-//assign ftdi_gpio1  = 1'b0;  //                             , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
-//assign ftdi_siwu   = 1'b1;  // 1=send immidiently          , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+assign ftdi_resetn = 1'b1;  // 1=normal operation          , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+assign ftdi_wakeupn= 1'b0;  // 0=wake up                   , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+assign ftdi_gpio0  = 1'b0;  // GPIO[1:0]=00 = 245fifo mode , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+assign ftdi_gpio1  = 1'b0;  //                             , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
+assign ftdi_siwu   = 1'b0;  // 0=send immidiently          , !!!!!! UnComment this line if this signal is connected to FPGA. !!!!!!
 
 
 
@@ -68,19 +68,19 @@ wire        tx_tlast;
 //-----------------------------------------------------------------------------------------------------------------------------
 ftdi_245fifo_top #(
     .TX_EW                 ( 2                  ),   // TX data stream width,  0=8bit, 1=16bit, 2=32bit, 3=64bit, 4=128bit ...
-    .TX_EA                 ( 10                 ),   // TX FIFO depth = 2^TX_AEXP = 2^10 = 1024
+    .TX_EA                 ( 14                 ),   // TX FIFO depth = 2^TX_AEXP = 2^10 = 1024
     .RX_EW                 ( 0                  ),   // RX data stream width,  0=8bit, 1=16bit, 2=32bit, 3=64bit, 4=128bit ...
     .RX_EA                 ( 8                  ),   // RX FIFO depth = 2^RX_AEXP = 2^10 = 1024
     .CHIP_TYPE             ( "FT601"            )
 ) u_ftdi_245fifo_top (
     .rstn_async            ( 1'b1               ),
-    .tx_clk                ( clk                ),
+    .tx_clk                ( clk_100                ),
     .tx_tready             ( tx_tready          ),
     .tx_tvalid             ( tx_tvalid          ),
     .tx_tdata              ( tx_tdata           ),
     .tx_tkeep              ( tx_tkeep           ),
     .tx_tlast              ( tx_tlast           ),
-    .rx_clk                ( clk                ),
+    .rx_clk                ( clk_100                ),
     .rx_tready             ( rx_tready          ),
     .rx_tvalid             ( rx_tvalid          ),
     .rx_tdata              ( rx_tdata           ),
@@ -108,7 +108,7 @@ ftdi_245fifo_top #(
 //-----------------------------------------------------------------------------------------------------------------------------
 tx_specified_len u_tx_specified_len (
     .rstn                  ( 1'b1               ),
-    .clk                   ( clk                ),
+    .clk                   ( clk_100                ),
     .i_tready              ( rx_tready          ),
     .i_tvalid              ( rx_tvalid          ),
     .i_tdata               ( rx_tdata           ),
@@ -127,7 +127,7 @@ tx_specified_len u_tx_specified_len (
 //-----------------------------------------------------------------------------------------------------------------------------
 reg  [1:0] tdata_d = 2'h0;
 
-always @ (posedge clk)
+always @ (posedge clk_100)
     if (rx_tvalid)
         tdata_d <= rx_tdata[1:0];
 
@@ -141,10 +141,10 @@ assign LED[1:0] = tdata_d;
 //-----------------------------------------------------------------------------------------------------------------------------
 
 clock_beat # (
-    .CLK_FREQ              ( 50000000          ),
+    .CLK_FREQ              ( 100000000          ),
     .BEAT_FREQ             ( 5                  )
 ) u_clk_beat (
-    .clk                   ( clk           ),
+    .clk                   ( clk_100           ),
     .beat                  ( LED[2]             )
 );
 
