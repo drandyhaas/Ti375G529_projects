@@ -86,8 +86,8 @@ output wire       [(1<<CHIP_EW)-1:0] ftdi_be_OE;
 wire                    ftdi_master_oe;
 //assign ftdi_data    = ftdi_master_oe ? ftdi_data_out : {(8<<CHIP_EW){1'bZ}};     // tri-state driver
 //assign ftdi_be      = ftdi_master_oe ? ftdi_be_out   : {(1<<CHIP_EW){1'bZ}};     // tri-state driver
-assign ftdi_data_OE = ftdi_master_oe ? 16'hffff : 16'h0000;
-assign ftdi_be_OE = ftdi_master_oe ? 2'b11 : 2'b00;
+assign ftdi_data_OE = ftdi_master_oe ? 32'hffffffff : 32'h00000000;
+assign ftdi_be_OE = ftdi_master_oe ? 4'b1111 : 4'b0000;
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // generate reset

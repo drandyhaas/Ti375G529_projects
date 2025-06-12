@@ -3,3 +3,4 @@
 /FT601_loopback/work_syn/run_efx_map.sh
 /FT601_loopback/.lock
 /.idea/*
+/FT601_loopback/work_pt/*

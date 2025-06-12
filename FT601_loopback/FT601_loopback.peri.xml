@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efxpt:design_db name="FT601_loopback" device_def="Ti375C529" version="2025.1.110" db_version="20251999" last_change_date="Tue Jun 10 17:46:05 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+<efxpt:design_db name="FT601_loopback" device_def="Ti375C529" version="2025.1.110" db_version="20251999" last_change_date="Wed Jun 11 21:22:10 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
     <efxpt:device_info>
         <efxpt:iobank_info>
             <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
@@ -132,6 +132,16 @@
             <efxpt:output_config name="ftdi_be_OUT[1]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
             <efxpt:output_enable_config name="ftdi_be_OE[1]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_be_OEN[1]"/>
         </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_be[2]" gpio_def="GPIOB_N_42" mode="inout" bus_name="ftdi_be" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_be_IN[2]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_be_PULL_UP_ENA[2]" dyn_delay_en_name="ftdi_be_DLY_ENA[2]" dyn_delay_reset_name="ftdi_be_DLY_RST[2]" dyn_delay_ctrl_name="ftdi_be_DLY_CTRL[2]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_be_OUT[2]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_be_OE[2]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_be_OEN[2]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_be[3]" gpio_def="GPIOB_P_42" mode="inout" bus_name="ftdi_be" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_be_IN[3]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_be_PULL_UP_ENA[3]" dyn_delay_en_name="ftdi_be_DLY_ENA[3]" dyn_delay_reset_name="ftdi_be_DLY_RST[3]" dyn_delay_ctrl_name="ftdi_be_DLY_CTRL[3]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_be_OUT[3]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_be_OE[3]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_be_OEN[3]"/>
+        </efxpt:comp_gpio>
         <efxpt:comp_gpio name="ftdi_clk" gpio_def="GPIOB_P_15" mode="input" bus_name="" io_standard="1.8 V LVCMOS">
             <efxpt:input_config name="ftdi_clk" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_clk_PULL_UP_ENA" dyn_delay_en_name="ftdi_clk_DLY_ENA" dyn_delay_reset_name="ftdi_clk_DLY_RST" dyn_delay_ctrl_name="ftdi_clk_DLY_CTRL" clkmux_buf_name=""/>
         </efxpt:comp_gpio>
@@ -170,15 +180,95 @@
             <efxpt:output_config name="ftdi_data_OUT[15]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
             <efxpt:output_enable_config name="ftdi_data_OE[15]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[15]"/>
         </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[16]" gpio_def="GPIOB_N_09" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[16]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[16]" dyn_delay_en_name="ftdi_data_DLY_ENA[16]" dyn_delay_reset_name="ftdi_data_DLY_RST[16]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[16]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[16]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[16]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[16]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[17]" gpio_def="GPIOB_N_12" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[17]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[17]" dyn_delay_en_name="ftdi_data_DLY_ENA[17]" dyn_delay_reset_name="ftdi_data_DLY_RST[17]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[17]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[17]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[17]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[17]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[18]" gpio_def="GPIOB_P_09" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[18]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[18]" dyn_delay_en_name="ftdi_data_DLY_ENA[18]" dyn_delay_reset_name="ftdi_data_DLY_RST[18]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[18]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[18]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[18]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[18]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[19]" gpio_def="GPIOB_P_12" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[19]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[19]" dyn_delay_en_name="ftdi_data_DLY_ENA[19]" dyn_delay_reset_name="ftdi_data_DLY_RST[19]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[19]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[19]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[19]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[19]"/>
+        </efxpt:comp_gpio>
         <efxpt:comp_gpio name="ftdi_data[1]" gpio_def="GPIOB_N_07" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
             <efxpt:input_config name="ftdi_data_IN[1]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[1]" dyn_delay_en_name="ftdi_data_DLY_ENA[1]" dyn_delay_reset_name="ftdi_data_DLY_RST[1]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[1]" clkmux_buf_name=""/>
             <efxpt:output_config name="ftdi_data_OUT[1]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
             <efxpt:output_enable_config name="ftdi_data_OE[1]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[1]"/>
         </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[20]" gpio_def="GPIOB_N_28" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[20]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[20]" dyn_delay_en_name="ftdi_data_DLY_ENA[20]" dyn_delay_reset_name="ftdi_data_DLY_RST[20]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[20]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[20]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[20]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[20]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[21]" gpio_def="GPIOB_N_22" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[21]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[21]" dyn_delay_en_name="ftdi_data_DLY_ENA[21]" dyn_delay_reset_name="ftdi_data_DLY_RST[21]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[21]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[21]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[21]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[21]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[22]" gpio_def="GPIOB_P_28" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[22]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[22]" dyn_delay_en_name="ftdi_data_DLY_ENA[22]" dyn_delay_reset_name="ftdi_data_DLY_RST[22]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[22]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[22]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[22]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[22]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[23]" gpio_def="GPIOB_P_22" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[23]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[23]" dyn_delay_en_name="ftdi_data_DLY_ENA[23]" dyn_delay_reset_name="ftdi_data_DLY_RST[23]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[23]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[23]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[23]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[23]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[24]" gpio_def="GPIOB_N_14" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[24]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[24]" dyn_delay_en_name="ftdi_data_DLY_ENA[24]" dyn_delay_reset_name="ftdi_data_DLY_RST[24]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[24]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[24]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[24]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[24]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[25]" gpio_def="GPIOB_P_14" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[25]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[25]" dyn_delay_en_name="ftdi_data_DLY_ENA[25]" dyn_delay_reset_name="ftdi_data_DLY_RST[25]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[25]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[25]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[25]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[25]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[26]" gpio_def="GPIOB_N_25" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[26]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[26]" dyn_delay_en_name="ftdi_data_DLY_ENA[26]" dyn_delay_reset_name="ftdi_data_DLY_RST[26]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[26]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[26]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[26]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[26]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[27]" gpio_def="GPIOB_P_25" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[27]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[27]" dyn_delay_en_name="ftdi_data_DLY_ENA[27]" dyn_delay_reset_name="ftdi_data_DLY_RST[27]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[27]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[27]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[27]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[27]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[28]" gpio_def="GPIOB_N_33" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[28]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[28]" dyn_delay_en_name="ftdi_data_DLY_ENA[28]" dyn_delay_reset_name="ftdi_data_DLY_RST[28]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[28]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[28]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[28]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[28]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[29]" gpio_def="GPIOB_P_33" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[29]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[29]" dyn_delay_en_name="ftdi_data_DLY_ENA[29]" dyn_delay_reset_name="ftdi_data_DLY_RST[29]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[29]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[29]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[29]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[29]"/>
+        </efxpt:comp_gpio>
         <efxpt:comp_gpio name="ftdi_data[2]" gpio_def="GPIOB_P_03" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
             <efxpt:input_config name="ftdi_data_IN[2]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[2]" dyn_delay_en_name="ftdi_data_DLY_ENA[2]" dyn_delay_reset_name="ftdi_data_DLY_RST[2]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[2]" clkmux_buf_name=""/>
             <efxpt:output_config name="ftdi_data_OUT[2]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
             <efxpt:output_enable_config name="ftdi_data_OE[2]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[2]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[30]" gpio_def="GPIOB_N_13" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[30]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[30]" dyn_delay_en_name="ftdi_data_DLY_ENA[30]" dyn_delay_reset_name="ftdi_data_DLY_RST[30]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[30]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[30]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[30]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[30]"/>
+        </efxpt:comp_gpio>
+        <efxpt:comp_gpio name="ftdi_data[31]" gpio_def="GPIOB_P_13" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
+            <efxpt:input_config name="ftdi_data_IN[31]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[31]" dyn_delay_en_name="ftdi_data_DLY_ENA[31]" dyn_delay_reset_name="ftdi_data_DLY_RST[31]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[31]" clkmux_buf_name=""/>
+            <efxpt:output_config name="ftdi_data_OUT[31]" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
+            <efxpt:output_enable_config name="ftdi_data_OE[31]" is_register="false" clock_name="" is_clock_inverted="false" name_oen="ftdi_data_OEN[31]"/>
         </efxpt:comp_gpio>
         <efxpt:comp_gpio name="ftdi_data[3]" gpio_def="GPIOB_P_07" mode="inout" bus_name="ftdi_data" io_standard="1.8 V LVCMOS">
             <efxpt:input_config name="ftdi_data_IN[3]" name_ddio_lo="" conn_type="normal" is_register="false" clock_name="" is_clock_inverted="false" pull_option="none" is_schmitt_trigger="false" ddio_type="none" is_bus_hold="false" delay="0" is_serial="false" is_dyn_delay="false" fastclk_name="" pullup_ena_name="ftdi_data_PULL_UP_ENA[3]" dyn_delay_en_name="ftdi_data_DLY_ENA[3]" dyn_delay_reset_name="ftdi_data_DLY_RST[3]" dyn_delay_ctrl_name="ftdi_data_DLY_CTRL[3]" clkmux_buf_name=""/>
@@ -231,9 +321,9 @@
             <efxpt:output_config name="ftdi_wr_n" name_ddio_lo="" register_option="none" clock_name="" is_clock_inverted="false" is_slew_rate="false" tied_option="none" ddio_type="none" delay="0" is_serial="false" drive_strength="4" fastclk_name=""/>
         </efxpt:comp_gpio>
         <efxpt:global_unused_config state="input with weak pullup"/>
-        <efxpt:bus name="ftdi_data" mode="inout" msb="15" lsb="0"/>
+        <efxpt:bus name="ftdi_data" mode="inout" msb="31" lsb="0"/>
         <efxpt:bus name="LED" mode="output" msb="3" lsb="0"/>
-        <efxpt:bus name="ftdi_be" mode="inout" msb="1" lsb="0"/>
+        <efxpt:bus name="ftdi_be" mode="inout" msb="3" lsb="0"/>
     </efxpt:gpio_info>
     <efxpt:pll_info/>
     <efxpt:osc_info/>

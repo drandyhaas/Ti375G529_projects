@@ -27,13 +27,13 @@ module fpga_top_ft600_tx_mass (
     output wire         ftdi_rd_n,      // to FT600's pin8  (RD_N)
     output wire         ftdi_wr_n,      // to FT600's pin7  (WR_N)
     
-    input      [15:0] ftdi_data_IN,      // to FT600's pin56~53 (DATA_15~DATA_12) , pin48~45 (DATA_11~DATA_8) , pin42~39 (DATA_7~DATA4) and pin36~33 (DATA_3~DATA_0)
-    output     [15:0] ftdi_data_OUT,
-    output     [15:0] ftdi_data_OE,
+    input      [31:0] ftdi_data_IN,      // to FT600's pin56~53 (DATA_15~DATA_12) , pin48~45 (DATA_11~DATA_8) , pin42~39 (DATA_7~DATA4) and pin36~33 (DATA_3~DATA_0)
+    output     [31:0] ftdi_data_OUT,
+    output     [31:0] ftdi_data_OE,
     
-    input  wire      [ 1:0] ftdi_be_IN,         // to FT600's pin3 (BE_1) and pin2 (BE_0)
-    output  wire     [ 1:0] ftdi_be_OUT,
-    output  wire     [ 1:0] ftdi_be_OE
+    input  wire      [ 3:0] ftdi_be_IN,         // to FT600's pin3 (BE_1) and pin2 (BE_0)
+    output  wire     [ 3:0] ftdi_be_OUT,
+    output  wire     [ 3:0] ftdi_be_OE
 );
 
 
@@ -71,7 +71,7 @@ ftdi_245fifo_top #(
     .TX_EA                 ( 10                 ),   // TX FIFO depth = 2^TX_AEXP = 2^10 = 1024
     .RX_EW                 ( 0                  ),   // RX data stream width,  0=8bit, 1=16bit, 2=32bit, 3=64bit, 4=128bit ...
     .RX_EA                 ( 8                  ),   // RX FIFO depth = 2^RX_AEXP = 2^10 = 1024
-    .CHIP_TYPE             ( "FT600"            )
+    .CHIP_TYPE             ( "FT601"            )
 ) u_ftdi_245fifo_top (
     .rstn_async            ( 1'b1               ),
     .tx_clk                ( clk                ),
