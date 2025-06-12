@@ -23,7 +23,7 @@ if __name__ == '__main__':
         )
 
     total_rx_len = 0
-    expect_len = 2 * 1000 * 1000  # randint(1, 10000000) # random a length
+    expect_len = 10 * 1000 * 1000  # randint(1, 10000000) # random a length
     txdata = bytes([expect_len & 0xff, (expect_len >> 8) & 0xff, (expect_len >> 16) & 0xff,
                     (expect_len >> 24) & 0xff])  # convert length number to a 4-byte byte array (with type of 'bytes')
 

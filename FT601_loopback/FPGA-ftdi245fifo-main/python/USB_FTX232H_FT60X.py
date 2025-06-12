@@ -114,7 +114,7 @@ class USB_FTX232H_FT60X_sync245mode():
                 if device_type == 'FT60X' :
                     if usb.getDeviceDescriptor().bcdUSB < 0x300:
                         print('Warning: Device is NOT connected using USB3.0 cable or port!')
-                    self._chunk = 65536 * 16
+                    self._chunk = 65536 * 64 * 4
                 else:
                     self._chunk = 65536
                     usb.setUSBParameters(self._chunk*4, self._chunk*4)
