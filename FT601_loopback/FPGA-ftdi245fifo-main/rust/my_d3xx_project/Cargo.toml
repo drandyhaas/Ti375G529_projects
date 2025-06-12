@@ -6,6 +6,3 @@ edition = "2024"
 [dependencies]
 # The crate for interacting with FTDI D3XX drivers.
 d3xx = "0.0.3"
-
-# A crate for ergonomic error handling.
-anyhow = "1.0.81"
