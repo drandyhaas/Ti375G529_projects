@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-d3xx = "0.0.3" # Or the latest version
+# The crate for interacting with FTDI D3XX drivers.
+d3xx = "0.0.3"
 
+# A crate for ergonomic error handling.
+anyhow = "1.0.81"
