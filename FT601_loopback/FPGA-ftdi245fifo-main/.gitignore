@@ -4,3 +4,5 @@ FT600_FPGArduino
 vivado
 
 **/__pycache__
+/rust/my_d3xx_project/target/*
+/rust/my_d3xx_project/Cargo.lock
