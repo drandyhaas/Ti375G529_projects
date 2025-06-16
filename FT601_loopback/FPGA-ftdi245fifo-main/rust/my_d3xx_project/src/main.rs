@@ -11,13 +11,12 @@ fn main() {
     // Open the first device found.
     let device = all_devices[0].open().expect("failed to open device");
 
-    let start = Instant::now(); // Start the timer
-    //for read_iteration in 1..100 {
+    for _read_iteration in 1..3 {
 
     // Convert to big-endian byte array
     let num_bytes_to_read: u32 = 1000_000_000;
-    let big_endian_bytes = num_bytes_to_read.to_be_bytes();
-    let data_to_write: [u8; 4] = big_endian_bytes;
+    let endian_bytes = num_bytes_to_read.to_le_bytes();
+    let data_to_write: [u8; 4] = endian_bytes;
     println!("\nAttempting to write 4 bytes: {:?}", data_to_write);
 
     let bytes_written = device.pipe(Pipe::Out0).write(&data_to_write).unwrap();
@@ -40,7 +39,8 @@ fn main() {
     // It's safer to allocate on the heap with a Vec and read in manageable chunks.
     let mut read_buffer = Vec::with_capacity(TOTAL_BYTES_TO_READ);
     let mut total_bytes_read = 0;
-    println!("\nAttempting to read {} bytes...", TOTAL_BYTES_TO_READ);
+    println!("Attempting to read {} bytes...", TOTAL_BYTES_TO_READ);
+    let start = Instant::now(); // Start the timer
 
     // Loop to read data in chunks until the target amount is reached or a timeout occurs.
     // The d3xx driver itself handles chunking at a lower level, but this application-level
@@ -71,9 +71,10 @@ fn main() {
         };
     }
     println!("Total bytes read: {}", total_bytes_read);
+    let duration = start.elapsed(); // Get the elapsed time
+    println!("Time taken: {:?}, {}ms, {} MB/s", duration, duration.as_millis(), 1000000.0/(duration.as_millis() as f32)); // Print the duration
 
     // It's often useful to print a small portion of the read data to verify it.
-    //if read_iteration==0 {
     if total_bytes_read > 0 {
         // We'll print the first 16 bytes, or fewer if we didn't read that many.
         let preview_len = std::cmp::min(total_bytes_read, 16);
@@ -85,15 +86,11 @@ fn main() {
                 println!(); // Newline every 8 bytes for readability
             }
         }
-        println!();
     } else {
         println!("No data was read from the device. This could be expected or indicate an issue.");
     }
-    //}
 
-    //}
+    } // for loop
 
-    let duration = start.elapsed(); // Get the elapsed time
-    println!("Time taken: {:?}, {}ms, {} MB/s", duration, duration.as_millis(), 1000000.0/(duration.as_millis() as f32)); // Print the duration
     println!("\nDemonstration complete.");
 }
