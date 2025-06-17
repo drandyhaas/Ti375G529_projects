@@ -1,0 +1,8 @@
+[package]
+name = "my_d3xx_project"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# The crate for interacting with FTDI D3XX drivers.
+d3xx = "0.0.3"
