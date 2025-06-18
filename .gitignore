@@ -1,7 +1,6 @@
-/FT601_loopback/outflow/*
-/FT601_loopback/work_pnr/*
-/FT601_loopback/work_syn/run_efx_map.sh
-/FT601_loopback/.lock
+/*/outflow/*
+/*/work_pnr/*
+/*/work_syn/*
 /.idea/*
-/FT601_loopback/work_pt/*
+/*/work_pt/*
 /*/.lock
