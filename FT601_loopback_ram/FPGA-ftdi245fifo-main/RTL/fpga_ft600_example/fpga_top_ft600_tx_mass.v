@@ -157,4 +157,6 @@ clock_beat # (
 );
 
 
+assign fan_speed_control = 0;
+
 endmodule
