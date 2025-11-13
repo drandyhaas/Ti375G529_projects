@@ -1,7 +1,12 @@
 /*/outflow/*
 /*/*/*/outflow/*
+/*/*/*/work_pnr/*
+/*/*/*/work_pt/*
+/*/*/*/work_syn/*
 /*/work_pnr/*
 /*/work_syn/*
 /.idea/*
 /*/work_pt/*
 /*/.lock
+/ti_lpddr4_debug_tools/bsp/TI375C529/.lock
+/.claude/settings.local.json
