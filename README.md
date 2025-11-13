@@ -14,6 +14,19 @@ python console.py --dev TI375C529
 > all
 > eff
 
+Device: TI375C529
+Type: LPDDR4x
+Data width: 32
+Density: 8G bit (Per Channel)
+Frequency: 1440 Mhz
+ - 1520/190 fails
+ - 1500/187.5 passes read leveling but then mtests fail
+ - 1480/185 passes read leveling but then mtests sometimes fail
+Rank: 1
+Chip Select Map: 0x5
+AXI0: 180.00 Mhz
+AXI1: 180.00 Mhz
+
 Efficiency Test :
 ||==== WRITE ===||==== READ ====||==EFFICIENCY==||== BANDWIDTH ==||=== ERROR ===||
 ||      50%     ||      50%     ||   82.982 %   ||  76.476 Gbps  ||     1       ||
