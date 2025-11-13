@@ -1,0 +1,591 @@
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:28] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:28] set_output_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:28] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:29] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:29] set_output_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:29] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:30] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:30] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:30] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:31] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:31] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:31] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:32] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:32] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:32] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:33] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:33] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:33] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:34] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:34] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:34] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:35] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:35] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:35] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:36] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:36] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:36] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:37] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:37] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:37] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:38] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:38] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:38] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:39] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:39] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:39] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'jtag_inst1_DRCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:40] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:40] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:40] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'jtag_inst1_DRCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:41] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:41] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:41] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:111] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:111] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:112] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:112] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BRESP[1]'
+WARNING  : No ports matched 'axi0_BRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:113] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:113] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BRESP[1]'
+WARNING  : No ports matched 'axi0_BRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:114] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:114] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:119] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:119] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:120] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:120] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RRESP[1]'
+WARNING  : No ports matched 'axi0_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:123] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:123] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RRESP[1]'
+WARNING  : No ports matched 'axi0_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:124] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:124] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_ARESTN'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:129] set_output_delay: No valid output port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:129] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_ARESTN'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:130] set_output_delay: No valid output port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:130] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:189] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:189] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:190] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:190] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BRESP[0]'
+WARNING  : No ports matched 'axi1_BRESP[1]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:191] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:191] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BRESP[1]'
+WARNING  : No ports matched 'axi1_BRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:192] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:192] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:197] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:197] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:198] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:198] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RRESP[1]'
+WARNING  : No ports matched 'axi1_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:201] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:201] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RRESP[1]'
+WARNING  : No ports matched 'axi1_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:202] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:202] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:249] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:249] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:250] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:250] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBRESP[1]'
+WARNING  : No ports matched 'regBRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:251] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:251] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBRESP[1]'
+WARNING  : No ports matched 'regBRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:252] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:252] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:257] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:257] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:258] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:258] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRRESP[0]'
+WARNING  : No ports matched 'regRRESP[1]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:259] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:259] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRRESP[0]'
+WARNING  : No ports matched 'regRRESP[1]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:260] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:260] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRLAST'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:261] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:261] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRLAST'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:262] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:262] Unable to run 'set_input_delay' constraint due to warnings found
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Router Setup
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : [Setup Parallel Routing Scheduler]
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Route Circuit with 2 threads
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Overridding delay budgets for 16 synchronizer-related pins
+
+INFO     : Iter  1: overlap=17422   heapops=1462207    (0%) cpd=5103  frr=1.00  msec=1039
+INFO     : [Setup Delay Budgets | 143.5 ms]
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Hold Fixing
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Total min wire delay:   2904855
+INFO     : Hold fix wire delay:         83
+INFO     : Hold fix delay ratio:     0.00%
+INFO     : Pins requiring hold fix:  0.05%
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Iter  2: overlap=9364    heapops=1207692    (31%) cpd=5095  frr=1.00  msec=674
+INFO     : Iter  3: overlap=6932    heapops=1025229    (46%) cpd=5096  frr=1.00  msec=581
+INFO     : Iter  4: overlap=5012    heapops=871058     (56%) cpd=5096  frr=1.00  msec=531
+INFO     : Iter  5: overlap=3598    heapops=772055     (63%) cpd=5096  frr=1.00  msec=512
+INFO     : Iter  6: overlap=2621    heapops=617771     (71%) cpd=5096  frr=1.00  msec=440
+INFO     : Iter  7: overlap=1881    heapops=524790     (75%) cpd=5096  frr=1.00  msec=417
+INFO     : Iter  8: overlap=1398    heapops=459712     (80%) cpd=5097  frr=1.00  msec=399
+INFO     : Iter  9: overlap=976     heapops=381447     (82%) cpd=5097  frr=1.00  msec=358
+INFO     : Iter 10: overlap=733     heapops=284649     (85%) cpd=5097  frr=1.00  msec=328
+INFO     : Iter 11: overlap=541     heapops=247341     (87%) cpd=5097  frr=1.00  msec=313
+INFO     : Iter 12: overlap=392     heapops=277179     (87%) cpd=5087  frr=1.00  msec=329
+INFO     : Iter 13: overlap=321     heapops=158823     (89%) cpd=5088  frr=1.00  msec=277
+INFO     : Iter 14: overlap=253     heapops=160666     (89%) cpd=5087  frr=1.00  msec=288
+INFO     : [Rebuild Parallel Routing Scheduler]
+INFO     : Iter 15: overlap=192     heapops=132319     (90%) cpd=5088  frr=1.00  msec=285
+INFO     : Iter 16: overlap=143     heapops=107399     (90%) cpd=5088  frr=1.00  msec=259
+INFO     : Iter 17: overlap=118     heapops=75334      (91%) cpd=5091  frr=1.00  msec=239
+INFO     : Iter 18: overlap=104     heapops=67423      (91%) cpd=5163  frr=1.01  msec=232
+INFO     : Iter 19: overlap=75      heapops=75064      (91%) cpd=5204  frr=1.02  msec=237
+INFO     : Iter 20: overlap=61      heapops=79774      (91%) cpd=5183  frr=1.02  msec=239
+INFO     : Iter 21: overlap=59      heapops=65428      (91%) cpd=5249  frr=1.03  msec=233
+INFO     : Iter 22: overlap=33      heapops=51266      (91%) cpd=5259  frr=1.03  msec=225
+INFO     : Iter 23: overlap=24      heapops=54449      (91%) cpd=5232  frr=1.03  msec=230
+INFO     : Iter 24: overlap=26      heapops=58500      (91%) cpd=5225  frr=1.02  msec=224
+INFO     : Iter 25: overlap=25      heapops=51023      (91%) cpd=5225  frr=1.02  msec=227
+INFO     : Iter 26: overlap=9       heapops=37650      (91%) cpd=5227  frr=1.02  msec=218
+INFO     : Iter 27: overlap=16      heapops=29576      (91%) cpd=5225  frr=1.02  msec=217
+INFO     : Iter 28: overlap=9       heapops=35267      (91%) cpd=5282  frr=1.04  msec=213
+INFO     : Iter 29: overlap=3       heapops=32423      (91%) cpd=5279  frr=1.03  msec=219
+INFO     : Iter 30: overlap=4       heapops=26763      (91%) cpd=5277  frr=1.03  msec=211
+INFO     : Iter 31: overlap=2       heapops=25919      (91%) cpd=5293  frr=1.04  msec=214
+INFO     : Iter 32: overlap=3       heapops=25807      (91%) cpd=5293  frr=1.04  msec=213
+INFO     : Iter 33: overlap=2       heapops=28333      (91%) cpd=5293  frr=1.04  msec=208
+INFO     : Iter 34: overlap=2       heapops=25959      (91%) cpd=5293  frr=1.04  msec=212
+INFO     : Iter 35: overlap=1       heapops=26599      (91%) cpd=5293  frr=1.04  msec=211
+INFO     : Iter 36: overlap=1       heapops=25542      (91%) cpd=5293  frr=1.04  msec=207
+INFO     : Iter 37: overlap=1       heapops=25522      (91%) cpd=5293  frr=1.04  msec=209
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Iter 38: overlap=0       heapops=25848      (91%) cpd=5401  frr=1.06  msec=210
+INFO     : Iter 39: overlap=2       heapops=26954      (91%) cpd=5343  frr=1.05  msec=204
+INFO     : Iter 40: overlap=1       heapops=25855      (91%) cpd=5325  frr=1.04  msec=209
+INFO     : Iter 41: overlap=2       heapops=26564      (91%) cpd=5343  frr=1.05  msec=207
+INFO     : Iter 42: overlap=0       heapops=25599      (91%) cpd=5343  frr=1.05  msec=213
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Routing Result
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Routing Succeeded in 13.89 seconds taking 42 iterations! 
+INFO     : 
+INFO     : First iteration critical path delay = 5.103 ns 
+INFO     : Last iteration critical path delay  = 5.343 ns (ratio = 1.05)
+INFO     : Max Routing Heap Size = 9,626
+INFO     : Routing trace written to file 'C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.troutingtraces' 
+INFO     : ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+INFO     : Routing took 26.0135 seconds.
+INFO     : 	Routing took 14.1094 seconds (approximately) in total CPU time.
+INFO     : Routing virtual memory usage: begin = 236.44 MB, end = 871.144 MB, delta = 634.704 MB
+INFO     : 	Routing peak virtual memory usage = 1265.43 MB
+INFO     : Routing resident set memory usage: begin = 249.212 MB, end = 771.516 MB, delta = 522.304 MB
+INFO     : 	Routing peak resident set memory usage = 1165.25 MB
+           ***** Beginning stage final timing analysis ... *****
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:28] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:28] set_output_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:28] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:29] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:29] set_output_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:29] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:30] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:30] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:30] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:31] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:31] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:31] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:32] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:32] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:32] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:33] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:33] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:33] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:34] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:34] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:34] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:35] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:35] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:35] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:36] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:36] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:36] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:37] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:37] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:37] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:38] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:38] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:38] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:39] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:39] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:39] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'jtag_inst1_DRCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:40] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:40] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:40] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'jtag_inst1_DRCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:41] No clocks matched 'jtag_inst1_TCK'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:41] set_input_delay: No valid clock found for -clock
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:41] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:111] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:111] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:112] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:112] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BRESP[0]'
+WARNING  : No ports matched 'axi0_BRESP[1]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:113] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:113] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_BRESP[1]'
+WARNING  : No ports matched 'axi0_BRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:114] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:114] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:119] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:119] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:120] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:120] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RRESP[1]'
+WARNING  : No ports matched 'axi0_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:123] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:123] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi0_RRESP[1]'
+WARNING  : No ports matched 'axi0_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:124] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:124] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_ARESTN'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:129] set_output_delay: No valid output port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:129] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_ARESTN'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:130] set_output_delay: No valid output port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:130] Unable to run 'set_output_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:189] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:189] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:190] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:190] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BRESP[1]'
+WARNING  : No ports matched 'axi1_BRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:191] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:191] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_BRESP[1]'
+WARNING  : No ports matched 'axi1_BRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:192] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:192] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:197] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:197] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:198] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:198] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RRESP[1]'
+WARNING  : No ports matched 'axi1_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:201] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:201] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'axi1_RRESP[1]'
+WARNING  : No ports matched 'axi1_RRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:202] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:202] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:249] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:249] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:250] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:250] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBRESP[0]'
+WARNING  : No ports matched 'regBRESP[1]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:251] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:251] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regBRESP[0]'
+WARNING  : No ports matched 'regBRESP[1]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:252] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:252] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:257] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:257] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRID[*]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:258] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:258] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRRESP[1]'
+WARNING  : No ports matched 'regRRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:259] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:259] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRRESP[1]'
+WARNING  : No ports matched 'regRRESP[0]'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:260] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:260] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRLAST'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:261] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:261] Unable to run 'set_input_delay' constraint due to warnings found
+WARNING  : No ports matched 'regRLAST'
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:262] set_input_delay: No valid input port(s) found
+WARNING  : [SDC C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.sdc:262] Unable to run 'set_input_delay' constraint due to warnings found
+Maximum possible analyzed clocks frequency
+ Clock Name  Period (ns)  Frequency (MHz)     Edge
+ regACLK        5.243        190.730         (R-R)
+ axi0_ACLK      5.453        183.385         (R-R)
+ axi1_ACLK      4.882        204.834         (R-R)
+
+Geomean max period: 5.187
+
+Setup (Max) Clock Relationship
+  Launch Clock    Capture Clock   Constraint (ns)     Slack (ns)          Edge
+   regACLK          regACLK            20.000           14.757           (R-R)
+   regACLK          axi0_ACLK           5.000            0.552           (R-R)
+   regACLK          axi1_ACLK           5.000            1.428           (R-R)
+   axi0_ACLK        regACLK             5.000            3.174           (R-R)
+   axi0_ACLK        axi0_ACLK           5.000           -0.453           (R-R)
+   axi1_ACLK        regACLK             5.000            3.252           (R-R)
+   axi1_ACLK        axi1_ACLK           5.000            0.118           (R-R)
+
+Hold (Min) Clock Relationship
+  Launch Clock    Capture Clock   Constraint (ns)     Slack (ns)          Edge
+   regACLK          regACLK            0.000            0.023            (R-R)
+   regACLK          axi0_ACLK          0.000            0.091            (R-R)
+   regACLK          axi1_ACLK          0.000            0.217            (R-R)
+   axi0_ACLK        regACLK            0.000            0.131            (R-R)
+   axi0_ACLK        axi0_ACLK          0.000            0.025            (R-R)
+   axi1_ACLK        regACLK            0.000            0.329            (R-R)
+   axi1_ACLK        axi1_ACLK          0.000            0.025            (R-R)
+
+WARNING  : Clock domain between axi0_ACLK (rising) and axi0_ACLK (rising) may not meet (slack: -0.453 ns) the setup (max) timing requirement
+INFO     : Write Timing Report to "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow\tools_core.timing.rpt" ...
+INFO     : final timing analysis took 40.5127 seconds.
+INFO     : 	final timing analysis took 15.5938 seconds (approximately) in total CPU time.
+INFO     : final timing analysis virtual memory usage: begin = 961.496 MB, end = 965.704 MB, delta = 4.208 MB
+INFO     : 	final timing analysis peak virtual memory usage = 1265.43 MB
+INFO     : final timing analysis resident set memory usage: begin = 861.192 MB, end = 865.044 MB, delta = 3.852 MB
+INFO     : 	final timing analysis peak resident set memory usage = 1165.25 MB
+           ***** Ending stage final timing analysis *****
+           
+           ***** Beginning stage netlist pre-processing ... *****
+INFO     : Successfully Read in Verific binary Netlist dump file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.vdb".
+INFO     : ***** Beginning VDB Netlist Checker ... *****
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(37): Input/inout port axi0_BID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(38): Input/inout port axi0_BRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(40): Input/inout port axi0_RID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(44): Input/inout port axi0_RRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(78): Input/inout port axi1_BID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(79): Input/inout port axi1_BRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(81): Input/inout port axi1_RID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(85): Input/inout port axi1_RRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(106): Input/inout port regRLAST is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(107): Input/inout port regRRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(108): Input/inout port regRID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(125): Input/inout port regBID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(126): Input/inout port regBRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(132): Input/inout port jtag_inst1_DRCK is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(134): Input/inout port jtag_inst1_RUNTEST is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(139): Input/inout port jtag_inst1_TMS is unconnected and will be removed. [VDB-8003]
+WARNING  : Found 52 warnings in the post-synthesis netlist.
+INFO     : VDB Netlist Checker took 0.0109186 seconds.
+INFO     : 	VDB Netlist Checker took 0 seconds (approximately) in total CPU time.
+INFO     : VDB Netlist Checker virtual memory usage: begin = 1004.68 MB, end = 1004.7 MB, delta = 0.016 MB
+INFO     : 	VDB Netlist Checker peak virtual memory usage = 1265.43 MB
+INFO     : VDB Netlist Checker resident set memory usage: begin = 906.544 MB, end = 906.56 MB, delta = 0.016 MB
+INFO     : 	VDB Netlist Checker peak resident set memory usage = 1165.25 MB
+INFO     : ***** Ending VDB Netlist Checker ... *****
+INFO     : Reading core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Successfully read core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Found 0 constant generator nets.
+INFO     : Pass 0: Swept away 0 nets with no fanout.
+INFO     : logical_block #703(axi0_BID[5]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #704(axi0_BID[4]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #705(axi0_BID[3]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #706(axi0_BID[2]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #707(axi0_BID[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #708(axi0_BID[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #709(axi0_BRESP[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #710(axi0_BRESP[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #712(axi0_RID[5]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #713(axi0_RID[4]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #714(axi0_RID[3]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #715(axi0_RID[2]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #716(axi0_RID[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #717(axi0_RID[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1232(axi0_RRESP[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1233(axi0_RRESP[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1937(axi1_BID[5]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1938(axi1_BID[4]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1939(axi1_BID[3]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1940(axi1_BID[2]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1941(axi1_BID[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1942(axi1_BID[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1943(axi1_BRESP[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1944(axi1_BRESP[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1946(axi1_RID[5]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1947(axi1_RID[4]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1948(axi1_RID[3]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1949(axi1_RID[2]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1950(axi1_RID[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #1951(axi1_RID[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2466(axi1_RRESP[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2467(axi1_RRESP[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2546(regRLAST) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2547(regRRESP[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2548(regRRESP[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2549(regRID[5]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2550(regRID[4]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2551(regRID[3]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2552(regRID[2]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2553(regRID[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2554(regRID[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2632(regBID[5]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2633(regBID[4]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2634(regBID[3]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2635(regBID[2]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2636(regBID[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2637(regBID[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2638(regBRESP[1]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2639(regBRESP[0]) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2643(jtag_inst1_DRCK) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2645(jtag_inst1_RUNTEST) has no fanout.
+INFO     : Removing input.
+INFO     : logical_block #2650(jtag_inst1_TMS) has no fanout.
+INFO     : Removing input.
+INFO     : Pass 0: Swept away 52 blocks with no fanout.
+INFO     : Pass 1: Swept away 0 nets with no fanout.
+INFO     : Pass 1: Swept away 0 blocks with no fanout.
+INFO     : Swept away 0 nets and 52 blocks in total.
+INFO     : Removed 0 LUT buffers
+INFO     : Sweept away 52 nodes
+INFO     : Successfully created VPR logical netlist from Verific binary DataBase file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.vdb".
+INFO     : Netlist pre-processing took 0.253078 seconds.
+INFO     : 	Netlist pre-processing took 0.109375 seconds (approximately) in total CPU time.
+INFO     : Netlist pre-processing virtual memory usage: begin = 998.664 MB, end = 1009.9 MB, delta = 11.232 MB
+INFO     : 	Netlist pre-processing peak virtual memory usage = 1265.43 MB
+INFO     : Netlist pre-processing resident set memory usage: begin = 900.536 MB, end = 911.756 MB, delta = 11.22 MB
+INFO     : 	Netlist pre-processing peak resident set memory usage = 1165.25 MB
+           ***** Ending stage netlist pre-processing *****
+           
+           ***** Beginning stage packed netlist loading ... *****
+INFO     : Load Global Network took 1.95827 seconds.
+INFO     : 	Load Global Network took 0.71875 seconds (approximately) in total CPU time.
+INFO     : Load Global Network virtual memory usage: begin = 1009.9 MB, end = 1139 MB, delta = 129.1 MB
+INFO     : 	Load Global Network peak virtual memory usage = 1265.43 MB
+INFO     : Load Global Network resident set memory usage: begin = 912.06 MB, end = 1040.86 MB, delta = 128.804 MB
+INFO     : 	Load Global Network peak resident set memory usage = 1165.25 MB
+INFO     : Reading C:/Efinity/2025.1/arch/.\rr_pb_hier_mapping.xml
+INFO     : Read proto netlist file C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/work_pnr\tools_core.net_proto
+INFO     : Read proto netlist for file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/work_pnr\tools_core.net_proto" took 0.011 seconds
+INFO     : Setup net and block data structure took 0.094 seconds
+INFO     : Reading core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Successfully read core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Counting 1 clocks that are not assigned to clock resources as global clocks.
+INFO     : Packed netlist loading took 2.94575 seconds.
+INFO     : 	Packed netlist loading took 1.28125 seconds (approximately) in total CPU time.
+INFO     : Packed netlist loading virtual memory usage: begin = 1009.9 MB, end = 1139 MB, delta = 129.1 MB
+INFO     : 	Packed netlist loading peak virtual memory usage = 1265.43 MB
+INFO     : Packed netlist loading resident set memory usage: begin = 911.756 MB, end = 1040.88 MB, delta = 129.124 MB
+INFO     : 	Packed netlist loading peak resident set memory usage = 1165.25 MB
+           ***** Ending stage packed netlist loading *****
+           
+INFO     : Run checks after load placement.
+INFO     : Reading core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Successfully read core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Successfully loaded placement data from "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.place".
+           ***** Beginning stage bitstream generation ... *****
+INFO     : Reading core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Successfully read core interface constraints file "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.interface.csv"
+INFO     : Finished writing bitstream file C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/work_pnr\tools_core.lbf.
+INFO     : Bitstream generation took 17.5334 seconds.
+INFO     : 	Bitstream generation took 7.34375 seconds (approximately) in total CPU time.
+INFO     : Bitstream generation virtual memory usage: begin = 1081.48 MB, end = 1534.96 MB, delta = 453.488 MB
+INFO     : 	Bitstream generation peak virtual memory usage = 1534.96 MB
+INFO     : Bitstream generation resident set memory usage: begin = 983.748 MB, end = 1439.48 MB, delta = 455.732 MB
+INFO     : 	Bitstream generation peak resident set memory usage = 1439.48 MB
+           ***** Ending stage bitstream generation *****
+           
+INFO     : The entire flow of EFX_PNR took 160.134 seconds.
+INFO     : 	The entire flow of EFX_PNR took 82.3594 seconds (approximately) in total CPU time.
+INFO     : The entire flow of EFX_PNR virtual memory usage: begin = 19.8 MB, end = 1534.96 MB, delta = 1515.16 MB
+INFO     : 	The entire flow of EFX_PNR peak virtual memory usage = 1534.96 MB
+INFO     : The entire flow of EFX_PNR resident set memory usage: begin = 20.44 MB, end = 1439.52 MB, delta = 1419.08 MB
+INFO     : 	The entire flow of EFX_PNR peak resident set memory usage = 1439.52 MB

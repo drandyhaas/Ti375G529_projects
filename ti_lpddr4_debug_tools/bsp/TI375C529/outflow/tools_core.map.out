@@ -1,0 +1,350 @@
+INFO     : Efinix FPGA Synthesis.
+INFO     : Version: 2025.1.110.5.9
+INFO     : Compiled: Sep 19 2025.
+INFO     : 
+INFO     : Copyright (C) 2013 - 2025 Efinix, Inc. All rights reserved.
+
+INFO     : Reading project database "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.xml"
+INFO     : Analyzing Verilog file 'C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v' [VERI-1482]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(8): compiling module 'EFX_IBUF' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(16): compiling module 'EFX_OBUF' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(23): compiling module 'EFX_IO_BUF' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(33): compiling module 'EFX_CLKOUT' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(41): compiling module 'EFX_IREG' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(51): compiling module 'EFX_OREG' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(60): compiling module 'EFX_IOREG' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(75): compiling module 'EFX_IDDIO' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(87): compiling module 'EFX_ODDIO' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(99): compiling module 'EFX_GPIO_V1' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(124): compiling module 'EFX_GPIO_V2' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(149): compiling module 'EFX_GPIO_V3' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(186): compiling module 'EFX_PLL_V1' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(205): compiling module 'EFX_PLL_V2' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(231): compiling module 'EFX_PLL_V3' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(279): compiling module 'EFX_OSC_V1' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(285): compiling module 'EFX_OSC_V3' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(294): compiling module 'EFX_FPLL_V1' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(348): compiling module 'EFX_JTAG_V1' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(357): compiling module 'EFX_JTAG_CTRL' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(364): compiling module 'EFX_LVDS_RX_V1' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(381): compiling module 'EFX_LVDS_TX_V1' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(399): compiling module 'EFX_LVDS_RX_V2' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(426): compiling module 'EFX_LVDS_TX_V2' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v(446): compiling module 'EFX_LVDS_BIDIR_V2' [VERI-1018]
+INFO     : Reading project database "C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/tools_core.xml"
+INFO     : ***** Beginning Analysis ... *****
+INFO     : default VHDL library search path is now "C:/Efinity/2025.1/sim_models/vhdl/packages/vhdl_2008" [VHDL-1504]
+INFO     : Analyzing Verilog file 'C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:/Efinity/2025.1/sim_models/maplib/efinix_peri_lib.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v' [VERI-1482]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(1): analyzing included file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl/define.vh' [VERI-1328]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(1): back to file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v' [VERI-2320]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\debug_hub.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\axi_lite_slave.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\efx_datasync.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\j2a_bridge.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v' [VERI-1482]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(341): undeclared symbol 'axi1_WID', assumed default net type 'wire' [VERI-2561]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(479): undeclared symbol 'osc_inst1_ENA', assumed default net type 'wire' [VERI-2561]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\define.vh' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\efx_cdc_pulse_gen.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\jtag2axi_debugger.v' [VERI-1482]
+INFO     : Analyzing Verilog file 'C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\axi_ctrl_ver3.v' [VERI-1482]
+INFO     : Analysis took 0.0421284 seconds.
+INFO     : 	Analysis took 0.015625 seconds (approximately) in total CPU time.
+INFO     : Analysis virtual memory usage: begin = 53.532 MB, end = 53.56 MB, delta = 0.028 MB
+INFO     : 	Analysis peak virtual memory usage = 53.568 MB
+INFO     : Analysis resident set memory usage: begin = 56.912 MB, end = 58.78 MB, delta = 1.868 MB
+INFO     : 	Analysis peak resident set memory usage = 58.78 MB
+INFO     : ***** Ending Analysis ... *****
+INFO     : ***** Beginning Elaboration ... *****
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(3): compiling module 'top' [VERI-1018]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(213): port 'atype' remains unconnected for this instance [VERI-1927]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(382): port 'DDR_AID_0' remains unconnected for this instance [VERI-1927]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(531): port 'axi_master_aw_prot' remains unconnected for this instance [VERI-1927]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(531): port 'axi_master_b_user' is not connected on this instance [VERI-2435]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(654): port 'db_reg0' remains unconnected for this instance [VERI-1927]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(8): compiling module 'tools_core' [VERI-1018]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v(3): compiling module 'memory_checker_lfsr' [VERI-1018]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v(125): 'awready_f' should be on the sensitivity list [VERI-1221]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v(244): expression size 32 truncated to fit in target size 9 [VERI-1209]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v(270): expression size 32 truncated to fit in target size 9 [VERI-1209]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v(315): expression size 32 truncated to fit in target size 9 [VERI-1209]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\axi_ctrl_ver3.v(33): compiling module 'axi_ctrl_ver3(NUM_AXI_IDS=16)' [VERI-1018]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(341): actual bit length 1 differs from formal bit length 8 for port 'DDR_WID_0' [VERI-1330]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(364): actual bit length 128 differs from formal bit length 256 for port 'i_pattern_len' [VERI-1330]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\jtag2axi_debugger.v(8): compiling module 'jtag2axi_debugger(NUM_OF_AXI_PORT=2,AXI_DATA_WIDTH=32,AXI_ID_WIDTH=6)' [VERI-1018]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\debug_hub.v(1): compiling module 'debug_hub' [VERI-1018]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\j2a_bridge.v(1): compiling module 'j2a_bridge(AXI_ID_WIDTH=6)' [VERI-1018]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\efx_cdc_pulse_gen.v(1): compiling module 'efx_cdc_pulse_gen' [VERI-1018]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\efx_datasync.v(1): compiling module 'efx_datasync' [VERI-1018]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(506): actual bit length 6 differs from formal bit length 8 for port 'axi_master_aw_size' [VERI-1330]
+INFO     : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\axi_lite_slave.v(1): compiling module 'axi_lite_slave' [VERI-1018]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(301): input port 'DDR_AREADY_0' remains unconnected for this instance [VDB-1053]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v(488): input port 'axi_master_b_user[11]' remains unconnected for this instance [VDB-1053]
+INFO     : Elaboration took 0.3977 seconds.
+INFO     : 	Elaboration took 0.15625 seconds (approximately) in total CPU time.
+INFO     : Elaboration virtual memory usage: begin = 53.56 MB, end = 111.016 MB, delta = 57.456 MB
+INFO     : 	Elaboration peak virtual memory usage = 111.016 MB
+INFO     : Elaboration resident set memory usage: begin = 58.812 MB, end = 117.452 MB, delta = 58.64 MB
+INFO     : 	Elaboration peak resident set memory usage = 117.452 MB
+INFO     : ***** Ending Elaboration ... *****
+INFO     : ... Setting Synthesis Option: mode=speed
+INFO     : ***** Beginning Reading Mapping Library ... *****
+INFO     : Analyzing Verilog file 'C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v' [VERI-1482]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(8): compiling module 'EFX_ADD' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(21): compiling module 'EFX_FF' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(38): compiling module 'EFX_COMB4' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(48): compiling module 'EFX_GBUFCE' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(57): compiling module 'EFX_LUT4' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(65): compiling module 'EFX_MULT' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(100): compiling module 'EFX_DSP48' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(156): compiling module 'EFX_DSP24' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(209): compiling module 'EFX_DSP12' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(262): compiling module 'EFX_RAM_4K' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(322): compiling module 'EFX_RAM_5K' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(394): compiling module 'EFX_DPRAM_5K' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(499): compiling module 'RAMB5' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(561): compiling module 'EFX_RAM_10K' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(653): compiling module 'EFX_RAM10' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(754): compiling module 'EFX_DPRAM10' [VERI-1018]
+INFO     : C:/Efinity/2025.1/sim_models/maplib/efinix_maplib.v(884): compiling module 'EFX_SRL8' [VERI-1018]
+INFO     : Reading Mapping Library took 0.0111057 seconds.
+INFO     : 	Reading Mapping Library took 0.015625 seconds (approximately) in total CPU time.
+INFO     : Reading Mapping Library virtual memory usage: begin = 144.364 MB, end = 144.364 MB, delta = 0 MB
+INFO     : 	Reading Mapping Library peak virtual memory usage = 144.364 MB
+INFO     : Reading Mapping Library resident set memory usage: begin = 150.716 MB, end = 150.736 MB, delta = 0.02 MB
+INFO     : 	Reading Mapping Library peak resident set memory usage = 150.736 MB
+INFO     : ***** Ending Reading Mapping Library ... *****
+INFO     : ... Pre-synthesis checks begin
+WARNING  : Removing redundant signal : rid[5]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:40) [EFX-0200]
+WARNING  : Removing redundant signal : rid[4]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:40) [EFX-0200]
+WARNING  : Removing redundant signal : rid[3]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:40) [EFX-0200]
+WARNING  : Removing redundant signal : rid[2]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:40) [EFX-0200]
+WARNING  : Removing redundant signal : rid[1]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:40) [EFX-0200]
+WARNING  : Removing redundant signal : rid[0]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:40) [EFX-0200]
+WARNING  : Removing redundant signal : rresp[1]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:47) [EFX-0200]
+WARNING  : Removing redundant signal : rresp[0]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:47) [EFX-0200]
+WARNING  : Removing redundant signal : bid[5]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:49) [EFX-0200]
+WARNING  : Removing redundant signal : bid[4]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:49) [EFX-0200]
+WARNING  : Removing redundant signal : bid[3]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:49) [EFX-0200]
+WARNING  : Removing redundant signal : bid[2]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:49) [EFX-0200]
+WARNING  : Removing redundant signal : bid[1]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:49) [EFX-0200]
+WARNING  : Removing redundant signal : bid[0]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:49) [EFX-0200]
+WARNING  : Removing redundant signal : r_lfsr_2P[127]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:90) [EFX-0200]
+WARNING  : Removing redundant signal : r_lfsr_2P[126]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:90) [EFX-0200]
+WARNING  : Removing redundant signal : r_lfsr_2P[125]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:90) [EFX-0200]
+WARNING  : Removing redundant signal : r_lfsr_2P[124]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:90) [EFX-0200]
+WARNING  : Removing redundant signal : r_lfsr_2P[123]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:90) [EFX-0200]
+WARNING  : Removing redundant signal : r_lfsr_2P[122]. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\memory_checker_lfsr.v:90) [EFX-0200]
+WARNING  : (The above message was generated too many times, subsequent similar messages will be muted.) [EFX-0200]
+INFO     : Module Instance 'checker0' input pin 'check_mask[0]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[1]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[2]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[3]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[4]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[5]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[6]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[7]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[8]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[9]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[10]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[11]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[12]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[13]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[14]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[15]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[16]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[17]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[18]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[19]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[20]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[21]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[22]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[23]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[24]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[25]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[26]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[27]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[28]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[29]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[30]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'checker0' input pin 'check_mask[31]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'TRIGGER' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[0]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[1]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[2]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[3]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[4]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[5]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[6]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[7]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[8]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[9]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[10]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[11]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[12]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[13]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[14]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[15]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[16]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[17]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[18]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[19]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[20]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[21]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[22]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[23]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[24]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[25]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[26]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[27]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[28]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[29]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[30]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'LOOP_N[31]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'PATTERN_NUMBER[0]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'PATTERN_NUMBER[1]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'PATTERN_NUMBER[2]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'PATTERN_NUMBER[3]' is tied to constant (=0). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[0]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[1]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[2]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[3]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[4]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[5]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[6]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[7]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[8]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[9]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[10]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[11]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[12]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[13]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[14]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[15]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[16]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[17]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[18]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[19]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[20]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[21]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[22]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[23]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[24]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[25]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[26]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[27]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[28]' is tied to constant (=1). [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[29]' is tied to constant (=1). [EFX-0266]
+INFO     : (The above message was generated too many times, subsequent similar messages will be muted.) [EFX-0266]
+INFO     : Module Instance 'tester0' input pin 'i_pattern_len[30]' is tied to constant (=1). [EFX-0266]
+WARNING  : Re-wiring to GND non-driven net 'tester0.DDR_AREADY_0'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:301) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[11]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[10]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[9]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[8]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[7]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[6]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[5]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[4]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : Re-wiring to GND non-driven net 'jtag2axi_debugger.axi_master_b_user[3]'. (C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\tools_core.v:488) [EFX-0201]
+WARNING  : (The above message was generated too many times, subsequent similar messages will be muted.) [EFX-0201]
+INFO     : ... Pre-synthesis checks end (Real time : 0s)
+INFO     : ... NameSpace init begin
+INFO     : ... NameSpace init end (Real time : 0s)
+INFO     : ... Mapping design "top"
+INFO     : ... Hierarchical pre-synthesis "memory_checker_lfsr" begin
+INFO     : ... Hierarchical pre-synthesis "memory_checker_lfsr" end (Real time : 0s)
+INFO     : ... Hierarchical pre-synthesis "axi_ctrl_ver3(NUM_AXI_IDS=16)" begin
+INFO     : ... Hierarchical pre-synthesis "axi_ctrl_ver3(NUM_AXI_IDS=16)" end (Real time : 1s)
+INFO     : ... Hierarchical pre-synthesis "debug_hub" begin
+INFO     : ... Hierarchical pre-synthesis "debug_hub" end (Real time : 0s)
+INFO     : ... Hierarchical pre-synthesis "efx_datasync" begin
+INFO     : ... Hierarchical pre-synthesis "efx_datasync" end (Real time : 0s)
+INFO     : ... Hierarchical pre-synthesis "efx_cdc_pulse_gen" begin
+INFO     : ... Hierarchical pre-synthesis "efx_cdc_pulse_gen" end (Real time : 0s)
+INFO     : ... Hierarchical pre-synthesis "j2a_bridge(AXI_ID_WIDTH=6)" begin
+INFO     : ... Hierarchical pre-synthesis "j2a_bridge(AXI_ID_WIDTH=6)" end (Real time : 0s)
+INFO     : ... Hierarchical pre-synthesis "jtag2axi_debugger(NUM_OF_AXI_PORT=2,AXI_DATA_WIDTH=32,AXI_ID_WIDTH=6)" begin
+INFO     : ... Hierarchical pre-synthesis "jtag2axi_debugger(NUM_OF_AXI_PORT=2,AXI_DATA_WIDTH=32,AXI_ID_WIDTH=6)" end (Real time : 0s)
+INFO     : ... Hierarchical pre-synthesis "axi_lite_slave" begin
+INFO     : ... Hierarchical pre-synthesis "axi_lite_slave" end (Real time : 0s)
+INFO     : ... Hierarchical pre-synthesis "tools_core" begin
+INFO     : ... Hierarchical pre-synthesis "tools_core" end (Real time : 1s)
+INFO     : ... Hierarchical pre-synthesis "top" begin
+INFO     : ... Clock Enable Synthesis Performed on 1612 flops.
+INFO     : ... Hierarchical pre-synthesis "top" end (Real time : 1s)
+INFO     : ... Flat optimizations begin
+INFO     : ... Flat optimizations end (Real time : 0s)
+INFO     : ... Flat synthesis begin
+INFO     : ... Flat synthesis end (Real time : 0s)
+INFO     : ... Flat optimizations begin
+INFO     : ... Flat optimizations end (Real time : 1s)
+INFO     : ... Check and break combinational loops begin
+INFO     : ... Check and break combinational loops end (Real time : 0s)
+INFO     : ... Sequential Optimization begin
+INFO     : ... Clock Network 'axi1_ACLK' with 1911 loads will be considered for sequential optimization.
+INFO     : ... Clock Network 'axi0_ACLK' with 1054 loads will be considered for sequential optimization.
+INFO     : ... Clock Network 'regACLK' with 945 loads will be considered for sequential optimization.
+INFO     : ... Clock Network 'jtag_inst1_TCK' with 240 loads will be considered for sequential optimization.
+INFO     : ... Sequential Optimization deduced 724 equivalent points.
+INFO     : ... Sequential Optimization end (Real time : 18s)
+INFO     : ... Setup for logic synthesis begin
+INFO     : ... Setup for logic synthesis end (Real time : 0s)
+INFO     : ... LUT mapping begin
+INFO     : ... LS, strategy: 3, nd: 3390, ed: 10907, lv: 6, pw: 8058.13
+INFO     : ... LUT mapping end (Real time : 13s)
+INFO     : ... Post-synthesis Verific netlist creation begin
+INFO     : ... Post-synthesis Verific netlist creation end (Real time : 0s)
+INFO     : ... Postmap Retiming Optimization begin
+INFO     : ... Clock Network 'axi1_ACLK~axi1_ACLK' with 1834 loads will be considered for retiming optimization.
+INFO     : ... Clock Network 'axi0_ACLK~axi0_ACLK' with 1042 loads will be considered for retiming optimization.
+INFO     : ... Clock Network 'regACLK~regACLK' with 945 loads will be considered for retiming optimization.
+INFO     : ... Clock Network 'jtag_inst1_TCK~jtag_inst1_TCK' with 240 loads will be considered for retiming optimization.
+INFO     : ... Performed 0 retime moves.
+INFO     : ... Postmap Retiming Optimization end (Real time : 17s)
+INFO     : ***** Beginning VDB Netlist Checker ... *****
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(37): Input/inout port axi0_BID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(38): Input/inout port axi0_BRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(40): Input/inout port axi0_RID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(44): Input/inout port axi0_RRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(78): Input/inout port axi1_BID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(79): Input/inout port axi1_BRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(81): Input/inout port axi1_RID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(85): Input/inout port axi1_RRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(106): Input/inout port regRLAST is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(107): Input/inout port regRRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(108): Input/inout port regRID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(125): Input/inout port regBID[5] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(126): Input/inout port regBRESP[1] is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(132): Input/inout port jtag_inst1_DRCK is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(134): Input/inout port jtag_inst1_RUNTEST is unconnected and will be removed. [VDB-8003]
+WARNING  : C:\Users\ahaas\.efinity\project\ti_lpddr4_debug_tools-v2.3\ti_lpddr4_debug_tools\rtl\top.v(139): Input/inout port jtag_inst1_TMS is unconnected and will be removed. [VDB-8003]
+WARNING  : Found 52 warnings in the post-synthesis netlist.
+INFO     : VDB Netlist Checker took 0.0146258 seconds.
+INFO     : 	VDB Netlist Checker took 0.03125 seconds (approximately) in total CPU time.
+INFO     : VDB Netlist Checker virtual memory usage: begin = 207.104 MB, end = 207.16 MB, delta = 0.056 MB
+INFO     : 	VDB Netlist Checker peak virtual memory usage = 207.348 MB
+INFO     : VDB Netlist Checker resident set memory usage: begin = 216.408 MB, end = 216.532 MB, delta = 0.124 MB
+INFO     : 	VDB Netlist Checker peak resident set memory usage = 216.532 MB
+INFO     : ***** Ending VDB Netlist Checker ... *****
+INFO     : Resource Summary 
+INFO     : =============================== 
+INFO     : EFX_ADD         : 	196
+INFO     : EFX_LUT4        : 	3390
+INFO     : EFX_FF          : 	4058
+INFO     : EFX_SRL8        : 	16
+INFO     : =============================== 
+INFO     : ... Post-Map Verilog Writer begin
+INFO     : Writing netlist 'top' to Verilog file 'C:/Users/ahaas/.efinity/project/ti_lpddr4_debug_tools-v2.3/ti_lpddr4_debug_tools/bsp/TI375C529/outflow/tools_core.map.v' [VDB-1030]
+INFO     : ... Post-Map Verilog Writer end (Real time : 0s)
+INFO     : The entire flow of EFX_MAP took 55.1986 seconds.
+INFO     : 	The entire flow of EFX_MAP took 24.4688 seconds (approximately) in total CPU time.
+INFO     : The entire flow of EFX_MAP virtual memory usage: begin = 17.952 MB, end = 206.96 MB, delta = 189.008 MB
+INFO     : 	The entire flow of EFX_MAP peak virtual memory usage = 207.348 MB
+INFO     : The entire flow of EFX_MAP resident set memory usage: begin = 16.116 MB, end = 216.408 MB, delta = 200.292 MB
+INFO     : 	The entire flow of EFX_MAP peak resident set memory usage = 216.596 MB

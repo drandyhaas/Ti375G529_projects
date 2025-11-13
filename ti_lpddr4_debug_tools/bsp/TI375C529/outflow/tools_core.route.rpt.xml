@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<efx:tool_report xmlns:efx="http://www.efinixinc.com/tool_report" date="2025-11-12T23:53:23-0500" project="tools_core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/tool_report tool_report.xsd">
+
+  <efx:group name="System Resources">
+    <efx:group_data info="runtime" name="packing" severity="info" value="0|0:0:0"/>
+    <efx:group_data info="peak_rr" name="Peak RSS" severity="info" value="1439.52 MB"/>
+  </efx:group>
+
+  <efx:group name="Core Resources">
+    <efx:group_data name="Inputs" severity="info" value="1085 / 4370"/>
+    <efx:group_data name="Outputs" severity="info" value="1519 / 5891"/>
+    <efx:group_data name="XLRs" severity="info" value="6135 / 362880"/>
+    <efx:group_data name="Memory Blocks" severity="info" value="0 / 2688"/>
+    <efx:group_data name="DSP Blocks" severity="info" value="0 / 1344"/>
+  </efx:group>
+
+  <efx:group name="Interface">
+    <efx:group_data name="Missing Interface Pins" severity="info" value="52"/>
+    <efx:group_data name="Unassigned Core Pins" severity="info" value="0"/>
+  </efx:group>
+
+  <efx:group name="Timing">
+    <efx:group_data name="Worst Negative Slack (WNS)" severity="error" value="-0.453 ns"/>
+    <efx:group_data name="Worst Hold Slack (WHS)" severity="info" value="0.023 ns"/>
+    <efx:group_data name="regACLK" severity="info" value="190.730 MHz"/>
+    <efx:group_data name="axi0_ACLK" severity="info" value="183.385 MHz"/>
+    <efx:group_data name="axi1_ACLK" severity="info" value="204.834 MHz"/>
+  </efx:group>
+
+  <efx:group name="Core Resources">
+    <efx:group_data name="Inputs" severity="info" value="1085 / 4370"/>
+    <efx:group_data name="Outputs" severity="info" value="1519 / 5891"/>
+    <efx:group_data name="XLRs" severity="info" value="6135 / 362880"/>
+    <efx:group_data name="Memory Blocks" severity="info" value="0 / 2688"/>
+    <efx:group_data name="DSP Blocks" severity="info" value="0 / 1344"/>
+  </efx:group>
+
+</efx:tool_report>

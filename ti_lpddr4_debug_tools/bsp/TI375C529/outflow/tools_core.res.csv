@@ -1,0 +1,40 @@
+sep=\t
+Module Resource Usage Distribution Estimates
+Generated at: Nov 12, 2025 23:49:36
+
+Note: some resources maybe grouped under different hierarchy due to optimization and LUT mapping
+
+Module	         FFs	        SRLs	        ADDs	        LUTs	    COMB4s	      RAMs	 DSP/MULTs
+top:top                                                     	    4058(0)	      16(0)	     196(0)	    3390(0)	     0(0)	     0(0)	     0(0)	
+ +core0:tools_core                                          	    4058(0)	      16(0)	     196(0)	    3390(0)	     0(0)	     0(0)	     0(0)	
+  +checker0:memory_checker_lfsr                             	 1042(1042)	       0(0)	     50(50)	 1651(1651)	     0(0)	     0(0)	     0(0)	
+  +tester0:axi_ctrl_ver3(NUM_AXI_IDS=16)                    	 1831(1831)	       0(0)	   146(146)	 1016(1016)	     0(0)	     0(0)	     0(0)	
+  +jtag2axi_debugger:jtag2axi_debugger(NUM_OF_AXI_PORT=2,AXI_DATA_WIDTH=32,AXI_ID_WIDTH=6)	     478(0)	      16(0)	       0(0)	     156(0)	     0(0)	     0(0)	     0(0)	
+   +u_debug_hub:debug_hub                                   	     41(41)	       0(0)	       0(0)	       9(9)	     0(0)	     0(0)	     0(0)	
+   +AXI_MASTER[0].bridge0:j2a_bridge(AXI_ID_WIDTH=6)        	   196(188)	       8(0)	       0(0)	     74(66)	     0(0)	     0(0)	     0(0)	
+    +rd_done_a2j:efx_cdc_pulse_gen                          	       2(2)	       2(0)	       0(0)	       3(3)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+    +wr_done_a2j:efx_cdc_pulse_gen                          	       2(2)	       2(0)	       0(0)	       1(1)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+    +axi_read_j2a:efx_cdc_pulse_gen                         	       2(2)	       2(0)	       0(0)	       2(2)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+    +axi_write_j2a:efx_cdc_pulse_gen                        	       2(2)	       2(0)	       0(0)	       2(2)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+   +AXI_MASTER[1].bridge0:j2a_bridge(AXI_ID_WIDTH=6)        	   241(233)	       8(0)	       0(0)	     73(65)	     0(0)	     0(0)	     0(0)	
+    +rd_done_a2j:efx_cdc_pulse_gen                          	       2(2)	       2(0)	       0(0)	       2(2)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+    +wr_done_a2j:efx_cdc_pulse_gen                          	       2(2)	       2(0)	       0(0)	       2(2)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+    +axi_read_j2a:efx_cdc_pulse_gen                         	       2(2)	       2(0)	       0(0)	       2(2)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+    +axi_write_j2a:efx_cdc_pulse_gen                        	       2(2)	       2(0)	       0(0)	       2(2)	     0(0)	     0(0)	     0(0)	
+     +xpulse_clear_sync:efx_datasync                        	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+     +xpulse_stretch_sync:efx_datasync                      	       0(0)	       1(1)	       0(0)	       0(0)	     0(0)	     0(0)	     0(0)	
+  +axilite_inst:axi_lite_slave                              	   707(707)	       0(0)	       0(0)	   567(567)	     0(0)	     0(0)	     0(0)	

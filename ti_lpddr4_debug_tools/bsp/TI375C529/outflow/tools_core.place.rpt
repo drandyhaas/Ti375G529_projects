@@ -1,0 +1,95 @@
+
+Efinix FPGA Placement and Routing.
+Version: 2025.1.110.5.9 
+Date: Wed Nov 12 23:50:44 2025
+
+Copyright (C) 2013 - 2025 Efinix, Inc. All rights reserved.
+ 
+Family: Titanium 
+Device: Ti375C529
+Top-level Entity Name: tools_core
+Elapsed time for packing: 0 hours 0 minutes 0 seconds
+
+---------- Resource Summary (begin) ----------
+Inputs: 1085 / 4370 (24.83%)
+Outputs: 1519 / 5891 (25.79%)
+Global Clocks (GBUF): 4 / 32 (12.50%)
+Regional Clocks (RBUF): 0 / 64 (0.00%)
+	RBUF: Core: 0 / 48 (0.00%)
+	RBUF: Periphery: 0 / 8 (0.00%)
+	RBUF: Multi-Region: 0 / 8 (0.00%)
+XLRs: 6135 / 362880 (1.69%)
+	XLRs needed for Logic: 1985 / 362880 (0.55%)
+	XLRs needed for Logic + FF: 1407 / 362880 (0.39%)
+	XLRs needed for Adder: 76 / 362880 (0.02%)
+	XLRs needed for Adder + FF: 120 / 362880 (0.03%)
+	XLRs needed for FF: 2531 / 362880 (0.70%)
+	XLRs needed for SRL8: 16 / 67200 (0.02%)
+	XLRs needed for SRL8+FF: 0 / 67200 (0.00%)
+	XLRs needed for Routing: 0 / 362880 (0.00%)
+Memory Blocks: 0 / 2688 (0.00%)
+DSP Blocks: 0 / 1344 (0.00%)
+---------- Resource Summary (end) ----------
+
+
+---------- IO Interface Summary (begin) ----------
+
++------------------------+--------------+
+| Missing Interface Pins | Input/Output |
++------------------------+--------------+
+|      regBRESP[0]       |    Input     |
+|      regBRESP[1]       |    Input     |
+|       regBID[0]        |    Input     |
+|       regBID[2]        |    Input     |
+|       regBID[3]        |    Input     |
+|       regBID[4]        |    Input     |
+|        regRLAST        |    Input     |
+|      regRRESP[0]       |    Input     |
+|      regRRESP[1]       |    Input     |
+|       regRID[1]        |    Input     |
+|       regRID[2]        |    Input     |
+|       regRID[3]        |    Input     |
+|       regRID[5]        |    Input     |
+|     axi1_RRESP[0]      |    Input     |
+|     axi1_RRESP[1]      |    Input     |
+|      axi1_RID[0]       |    Input     |
+|      axi1_RID[1]       |    Input     |
+|      axi1_RID[2]       |    Input     |
+|      axi1_RID[4]       |    Input     |
+|      axi1_RID[5]       |    Input     |
+|     axi1_BRESP[1]      |    Input     |
+|      axi1_BID[0]       |    Input     |
+|      axi1_BID[1]       |    Input     |
+|      axi1_BID[3]       |    Input     |
+|      axi1_BID[4]       |    Input     |
+|      axi1_BID[5]       |    Input     |
+|     axi0_RRESP[1]      |    Input     |
+|      axi0_RID[0]       |    Input     |
+|      axi0_RID[2]       |    Input     |
+|      axi0_RID[3]       |    Input     |
+|      axi0_RID[4]       |    Input     |
+|     axi0_BRESP[0]      |    Input     |
+|     axi0_BRESP[1]      |    Input     |
+|      axi0_BID[1]       |    Input     |
+|      axi0_BID[2]       |    Input     |
+|      axi0_BID[3]       |    Input     |
+|      axi0_BID[5]       |    Input     |
+|       regBID[1]        |    Input     |
+|       regBID[5]        |    Input     |
+|       regRID[0]        |    Input     |
+|       regRID[4]        |    Input     |
+|      axi1_RID[3]       |    Input     |
+|     axi1_BRESP[0]      |    Input     |
+|      axi1_BID[2]       |    Input     |
+|     axi0_RRESP[0]      |    Input     |
+|      axi0_RID[1]       |    Input     |
+|      axi0_RID[5]       |    Input     |
+|      axi0_BID[0]       |    Input     |
+|      axi0_BID[4]       |    Input     |
+|    jtag_inst1_DRCK     |    Input     |
+|   jtag_inst1_RUNTEST   |    Input     |
+|     jtag_inst1_TMS     |    Input     |
++------------------------+--------------+
+
+----------- IO Interface Summary (end) ----------
+

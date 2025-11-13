@@ -1,0 +1,15 @@
+{
+    "session": {
+        "wizard": {
+            "capture_control": false,
+            "data_depth": 1024,
+            "input_pipeline": 1,
+            "jtag_user": "USER1",
+            "selected_nets": [
+
+            ],
+            "src": "elaborate",
+            "top_module": "top"
+        }
+    }
+}
