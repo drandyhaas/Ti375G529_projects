@@ -9,7 +9,7 @@ For memtest in ti_lpddr4_debug_tools:
 <pre>
 cmd
 cd ti_lpddr4_debug_tools
-c:\Efinity\2025.1\bin\setup.bat
+G:\Efinity\2025.1\bin\setup.bat
 python console.py --dev TI375C529
 > all
 > eff

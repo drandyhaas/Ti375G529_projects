@@ -5,7 +5,7 @@
 
 # Efinity Interface Designer SDC
 # Version: 2025.1.110.5.9
-# Date: 2025-11-12 12:40
+# Date: 2025-11-19 05:42
 
 # Copyright (C) 2013 - 2025 Efinix Inc. All rights reserved.
 
@@ -16,8 +16,8 @@
 # PLL Constraints
 #################
 create_clock -period 20.000 -name regACLK [get_ports {regACLK}]
-create_clock -period 5.000 -name axi0_ACLK [get_ports {axi0_ACLK}]
-create_clock -period 5.000 -name axi1_ACLK [get_ports {axi1_ACLK}]
+create_clock -period 5.556 -name axi0_ACLK [get_ports {axi0_ACLK}]
+create_clock -period 5.556 -name axi1_ACLK [get_ports {axi1_ACLK}]
 
 # GPIO Constraints
 ####################
@@ -126,8 +126,8 @@ set_input_delay -clock axi0_ACLK -reference_pin [get_ports {axi0_ACLK~CLKOUT~2~4
 set_input_delay -clock axi0_ACLK -reference_pin [get_ports {axi0_ACLK~CLKOUT~2~464}] -min 1.750 [get_ports {axi0_RVALID}]
 set_input_delay -clock axi0_ACLK -reference_pin [get_ports {axi0_ACLK~CLKOUT~2~464}] -max 2.625 [get_ports {axi0_WREADY}]
 set_input_delay -clock axi0_ACLK -reference_pin [get_ports {axi0_ACLK~CLKOUT~2~464}] -min 1.750 [get_ports {axi0_WREADY}]
-set_output_delay -clock axi1_ACLK -reference_pin [get_ports {axi1_ACLK~CLKOUT~1~276}] -max 3.675 [get_ports {axi1_ARESTN}]
-set_output_delay -clock axi1_ACLK -reference_pin [get_ports {axi1_ACLK~CLKOUT~1~276}] -min -0.000 [get_ports {axi1_ARESTN}]
+set_output_delay -clock axi1_ACLK -reference_pin [get_ports {axi1_ACLK~CLKOUT~1~276}] -max 3.675 [get_ports {axi1_ARESETn}]
+set_output_delay -clock axi1_ACLK -reference_pin [get_ports {axi1_ACLK~CLKOUT~1~276}] -min -0.000 [get_ports {axi1_ARESETn}]
 set_output_delay -clock axi1_ACLK -reference_pin [get_ports {axi1_ACLK~CLKOUT~1~276}] -max 2.310 [get_ports {axi1_ARADDR[*]}]
 set_output_delay -clock axi1_ACLK -reference_pin [get_ports {axi1_ACLK~CLKOUT~1~276}] -min -0.140 [get_ports {axi1_ARADDR[*]}]
 set_output_delay -clock axi1_ACLK -reference_pin [get_ports {axi1_ACLK~CLKOUT~1~276}] -max 2.310 [get_ports {axi1_ARAPCMD}]
