@@ -8,5 +8,5 @@
 /.idea/*
 /*/work_pt/*
 /*/.lock
-/ti_lpddr4_debug_tools/bsp/TI375C529/.lock
-/.claude/settings.local.json
+/*/*/*/.lock
+/.claude/*
