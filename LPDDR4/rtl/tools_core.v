@@ -7,6 +7,27 @@
 
 module tools_core (
 
+// LEDs
+output [3:0]    LED,
+
+// USB3 FT601 Interface
+input           ftdi_clk,
+input           ftdi_rxf_n,
+input           ftdi_txe_n,
+output          ftdi_oe_n,
+output          ftdi_rd_n,
+output          ftdi_wr_n,
+input  [31:0]   ftdi_data_IN,
+output [31:0]   ftdi_data_OUT,
+output [31:0]   ftdi_data_OE,
+input  [3:0]    ftdi_be_IN,
+output [3:0]    ftdi_be_OUT,
+output [3:0]    ftdi_be_OE,
+
+// 100MHz clock for USB processing
+input           clk_100,
+
+// DDR Interface
 input           axi0_ACLK,
 output          axi0_ARESETn,
 output          axi0_ARQOS,
@@ -652,5 +673,107 @@ axi_lite_slave axilite_inst
     .tester_rst(w_tester_rst),
     .tester_pattern(w_tester_pattern)
 );
+
+// ================================================================
+// ==================== USB3 Interface ============================
+// ================================================================
+// Simple USB3 test interface: receives 4 bytes (length),
+// then sends back that many bytes (for usb_rx_mass.py testing)
+
+// USB RX/TX AXI-Stream signals
+wire        usb_rx_tready;
+wire        usb_rx_tvalid;
+wire [ 7:0] usb_rx_tdata;
+
+wire        usb_tx_tready;
+wire        usb_tx_tvalid;
+wire [31:0] usb_tx_tdata;
+wire [ 3:0] usb_tx_tkeep;
+wire        usb_tx_tlast;
+
+// FTDI 245FIFO interface controller
+ftdi_245fifo_top #(
+    .TX_EW                 ( 2                  ),   // TX data stream width,  2=32bit
+    .TX_EA                 ( 14                 ),   // TX FIFO depth = 2^14 = 16384
+    .RX_EW                 ( 0                  ),   // RX data stream width,  0=8bit
+    .RX_EA                 ( 8                  ),   // RX FIFO depth = 2^8 = 256
+    .CHIP_TYPE             ( "FT601"            )
+) u_ftdi_245fifo_top (
+    .rstn_async            ( 1'b1               ),
+    .tx_clk                ( clk_100            ),
+    .tx_tready             ( usb_tx_tready      ),
+    .tx_tvalid             ( usb_tx_tvalid      ),
+    .tx_tdata              ( usb_tx_tdata       ),
+    .tx_tkeep              ( usb_tx_tkeep       ),
+    .tx_tlast              ( usb_tx_tlast       ),
+    .rx_clk                ( clk_100            ),
+    .rx_tready             ( usb_rx_tready      ),
+    .rx_tvalid             ( usb_rx_tvalid      ),
+    .rx_tdata              ( usb_rx_tdata       ),
+    .rx_tkeep              (                    ),
+    .rx_tlast              (                    ),
+    .ftdi_clk              ( ftdi_clk           ),
+    .ftdi_rxf_n            ( ftdi_rxf_n         ),
+    .ftdi_txe_n            ( ftdi_txe_n         ),
+    .ftdi_oe_n             ( ftdi_oe_n          ),
+    .ftdi_rd_n             ( ftdi_rd_n          ),
+    .ftdi_wr_n             ( ftdi_wr_n          ),
+    .ftdi_data_IN          ( ftdi_data_IN       ),
+    .ftdi_data_OUT         ( ftdi_data_OUT      ),
+    .ftdi_data_OE          ( ftdi_data_OE       ),
+    .ftdi_be_IN            ( ftdi_be_IN         ),
+    .ftdi_be_OUT           ( ftdi_be_OUT        ),
+    .ftdi_be_OE            ( ftdi_be_OE         )
+);
+
+// TX specified length module (receives 4 bytes as length, sends that many bytes back)
+tx_specified_len u_tx_specified_len (
+    .rstn                  ( 1'b1               ),
+    .clk                   ( clk_100            ),
+    .i_tready              ( usb_rx_tready      ),
+    .i_tvalid              ( usb_rx_tvalid      ),
+    .i_tdata               ( usb_rx_tdata       ),
+    .o_tready              ( usb_tx_tready      ),
+    .o_tvalid              ( usb_tx_tvalid      ),
+    .o_tdata               ( usb_tx_tdata       ),
+    .o_tkeep               ( usb_tx_tkeep       ),
+    .o_tlast               ( usb_tx_tlast       )
+);
+
+// ================================================================
+// ==================== LED Indicators ============================
+// ================================================================
+// LED[1:0] - Show low 2 bits of last received USB data
+// LED[2]   - Heartbeat from clk_100 (blinks at 5Hz)
+// LED[3]   - Heartbeat from ftdi_clk (blinks at 5Hz)
+
+reg [1:0] usb_tdata_d = 2'h0;
+
+always @ (posedge clk_100)
+    if (usb_rx_tvalid)
+        usb_tdata_d <= usb_rx_tdata[1:0];
+
+wire clk_100_beat;
+wire ftdi_clk_beat;
+
+clock_beat # (
+    .CLK_FREQ              ( 100000000          ),
+    .BEAT_FREQ             ( 5                  )
+) u_clk_100_beat (
+    .clk                   ( clk_100            ),
+    .beat                  ( clk_100_beat       )
+);
+
+clock_beat # (
+    .CLK_FREQ              ( 100000000          ),
+    .BEAT_FREQ             ( 5                  )
+) u_ftdi_clk_beat (
+    .clk                   ( ftdi_clk           ),
+    .beat                  ( ftdi_clk_beat      )
+);
+
+assign LED[1:0] = usb_tdata_d;
+assign LED[2]   = clk_100_beat;
+assign LED[3]   = ftdi_clk_beat;
 
 endmodule

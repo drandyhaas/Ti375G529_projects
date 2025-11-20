@@ -2,6 +2,27 @@
 
 module top (
 
+// LEDs
+output [3:0]    LED,
+
+// USB3 FT601 Interface
+input           ftdi_clk,
+input           ftdi_rxf_n,
+input           ftdi_txe_n,
+output          ftdi_oe_n,
+output          ftdi_rd_n,
+output          ftdi_wr_n,
+input  [31:0]   ftdi_data_IN,
+output [31:0]   ftdi_data_OUT,
+output [31:0]   ftdi_data_OE,
+input  [3:0]    ftdi_be_IN,
+output [3:0]    ftdi_be_OUT,
+output [3:0]    ftdi_be_OE,
+
+// 100MHz clock for USB processing
+input           clk_100,
+
+// DDR Interface
 input           axi0_ACLK,
 output          axi0_ARESETn,
 output          axi0_ARQOS,
@@ -144,6 +165,25 @@ output          jtag_inst1_TDO
 
 tools_core core0(
 
+// LEDs
+.LED(LED),
+
+// USB3 Interface
+.ftdi_clk(ftdi_clk),
+.ftdi_rxf_n(ftdi_rxf_n),
+.ftdi_txe_n(ftdi_txe_n),
+.ftdi_oe_n(ftdi_oe_n),
+.ftdi_rd_n(ftdi_rd_n),
+.ftdi_wr_n(ftdi_wr_n),
+.ftdi_data_IN(ftdi_data_IN),
+.ftdi_data_OUT(ftdi_data_OUT),
+.ftdi_data_OE(ftdi_data_OE),
+.ftdi_be_IN(ftdi_be_IN),
+.ftdi_be_OUT(ftdi_be_OUT),
+.ftdi_be_OE(ftdi_be_OE),
+.clk_100(clk_100),
+
+// DDR Interface
 .axi0_ACLK(axi0_ACLK),
 .axi0_ARESETn(axi0_ARESETn),
 .axi0_ARQOS(axi0_ARQOS),
