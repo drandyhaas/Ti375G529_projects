@@ -726,8 +726,9 @@ ftdi_245fifo_top #(
     .ftdi_be_OE            ( ftdi_be_OE         )
 );
 
-// TX specified length module (receives 4 bytes as length, sends that many bytes back)
-tx_specified_len u_tx_specified_len (
+// USB Command handler (receives CMD + 4-byte length, executes command)
+// Command 0x01: TX_MASS - sends back specified number of bytes
+usb_command_handler u_usb_command_handler (
     .rstn                  ( 1'b1               ),
     .clk                   ( clk_100            ),
     .i_tready              ( usb_rx_tready      ),
