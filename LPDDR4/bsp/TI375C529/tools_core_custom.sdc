@@ -13,6 +13,8 @@ create_clock -period 166.67 [get_ports {jtag_inst1_TCK}]
 # The FT600 provides a 100 MHz clock (10 ns period)
 create_clock -period 10.000 [get_ports {ftdi_clk}]
 
+create_clock -period 10.000 [get_ports {clk_100}]
+
 # Clock Domain Crossing Constraints
 # CRITICAL: Use -exclusive instead of -asynchronous for better timing closure
 # The working 1650 MHz example uses set_clock_groups -exclusive
@@ -23,7 +25,8 @@ set_clock_groups -exclusive \
     -group {axi1_ACLK} \
     -group {regACLK} \
     -group {jtag_inst1_TCK} \
-    -group {ftdi_clk}
+    -group {ftdi_clk} \
+    -group {clk_100}
 
 # Note: With -exclusive, the explicit set_false_path commands below are
 # technically redundant, but we keep them for defensive design and clarity
