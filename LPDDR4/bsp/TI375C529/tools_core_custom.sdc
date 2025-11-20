@@ -9,6 +9,10 @@
 # The JTAG clock needs to be defined for proper timing analysis
 create_clock -period 166.67 [get_ports {jtag_inst1_TCK}]
 
+# USB FT600 Clock Definition
+# The FT600 provides a 100 MHz clock (10 ns period)
+create_clock -period 10.000 [get_ports {ftdi_clk}]
+
 # Clock Domain Crossing Constraints
 # CRITICAL: Use -exclusive instead of -asynchronous for better timing closure
 # The working 1650 MHz example uses set_clock_groups -exclusive
@@ -18,7 +22,8 @@ set_clock_groups -exclusive \
     -group {axi0_ACLK} \
     -group {axi1_ACLK} \
     -group {regACLK} \
-    -group {jtag_inst1_TCK}
+    -group {jtag_inst1_TCK} \
+    -group {ftdi_clk}
 
 # Note: With -exclusive, the explicit set_false_path commands below are
 # technically redundant, but we keep them for defensive design and clarity
@@ -40,6 +45,16 @@ set_false_path -from [get_clocks {jtag_inst1_TCK}] -to [get_clocks {regACLK}]
 set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {jtag_inst1_TCK}]
 set_false_path -from [get_clocks {axi1_ACLK}] -to [get_clocks {jtag_inst1_TCK}]
 set_false_path -from [get_clocks {regACLK}] -to [get_clocks {jtag_inst1_TCK}]
+
+# USB FT600 clock is asynchronous to all design clocks
+set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {axi0_ACLK}]
+set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {axi1_ACLK}]
+set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {regACLK}]
+set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {jtag_inst1_TCK}]
+set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {ftdi_clk}]
+set_false_path -from [get_clocks {axi1_ACLK}] -to [get_clocks {ftdi_clk}]
+set_false_path -from [get_clocks {regACLK}] -to [get_clocks {ftdi_clk}]
+set_false_path -from [get_clocks {jtag_inst1_TCK}] -to [get_clocks {ftdi_clk}]
 
 # Override Auto-Generated I/O Delay Constraints
 # The auto-generated BSP file uses fixed delay values (2.310/2.625 ns) that were
