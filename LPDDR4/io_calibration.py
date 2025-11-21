@@ -1,5 +1,6 @@
 import logging
 import time
+from excp import FatalException
 
 LOGGER = logging.getLogger('ddr_cali_tools')
 

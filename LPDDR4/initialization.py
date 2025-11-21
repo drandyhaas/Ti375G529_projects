@@ -142,21 +142,31 @@ class initialization:
         return list_buf
 
     def init_config_file(self, ctl_reg: list, pi_reg: list, phy_reg: list):
+        import time
 
         LOGGER.info('Write CTL Register')
-
+        start_time = time.time()
         for i in range(len(ctl_reg)):
             self.drv_obj.lpddr4_ctrl_write('CTL', ctl_reg[i][0], ctl_reg[i][1])
+        ctl_time = time.time() - start_time
+        LOGGER.info(f'Wrote {len(ctl_reg)} CTL registers in {ctl_time:.2f}s')
 
         LOGGER.info('Write PHY Register')
-
+        start_time = time.time()
         for i in range(len(phy_reg)):
             self.drv_obj.lpddr4_ctrl_write('PHY', phy_reg[i][0], phy_reg[i][1])
+        phy_time = time.time() - start_time
+        LOGGER.info(f'Wrote {len(phy_reg)} PHY registers in {phy_time:.2f}s')
 
         LOGGER.info('Write PI Register')
-
+        start_time = time.time()
         for i in range(len(pi_reg)):
             self.drv_obj.lpddr4_ctrl_write('PI', pi_reg[i][0], pi_reg[i][1])
+        pi_time = time.time() - start_time
+        LOGGER.info(f'Wrote {len(pi_reg)} PI registers in {pi_time:.2f}s')
+
+        total_time = ctl_time + phy_time + pi_time
+        LOGGER.info(f'Total initialization time: {total_time:.2f}s')
 
         return True
 

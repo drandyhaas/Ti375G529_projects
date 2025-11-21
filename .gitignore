@@ -11,3 +11,14 @@
 /*/*/*/.lock
 /.claude/*
 /*/.claude/*
+
+# Windows command redirection artifacts
+nul
+*/nul
+*/*/nul
+*/*/*/nul
+
+# Python cache
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
