@@ -80,15 +80,26 @@ def run_calibration_all(usb_ctrl, freq=800, cs_map=0x3, pcr_file='bsp/TI375C529/
         init = initialization(usb_ctrl)
         LOGGER.info("Created initialization instance")
 
+        # Check CTL controller ID (matching JTAG console.py behavior)
+        # Note: CTL controller may not respond until after initialization writes
+        LOGGER.info("Reading CTL controller ID...")
+        ctl_id = init.read_ctl_id()
+        LOGGER.info(f"CTL Controller ID: 0x{ctl_id:04X}")
+        if ctl_id == 0x2040:
+            LOGGER.info("Read Memory controller ID PASS")
+        elif ctl_id == 0x0000:
+            LOGGER.warning("CTL Controller ID = 0x0000 (may be in reset, will initialize anyway)")
+        else:
+            LOGGER.warning(f"CTL Controller ID unexpected - Expected 0x2040, got 0x{ctl_id:04X}")
+
         # Check PI controller ID
-        LOGGER.info("About to read PI ID...")
+        LOGGER.info("Reading PI controller ID...")
         pi_id = init.read_pi_id()
-        LOGGER.info(f"Got PI ID value")
         LOGGER.info(f"PI Controller ID: 0x{pi_id:04X}")
         if pi_id == 0x2040:
             LOGGER.info("Read PI controller ID PASS")
         else:
-            LOGGER.warning(f"Read PI controller ID - Expected 0x2040, got 0x{pi_id:04X}")
+            raise Exception(f"Read PI controller ID FAIL - Expected 0x2040, got 0x{pi_id:04X}")
 
         # Run initialization with PCR file
         import os
@@ -178,12 +189,27 @@ def main():
 
             elif cmd == 'init':
                 LOGGER.info("Running LPDDR4 initialization...")
+                usb_ctrl.config_restart()
+                usb_ctrl.config_ctrl_sel(1)
                 init = initialization(usb_ctrl)
                 pcr_file = 'bsp/TI375C529/outflow/tools_core.pcr_write_pattern.v'
+
+                # Check CTL controller ID (matching JTAG behavior)
+                ctl_id = init.read_ctl_id()
+                LOGGER.info(f"CTL Controller ID: 0x{ctl_id:04X}")
+                if ctl_id == 0x2040:
+                    LOGGER.info("Read Memory controller ID PASS")
+                else:
+                    raise Exception(f"Read Memory controller ID FAIL")
+
+                # Check PI controller ID
                 pi_id = init.read_pi_id()
                 LOGGER.info(f"PI Controller ID: 0x{pi_id:04X}")
                 if pi_id == 0x2040:
                     LOGGER.info("Read PI controller ID PASS")
+                else:
+                    raise Exception(f"Read PI controller ID FAIL")
+
                 init.initial(pcr_file, False, cs_map=0x3)
 
             elif cmd == 'io':
