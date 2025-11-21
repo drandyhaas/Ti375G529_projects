@@ -147,13 +147,21 @@ class initialization:
         LOGGER.info('Write CTL Register')
         start_time = time.time()
         for i in range(len(ctl_reg)):
+            write_start = time.time()
             self.drv_obj.lpddr4_ctrl_write('CTL', ctl_reg[i][0], ctl_reg[i][1])
+            write_time = (time.time() - write_start) * 1000  # Convert to ms
+            if write_time > 10.0:  # Report any write that takes > 10ms
+                LOGGER.info(f'  SLOW: CTL[{i}] addr=0x{ctl_reg[i][0]:04X} took {write_time:.1f}ms')
+            elif i % 50 == 0:
+                LOGGER.info(f'  CTL[{i}/{len(ctl_reg)}] last write: {write_time:.1f}ms')
         ctl_time = time.time() - start_time
         LOGGER.info(f'Wrote {len(ctl_reg)} CTL registers in {ctl_time:.2f}s')
 
         LOGGER.info('Write PHY Register')
         start_time = time.time()
         for i in range(len(phy_reg)):
+            if i % 50 == 0:
+                LOGGER.info(f'  Writing PHY register {i}/{len(phy_reg)}...')
             self.drv_obj.lpddr4_ctrl_write('PHY', phy_reg[i][0], phy_reg[i][1])
         phy_time = time.time() - start_time
         LOGGER.info(f'Wrote {len(phy_reg)} PHY registers in {phy_time:.2f}s')
@@ -161,6 +169,8 @@ class initialization:
         LOGGER.info('Write PI Register')
         start_time = time.time()
         for i in range(len(pi_reg)):
+            if i % 50 == 0:
+                LOGGER.info(f'  Writing PI register {i}/{len(pi_reg)}...')
             self.drv_obj.lpddr4_ctrl_write('PI', pi_reg[i][0], pi_reg[i][1])
         pi_time = time.time() - start_time
         LOGGER.info(f'Wrote {len(pi_reg)} PI registers in {pi_time:.2f}s')

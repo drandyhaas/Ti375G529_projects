@@ -107,13 +107,13 @@ class USBDDRControl:
         self.usb.send(txdata)
         # No response expected for write
 
-    def reg_read(self, addr, timeout=1.0, verbose=False):
+    def reg_read(self, addr, timeout=2.0, verbose=False):
         """
         Read from AXI-Lite register
 
         Args:
             addr: Register address (32-bit)
-            timeout: Timeout in seconds (default 1.0)
+            timeout: Timeout in seconds (default 2.0)
             verbose: Print debug info
 
         Returns:
@@ -138,11 +138,13 @@ class USBDDRControl:
         rxdata = bytes()
 
         while len(rxdata) < 4:
+            # Check timeout on every iteration, not just when rxdata is empty
+            elapsed = time.time() - start_time
+            if elapsed > timeout:
+                raise TimeoutError(f"Register read timeout after {elapsed:.2f}s (addr=0x{addr:04X}, received {len(rxdata)}/4 bytes)")
+
             chunk = self.usb.recv(4 - len(rxdata))
             rxdata += chunk
-
-            if len(rxdata) == 0 and (time.time() - start_time) > timeout:
-                raise TimeoutError(f"No response received within {timeout}s")
 
             if len(chunk) == 0:
                 time.sleep(0.001)  # Short delay before retry
@@ -211,25 +213,45 @@ class USBDDRControl:
         else:
             raise ValueError(f"Invalid register type: {reg_type}")
 
-    def lpddr4_ctrl_read(self, reg_type, addr):
+    def lpddr4_ctrl_read(self, reg_type, addr, max_retries=3):
         """
-        Read from LPDDR4 controller register
+        Read from LPDDR4 controller register with retry on timeout
 
         Args:
             reg_type: 'CTL', 'PI', or 'PHY'
             addr: Register address (word address, will be multiplied by 4)
+            max_retries: Maximum number of retry attempts (default 3)
 
         Returns:
             data: 32-bit value read from register
         """
+        # Calculate full address
         if reg_type == 'CTL':
-            return self.reg_read(DDR_CTL_BASE + (addr * 4))
+            full_addr = DDR_CTL_BASE + (addr * 4)
         elif reg_type == 'PI':
-            return self.reg_read(DDR_PI_BASE + (addr * 4))
+            full_addr = DDR_PI_BASE + (addr * 4)
         elif reg_type == 'PHY':
-            return self.reg_read(DDR_PHY_BASE + (addr * 4))
+            full_addr = DDR_PHY_BASE + (addr * 4)
         else:
             raise ValueError(f"Invalid register type: {reg_type}")
+
+        # Retry loop for read operations
+        last_exception = None
+        for attempt in range(max_retries):
+            try:
+                return self.reg_read(full_addr)
+            except TimeoutError as e:
+                last_exception = e
+                if attempt < max_retries - 1:
+                    print(f"Warning: {reg_type} register read timeout (addr={addr}, attempt {attempt+1}/{max_retries}), retrying...")
+                    time.sleep(0.1)  # Brief delay before retry
+                else:
+                    print(f"Error: {reg_type} register read failed after {max_retries} attempts (addr={addr})")
+                    raise
+
+        # Should never reach here, but just in case
+        if last_exception:
+            raise last_exception
 
     def config_restart(self):
         """
