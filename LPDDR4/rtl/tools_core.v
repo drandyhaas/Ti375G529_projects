@@ -618,34 +618,34 @@ assign axi_master_r_last[1]                                                 =s_a
 
 axi_lite_slave axilite_inst
 (
-    .axi_aclk(regACLK),
-	.axi_resetn(ddr_pll_lock),
+    .axi_aclk(clk_100),
+	.axi_resetn(ddr_pll_lock),  // Use DDR PLL lock as reset (active when PLL locked)
 
-	.axi_awaddr (s_axi_awaddr),
-	.axi_awready(s_axi_awready),
-	.axi_awvalid(s_axi_awvalid),
+	.axi_awaddr ({17'h0, usb_axi_awaddr}),
+	.axi_awready(usb_axi_awready),
+	.axi_awvalid(usb_axi_awvalid),
 
-    .axi_wready (s_axi_wready),
-	.axi_wdata  (s_axi_wdata),
-    .axi_wvalid (s_axi_wvalid),
-    .axi_wlast  (s_axi_wlast),
-	.axi_wstrb  (s_axi_wstrb),
+    .axi_wready (usb_axi_wready),
+	.axi_wdata  (usb_axi_wdata),
+    .axi_wvalid (usb_axi_wvalid),
+    .axi_wlast  (1'b1),
+	.axi_wstrb  (usb_axi_wstrb),
 
-	.axi_bid    (s_axi_bid),        //not use
-	.axi_bresp  (s_axi_bresp),      //not use
-	.axi_bvalid (s_axi_bvalid),
-	.axi_bready (s_axi_bready),
+	.axi_bid    (  ),        //not use
+	.axi_bresp  (usb_axi_bresp),
+	.axi_bvalid (usb_axi_bvalid),
+	.axi_bready (usb_axi_bready),
 
-    .axi_araddr (s_axi_araddr),
-	.axi_arvalid(s_axi_arvalid),
-	.axi_arready(s_axi_arready),
+    .axi_araddr ({17'h0, usb_axi_araddr}),
+	.axi_arvalid(usb_axi_arvalid),
+	.axi_arready(usb_axi_arready),
 
-	.axi_rid    (s_axi_rid),        //not use
-	.axi_rresp  (s_axi_rresp),      //not use
-    .axi_rready (s_axi_rready),
-    .axi_rdata  (s_axi_rdata),
-    .axi_rvalid (s_axi_rvalid),
-    .axi_rlast  (s_axi_rlast),
+	.axi_rid    (  ),        //not use
+	.axi_rresp  (usb_axi_rresp),
+    .axi_rready (usb_axi_rready),
+    .axi_rdata  (usb_axi_rdata),
+    .axi_rvalid (usb_axi_rvalid),
+    .axi_rlast  (  ),
 
     .memtest_start  (memtest_start),
 	.memtest_rstn   (memtest_rstn),
@@ -726,11 +726,38 @@ ftdi_245fifo_top #(
     .ftdi_be_OE            ( ftdi_be_OE         )
 );
 
-// USB Command handler (receives CMD + 4-byte length, executes command)
+// AXI-Lite signals from USB command handler to axi_lite_slave
+wire [14:0] usb_axi_awaddr;
+wire        usb_axi_awvalid;
+wire        usb_axi_awready;
+
+wire [31:0] usb_axi_wdata;
+wire [3:0]  usb_axi_wstrb;
+wire        usb_axi_wvalid;
+wire        usb_axi_wready;
+
+wire [1:0]  usb_axi_bresp;
+wire        usb_axi_bvalid;
+wire        usb_axi_bready;
+
+wire [14:0] usb_axi_araddr;
+wire        usb_axi_arvalid;
+wire        usb_axi_arready;
+
+wire [31:0] usb_axi_rdata;
+wire [1:0]  usb_axi_rresp;
+wire        usb_axi_rvalid;
+wire        usb_axi_rready;
+
+// USB Command handler (receives CMD, executes commands)
 // Command 0x01: TX_MASS - sends back specified number of bytes
+// Command 0x02: REG_WRITE - writes to AXI-Lite register
+// Command 0x03: REG_READ - reads from AXI-Lite register
 usb_command_handler u_usb_command_handler (
     .rstn                  ( 1'b1               ),
     .clk                   ( clk_100            ),
+
+    // USB RX/TX streams
     .i_tready              ( usb_rx_tready      ),
     .i_tvalid              ( usb_rx_tvalid      ),
     .i_tdata               ( usb_rx_tdata       ),
@@ -738,8 +765,44 @@ usb_command_handler u_usb_command_handler (
     .o_tvalid              ( usb_tx_tvalid      ),
     .o_tdata               ( usb_tx_tdata       ),
     .o_tkeep               ( usb_tx_tkeep       ),
-    .o_tlast               ( usb_tx_tlast       )
+    .o_tlast               ( usb_tx_tlast       ),
+
+    // AXI-Lite Master (for register access)
+    .axi_awaddr            ( usb_axi_awaddr     ),
+    .axi_awvalid           ( usb_axi_awvalid    ),
+    .axi_awready           ( usb_axi_awready    ),
+
+    .axi_wdata             ( usb_axi_wdata      ),
+    .axi_wstrb             ( usb_axi_wstrb      ),
+    .axi_wvalid            ( usb_axi_wvalid     ),
+    .axi_wready            ( usb_axi_wready     ),
+
+    .axi_bresp             ( usb_axi_bresp      ),
+    .axi_bvalid            ( usb_axi_bvalid     ),
+    .axi_bready            ( usb_axi_bready     ),
+
+    .axi_araddr            ( usb_axi_araddr     ),
+    .axi_arvalid           ( usb_axi_arvalid    ),
+    .axi_arready           ( usb_axi_arready    ),
+
+    .axi_rdata             ( usb_axi_rdata      ),
+    .axi_rresp             ( usb_axi_rresp      ),
+    .axi_rvalid            ( usb_axi_rvalid     ),
+    .axi_rready            ( usb_axi_rready     ),
+
+    // Debug status
+    .ddr_pll_lock          ( ddr_pll_lock       )
 );
+
+// Connect USB AXI-Lite master directly to axi_lite_slave
+// JTAG interface disabled - using USB3 only for DDR control
+
+// ================================================================
+// ============= DDR Keep-Alive (prevents optimization) ===========
+// ================================================================
+// Minimal DDR exerciser to prevent synthesis from optimizing away
+// the DDR controller. Performs periodic read/write to address 0.
+
 
 // ================================================================
 // ==================== LED Indicators ============================

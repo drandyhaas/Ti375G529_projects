@@ -154,7 +154,7 @@ always@ (posedge axi_aclk or negedge axi_resetn)
 			slaveARAddr <= {ADDR_WIDTH{1'b0}};
 			slaveReg[0]	<= {DATA_WIDTH{1'b0}};
 			slaveReg[1]	<= {DATA_WIDTH{1'b0}};
-			slaveReg[2]	<= {DATA_WIDTH{1'b0}};
+			slaveReg[2]	<= 32'h00000003;  // memtest_start=1, memtest_rstn=1
 			slaveReg[3]	<= {DATA_WIDTH{1'b0}};
 
 			slaveReg[4]	<= {DATA_WIDTH{1'b0}};
@@ -182,6 +182,9 @@ always@ (posedge axi_aclk or negedge axi_resetn)
 			r_axi_wvalid	<=1'b0;
 			r_axi_wdata		<={DATA_WIDTH{1'b0}};
             r_axi_bvalid    <=1'b0;
+		r_axi_rvalid	<=1'b0;
+		r_axi_rdata		<={DATA_WIDTH{1'b0}};
+		r_axi_rlast		<=1'b0;
 		end
 		else
 		begin
@@ -189,9 +192,11 @@ always@ (posedge axi_aclk or negedge axi_resetn)
 			r_axi_wvalid	<=axi_wvalid;
             r_axi_wlast	    <=axi_wlast;
 			r_axi_wdata		<=axi_wdata;
-            r_axi_bvalid    <=1'b0;
-			r_axi_rvalid	<=1'b0;
-			r_axi_rlast	    <=1'b0;
+            // Don't clear r_axi_bvalid here - let it stay high until handshake completes
+			//r_axi_bvalid    <=1'b0;
+			// Don't clear r_axi_rvalid here - let it stay high until handshake completes
+			//r_axi_rvalid	<=1'b0;
+			//r_axi_rlast	    <=1'b0;
 
 			if((axi_awready) && (axi_awvalid))
 				slaveAWAddr <= axi_awaddr;
@@ -212,8 +217,10 @@ always@ (posedge axi_aclk or negedge axi_resetn)
                 wr_flag                                 <=1'b1;
 			end
 
-			if(axi_rready && rd_flag)
+			// AXI Read Channel
+			if(rd_flag && !r_axi_rvalid)
 			begin
+				// Start new read transaction - load data and assert rvalid
 				r_axi_rdata     <=slaveReg[slaveARAddr[ADDR_WIDTH-1:2]];
 
 				if (slaveARAddr[ADDR_WIDTH-1:2] == 32'd0)	//REG0
@@ -256,11 +263,24 @@ always@ (posedge axi_aclk or negedge axi_resetn)
 				r_axi_rlast	    <=1'b1;
 				rd_flag		    <=1'b0;
 			end
-
-            if(axi_bready && wr_flag)
+			else if(r_axi_rvalid && axi_rready)
 			begin
+				// Handshake complete - clear rvalid
+				r_axi_rvalid	<=1'b0;
+				r_axi_rlast	    <=1'b0;
+			end
+
+			// AXI Write Response Channel
+			if(wr_flag && !r_axi_bvalid)
+			begin
+				// Start write response
 				wr_flag		    <=1'b0;
                 r_axi_bvalid    <=1'b1;
+			end
+			else if(r_axi_bvalid && axi_bready)
+			begin
+				// Handshake complete - clear bvalid
+				r_axi_bvalid    <=1'b0;
 			end
 		end
 	end
