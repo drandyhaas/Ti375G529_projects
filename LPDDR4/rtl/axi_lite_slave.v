@@ -154,7 +154,7 @@ always@ (posedge axi_aclk or negedge axi_resetn)
 			slaveARAddr <= {ADDR_WIDTH{1'b0}};
 			slaveReg[0]	<= {DATA_WIDTH{1'b0}};
 			slaveReg[1]	<= {DATA_WIDTH{1'b0}};
-			slaveReg[2]	<= 32'h00000003;  // memtest_start=1, memtest_rstn=1
+			slaveReg[2]	<= 32'h00000002;  // memtest_start=0 (wait for SW), memtest_rstn=1
 			slaveReg[3]	<= {DATA_WIDTH{1'b0}};
 
 			slaveReg[4]	<= {DATA_WIDTH{1'b0}};
