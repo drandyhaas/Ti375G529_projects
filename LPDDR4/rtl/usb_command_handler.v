@@ -174,7 +174,7 @@ always @ (posedge clk or negedge rstn)
                 o_tlast  <= 1'b0;
                 length <= 4;  // Send 4 bytes
                 if (command == CMD_GET_VERSION) begin
-                    reg_data <= 32'hDEADBEEF;  // Version: DEADBEEF (test if bitstream loaded)
+                    reg_data <= 32'h20250208;  // Version: 2025-02-08 (Never clear latches)
                 end else if (command == CMD_GET_STATUS) begin
                     // Status: bit[0]=ddr_pll_lock, bit[1]=axi_arready, bit[2]=axi_rvalid, bit[3:31]=reserved
                     reg_data <= {29'h0, axi_rvalid, axi_arready, ddr_pll_lock};
