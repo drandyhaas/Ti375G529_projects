@@ -425,16 +425,16 @@ class USBDDRControl:
             if failed:
                 fail_dq = self.memtest_read_fail_dq()
                 if verbose:
-                    print(f"✗ Test FAILED in {elapsed:.2f}s - Failed DQ bits: 0x{fail_dq:08X}")
+                    print(f"X Test FAILED in {elapsed:.2f}s - Failed DQ bits: 0x{fail_dq:08X}")
                 return False
             else:
                 if verbose:
-                    print(f"✓ Test PASSED in {elapsed:.2f}s")
+                    print(f"+ Test PASSED in {elapsed:.2f}s")
                 return True
 
         except TimeoutError as e:
             if verbose:
-                print(f"✗ Test TIMEOUT: {e}")
+                print(f"X Test TIMEOUT: {e}")
             return False
 
     def memtest_ctrl_write(self, addr, data):

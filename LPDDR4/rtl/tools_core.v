@@ -164,8 +164,25 @@ input  wire jtag_inst1_UPDATE,
 output wire jtag_inst1_TDO
 );
 
-//assign  cfg_sel         = 1'b1;
-//assign  cfg_start       = ddr_pll_lock;
+// ================================================================
+// DDR Auto-Initialization (Hardware Mode)
+// ================================================================
+// Configure DDR to use built-in initialization (cfg_sel=0)
+// and automatically start when DDR PLL locks
+assign  cfg_sel   = 1'b0;           // Use built-in configuration from bitstream
+assign  cfg_reset = 1'b0;           // No reset assertion
+assign  cfg_start = ddr_pll_lock;   // Start initialization when DDR PLL locks
+
+// Note: cfg_done will go high when DDR initialization completes
+// This typically takes 100-500ms after PLL lock
+
+// Release all DDR resets when PLL locks
+assign  phy_rstn      = ddr_pll_lock;   // PHY reset released when PLL locks
+assign  ctrl_rstn     = ddr_pll_lock;   // Controller reset released when PLL locks
+assign  regARESETn    = ddr_pll_lock;   // Register AXI reset released when PLL locks
+assign  axi0_ARESETn  = ddr_pll_lock;   // AXI0 reset released when PLL locks
+assign  axi1_ARESETn  = ddr_pll_lock;   // AXI1 reset released when PLL locks
+
 wire    done_0;
 wire    fail_0;
 assign  ddr_pll_rstn = 1'b1;
@@ -703,17 +720,17 @@ axi_lite_slave axilite_inst
     .memtest_data   (w_memtest_data),
     .memtest_lfsr_en(w_memtest_lfsr_en),
     .memtest_x16_en (x16_en),
-    .phy_rstn       (phy_rstn),
-    .ctrl_rstn      (ctrl_rstn),
-    .reg_axi_rstn   (regARESETn),
-    .axi0_rstn      (axi0_ARESETn),
-    .axi1_rstn      (axi1_ARESETn),
+    .phy_rstn       (),              // Not used - phy_rstn driven by hardware
+    .ctrl_rstn      (),              // Not used - ctrl_rstn driven by hardware
+    .reg_axi_rstn   (),              // Not used - regARESETn driven by hardware
+    .axi0_rstn      (),              // Not used - axi0_ARESETn driven by hardware
+    .axi1_rstn      (),              // Not used - axi1_ARESETn driven by hardware
     .reg_axi_arlen  (reg_axi_arlen),
     .memtest_size   (w_memtest_size),
 	.dq_fail        (dq_fail),
-    .config_rst     (cfg_reset),
-    .config_sel     (cfg_sel),
-    .config_start   (cfg_start),
+    .config_rst     (),              // Not used - cfg_reset driven by hardware
+    .config_sel     (),              // Not used - cfg_sel driven by hardware
+    .config_start   (),              // Not used - cfg_start driven by hardware
     .config_done    (cfg_done),
     .tester_loop_len(w_loop_len),
     .tester_loop_cnt(w_loop_cnt),
