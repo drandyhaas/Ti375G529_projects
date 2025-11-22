@@ -78,7 +78,7 @@ if __name__ == '__main__':
     #for target in usb_connects:
     #    LOGGER.info(f'target = {target}, URLS = {target.URLS}')
 
-    # First USB Target, FTDI Channel B URL, TODO: Update this
+    # First USB Target, FTDI Channel B URL
     target_url = usb_connects[0].URLS[1]
 
     if args.dev != 'TI180M484':

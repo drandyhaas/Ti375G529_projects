@@ -147,19 +147,7 @@ input [5:0]     regBID,
 input [1:0]     regBRESP,
 input           regBVALID,
 
-output          regARESETn,
-
-input           jtag_inst1_CAPTURE,
-input           jtag_inst1_DRCK,
-input           jtag_inst1_RESET,
-input           jtag_inst1_RUNTEST,
-input           jtag_inst1_SEL,
-input           jtag_inst1_SHIFT,
-input           jtag_inst1_TCK,
-input           jtag_inst1_TDI,
-input           jtag_inst1_TMS,
-input           jtag_inst1_UPDATE,
-output          jtag_inst1_TDO
+output          regARESETn
 );
 
 
@@ -307,19 +295,7 @@ tools_core core0(
 .regBRESP(regBRESP),
 .regBVALID(regBVALID),
 
-.regARESETn(regARESETn),
-
-.jtag_inst1_CAPTURE(jtag_inst1_CAPTURE),
-.jtag_inst1_DRCK(jtag_inst1_DRCK),
-.jtag_inst1_RESET(jtag_inst1_RESET),
-.jtag_inst1_RUNTEST(jtag_inst1_RUNTEST),
-.jtag_inst1_SEL(jtag_inst1_SEL),
-.jtag_inst1_SHIFT(jtag_inst1_SHIFT),
-.jtag_inst1_TCK(jtag_inst1_TCK),
-.jtag_inst1_TDI(jtag_inst1_TDI),
-.jtag_inst1_TMS(jtag_inst1_TMS),
-.jtag_inst1_UPDATE(jtag_inst1_UPDATE),
-.jtag_inst1_TDO(jtag_inst1_TDO)
+.regARESETn(regARESETn)
 );
 
 endmodule

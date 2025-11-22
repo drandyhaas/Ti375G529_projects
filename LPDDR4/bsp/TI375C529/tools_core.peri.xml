@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sat Nov 22 01:53:19 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sat Nov 22 11:58:47 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
     <efxpt:device_info>
         <efxpt:iobank_info>
             <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
@@ -391,23 +391,7 @@
     </efxpt:pll_info>
     <efxpt:osc_info/>
     <efxpt:lvds_info/>
-    <efxpt:jtag_info>
-        <efxpt:jtag name="jtag_inst1" jtag_def="JTAG_USER1">
-            <efxpt:gen_pin>
-                <efxpt:pin name="jtag_inst1_CAPTURE" type_name="CAPTURE" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_DRCK" type_name="DRCK" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_RESET" type_name="RESET" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_RUNTEST" type_name="RUNTEST" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_SEL" type_name="SEL" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_SHIFT" type_name="SHIFT" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_TCK" type_name="TCK" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_TDI" type_name="TDI" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_TMS" type_name="TMS" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_UPDATE" type_name="UPDATE" is_bus="false"/>
-                <efxpt:pin name="jtag_inst1_TDO" type_name="TDO" is_bus="false"/>
-            </efxpt:gen_pin>
-        </efxpt:jtag>
-    </efxpt:jtag_info>
+    <efxpt:jtag_info/>
     <efxpt:ddr_info>
         <efxpt:adv_ddr name="ddr_inst1" ddr_def="DDR_0" clkin_sel="0" data_width="32" physical_rank="1" mem_type="LPDDR4x" mem_density="8G">
             <efxpt:axi_target0 is_axi_width_256="false" is_axi_enable="true">

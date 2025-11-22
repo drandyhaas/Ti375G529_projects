@@ -1,4 +1,4 @@
-`define NUM_OF_AXI_PORT 2
+`define NUM_OF_AXI_PORT 1
 `define AXI_ADDR_WIDTH  32
 `define AXI_DATA_WIDTH  32
 `define AXI_USER_WIDTH  6
@@ -149,19 +149,7 @@ input [5:0]     regBID,
 input [1:0]     regBRESP,
 input           regBVALID,
 
-output          regARESETn,
-
-input  wire jtag_inst1_CAPTURE,
-input  wire jtag_inst1_DRCK,
-input  wire jtag_inst1_RESET,
-input  wire jtag_inst1_RUNTEST,
-input  wire jtag_inst1_SEL,
-input  wire jtag_inst1_SHIFT,
-input  wire jtag_inst1_TCK,
-input  wire jtag_inst1_TDI,
-input  wire jtag_inst1_TMS,
-input  wire jtag_inst1_UPDATE,
-output wire jtag_inst1_TDO
+output          regARESETn
 );
 
 // ================================================================
@@ -559,128 +547,9 @@ wire [`NUM_OF_AXI_PORT-1:0]                 axi_master_r_ready;
     assign axi_master_b_resp[1:0]                 = regBRESP;
     assign regBREADY                              = wr_from_usb ? bridge_m1_axi_bready : axi_master_b_ready[0];
 
-// =========================================
-// =============== J2A Debug ===============
-// =========================================
-
-assign osc_inst1_ENA = 1'b1;
-
-
-jtag2axi_debugger #(
-    .NUM_OF_AXI_PORT (`NUM_OF_AXI_PORT),
-    .AXI_ADDR_WIDTH  (`AXI_ADDR_WIDTH),
-    .AXI_DATA_WIDTH  (`AXI_DATA_WIDTH),
-    .AXI_USER_WIDTH  (`AXI_USER_WIDTH),
-    .AXI_ID_WIDTH    (`AXI_ID_WIDTH)
-) jtag2axi_debugger (
-    .jtag_inst1_CAPTURE     (jtag_inst1_CAPTURE),
-    .jtag_inst1_DRCK        (jtag_inst1_DRCK),
-    .jtag_inst1_RESET       (jtag_inst1_RESET),
-    .jtag_inst1_RUNTEST     (jtag_inst1_RUNTEST),
-    .jtag_inst1_SEL         (jtag_inst1_SEL),
-    .jtag_inst1_SHIFT       (jtag_inst1_SHIFT),
-    .jtag_inst1_TCK         (jtag_inst1_TCK),
-    .jtag_inst1_TDI         (jtag_inst1_TDI),
-    .jtag_inst1_TMS         (jtag_inst1_TMS),
-    .jtag_inst1_UPDATE      (jtag_inst1_UPDATE),
-    .jtag_inst1_TDO         (jtag_inst1_TDO),
-    .axi_aclk               (regACLK),
-    .axi_aresetn            (ddr_pll_lock),
-    .axi_master_aw_ready    (axi_master_aw_ready),
-    .axi_master_aw_valid    (axi_master_aw_valid),
-    .axi_master_aw_addr     (axi_master_aw_addr),
-    .axi_master_aw_len      (axi_master_aw_len),
-    .axi_master_aw_size     (axi_master_aw_size),
-    .axi_master_aw_burst    (axi_master_aw_burst),
-    .axi_master_aw_lock     (axi_master_aw_lock),
-    .axi_master_aw_id       (axi_master_aw_id),
-    .axi_master_ar_valid    (axi_master_ar_valid),
-    .axi_master_ar_addr     (axi_master_ar_addr),
-    .axi_master_ar_len      (axi_master_ar_len),
-    .axi_master_ar_size     (axi_master_ar_size),
-    .axi_master_ar_ready    (axi_master_ar_ready),
-    .axi_master_w_valid     (axi_master_w_valid),
-    .axi_master_w_data      (axi_master_w_data),
-    .axi_master_w_strb      (axi_master_w_strb),
-    .axi_master_w_id        (axi_master_w_id),
-    .axi_master_w_last      (axi_master_w_last),
-    .axi_master_w_ready     (axi_master_w_ready),
-    .axi_master_b_valid     (axi_master_b_valid),
-    .axi_master_b_id        (axi_master_b_id),
-    .axi_master_b_resp      (axi_master_b_resp),
-    .axi_master_b_ready     (axi_master_b_ready),
-    .axi_master_r_valid     (axi_master_r_valid),
-    .axi_master_r_data      (axi_master_r_data),
-    .axi_master_r_resp      (axi_master_r_resp),
-    .axi_master_r_last      (axi_master_r_last),
-    .axi_master_r_id        (axi_master_r_id),
-    .axi_master_r_ready     (axi_master_r_ready)
-);
-
-//AW
-wire [31:0]	s_axi_awaddr;
-wire 		s_axi_awready;
-wire 		s_axi_awvalid;
-
-//W
-wire		s_axi_wready;
-wire [31:0]	s_axi_wdata;
-wire		s_axi_wvalid;
-wire		s_axi_wlast;
-wire [3:0]  s_axi_wstrb;
-
-//B
-wire [7:0]	s_axi_bid;        //not use
-wire [1:0]	s_axi_bresp;      //not use
-wire 		s_axi_bvalid;
-wire		s_axi_bready;
-
-//AR
-wire[31:0]	s_axi_araddr;
-wire		s_axi_arvalid;
-wire		s_axi_arready;
-
-//R
-wire [7:0]	s_axi_rid;        //not use
-wire [1:0]	s_axi_rresp;      //not use
-wire 		s_axi_rready;
-wire [31:0]	s_axi_rdata;
-wire 		s_axi_rvalid;
-wire 		s_axi_rlast;
-
-
-//AW
-assign axi_master_aw_ready[1]   =s_axi_awready;
-assign s_axi_awaddr             =axi_master_aw_addr[`NUM_OF_AXI_PORT*`AXI_ADDR_WIDTH-1:`AXI_ADDR_WIDTH];
-assign s_axi_awvalid            =axi_master_aw_valid[1];
-
-
-assign axi_master_w_ready[1] =s_axi_wready;
-assign s_axi_wdata  =axi_master_w_data[`NUM_OF_AXI_PORT*`AXI_DATA_WIDTH-1:`AXI_DATA_WIDTH];
-assign s_axi_wvalid =axi_master_w_valid[1];
-assign s_axi_wlast  =axi_master_w_last[1];
-assign s_axi_wstrb  =4'b1111;
-
-
-assign axi_master_b_id[`NUM_OF_AXI_PORT*`AXI_ID_WIDTH-1:`AXI_ID_WIDTH]   = s_axi_bid[`AXI_ID_WIDTH-1:0];        //not use
-assign axi_master_b_resp[`NUM_OF_AXI_PORT*2-1:2]                        =s_axi_bresp;      //not use
-assign axi_master_b_valid[1]                                            =s_axi_bvalid;
-assign s_axi_bready                                                     =axi_master_b_ready[1];
-
-
-assign axi_master_ar_ready[1] =s_axi_arready;
-assign s_axi_araddr = axi_master_ar_addr[`NUM_OF_AXI_PORT*`AXI_ADDR_WIDTH-1:`AXI_ADDR_WIDTH];
-assign s_axi_arvalid =axi_master_ar_valid[1];
-
-
-assign s_axi_rready =axi_master_r_ready[1];
-
-assign axi_master_r_id[`NUM_OF_AXI_PORT*`AXI_ID_WIDTH-1:`AXI_ID_WIDTH]       =s_axi_rid[`AXI_ID_WIDTH-1:0];        //not use
-assign axi_master_r_resp[`NUM_OF_AXI_PORT*2-1:2]                            =s_axi_rresp;      //not use
-assign axi_master_r_data[`NUM_OF_AXI_PORT*`AXI_DATA_WIDTH-1:`AXI_DATA_WIDTH] =s_axi_rdata;
-assign axi_master_r_valid[1]                                                =s_axi_rvalid;
-assign axi_master_r_last[1]                                                 =s_axi_rlast;
-
+// ================================================================
+// ==================== AXI-Lite Slave (Control Registers) =======
+// ================================================================
 
 axi_lite_slave axilite_inst
 (

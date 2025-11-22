@@ -153,7 +153,7 @@ def main():
         print(f"ERROR: Failed to initialize USB3 control: {e}")
         return 1
 
-    # Default parameters (TODO: read from config file or hardware)
+    # Default parameters
     dev = 'Ti375C529'
     freq = 800  # MHz
     axi0_freq = 100.0  # MHz
