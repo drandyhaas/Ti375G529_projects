@@ -72,9 +72,9 @@ REG_17_TESTER_PAT  = 0x44  # slaveReg[17] - [WO] tester_pattern[31:0]
 # NOTE: These registers are NOT accessed through axi_lite_slave!
 # They connect directly to AXI0 bus which goes to the DDR controller
 # We'll need a different approach to access these - likely they're not accessible via USB yet
-DDR_CTL_BASE  = 0x0000  # Controller registers (CTL type)
-DDR_PI_BASE   = 0x2000  # PI registers (PI type)
-DDR_PHY_BASE  = 0x4000  # PHY registers (PHY type)
+DDR_CTL_BASE  = 0x0080  # Controller registers (CTL type) at DDR addr 0x0000
+DDR_PI_BASE   = 0x2080  # PI registers (PI type) at DDR addr 0x2000
+DDR_PHY_BASE  = 0x4080  # PHY registers (PHY type) at DDR addr 0x4000
 
 
 class USBDDRControl:
@@ -515,6 +515,57 @@ class USBDDRControl:
         # CFG_RESET=1, CFG_SEL=sel, CFG_START=0
         value = (0 << 2) | ((sel & 0x1) << 1) | 1
         self.reg_write(0x0028, value)  # REG_10 at offset 0x28
+
+    def ddr_auto_init(self, timeout=5.0):
+        """
+        Trigger DDR auto-initialization using built-in configuration
+
+        This uses cfg_sel=0 to load configuration from bitstream,
+        then triggers initialization automatically.
+
+        Args:
+            timeout: Maximum time to wait for init completion (seconds)
+
+        Returns:
+            True if initialization succeeded, False otherwise
+        """
+        print("Starting DDR auto-initialization...")
+
+        # Step 1: Select built-in configuration (cfg_sel=0)
+        # REG_10_CONFIG: bit0=cfg_rst, bit1=cfg_sel, bit2=cfg_start
+
+        # Assert config reset with cfg_sel=0
+        self.reg_write(REG_10_CONFIG, 0x01)  # cfg_rst=1, cfg_sel=0, cfg_start=0
+        time.sleep(0.01)
+
+        # Deassert config reset
+        self.reg_write(REG_10_CONFIG, 0x00)  # cfg_rst=0, cfg_sel=0, cfg_start=0
+        time.sleep(0.01)
+
+        # Step 2: Pulse cfg_start to trigger initialization
+        self.reg_write(REG_10_CONFIG, 0x04)  # cfg_rst=0, cfg_sel=0, cfg_start=1
+        time.sleep(0.01)
+        self.reg_write(REG_10_CONFIG, 0x00)  # cfg_rst=0, cfg_sel=0, cfg_start=0
+
+        # Step 3: Wait for cfg_done (bit 3 of REG_10_CONFIG)
+        print("Waiting for DDR initialization to complete...")
+        start_time = time.time()
+
+        while True:
+            config_reg = self.reg_read(REG_10_CONFIG)
+            cfg_done = (config_reg >> 3) & 0x1
+
+            if cfg_done:
+                elapsed = time.time() - start_time
+                print(f"✓ DDR initialization complete in {elapsed:.2f}s")
+                return True
+
+            if time.time() - start_time > timeout:
+                print(f"✗ DDR initialization timeout after {timeout}s")
+                print(f"  REG_10_CONFIG = 0x{config_reg:08X}")
+                return False
+
+            time.sleep(0.1)
 
 
 # Simple test functions

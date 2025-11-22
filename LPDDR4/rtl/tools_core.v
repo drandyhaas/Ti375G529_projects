@@ -24,9 +24,6 @@ input  [3:0]    ftdi_be_IN,
 output [3:0]    ftdi_be_OUT,
 output [3:0]    ftdi_be_OE,
 
-// 100MHz clock for USB processing
-input           clk_100,
-
 // DDR Interface
 input           axi0_ACLK,
 output          axi0_ARESETn,
@@ -670,7 +667,7 @@ assign axi_master_r_last[1]                                                 =s_a
 
 axi_lite_slave axilite_inst
 (
-    .axi_aclk(clk_100),
+    .axi_aclk(regACLK),
 	.axi_resetn(ddr_pll_lock),  // Use DDR PLL lock as reset (active when PLL locked)
 
 	.axi_awaddr ({17'h0, bridge_m0_axi_awaddr}),
@@ -752,13 +749,13 @@ ftdi_245fifo_top #(
     .CHIP_TYPE             ( "FT601"            )
 ) u_ftdi_245fifo_top (
     .rstn_async            ( 1'b1               ),
-    .tx_clk                ( clk_100            ),
+    .tx_clk                ( regACLK            ),
     .tx_tready             ( usb_tx_tready      ),
     .tx_tvalid             ( usb_tx_tvalid      ),
     .tx_tdata              ( usb_tx_tdata       ),
     .tx_tkeep              ( usb_tx_tkeep       ),
     .tx_tlast              ( usb_tx_tlast       ),
-    .rx_clk                ( clk_100            ),
+    .rx_clk                ( regACLK            ),
     .rx_tready             ( usb_rx_tready      ),
     .rx_tvalid             ( usb_rx_tvalid      ),
     .rx_tdata              ( usb_rx_tdata       ),
@@ -807,7 +804,7 @@ wire        usb_axi_rready;
 // Command 0x03: REG_READ - reads from AXI-Lite register
 usb_command_handler u_usb_command_handler (
     .rstn                  ( 1'b1               ),
-    .clk                   ( clk_100            ),
+    .clk                   ( regACLK            ),
 
     // USB RX/TX streams
     .i_tready              ( usb_rx_tready      ),
@@ -892,7 +889,7 @@ wire        bridge_m1_axi_rvalid;
 wire        bridge_m1_axi_rready;
 
 usb2reg_bridge usb_bridge_inst (
-    .clk                (clk_100),  // Keep at clk_100 (USB domain)
+    .clk                (regACLK),  // Use regACLK
     .rstn               (ddr_pll_lock),
 
     // Slave (from USB command handler)
@@ -964,24 +961,24 @@ usb2reg_bridge usb_bridge_inst (
 // ==================== LED Indicators ============================
 // ================================================================
 // LED[1:0] - Show low 2 bits of last received USB data
-// LED[2]   - Heartbeat from clk_100 (blinks at 5Hz)
+// LED[2]   - Heartbeat from regACLK (blinks at 5Hz)
 // LED[3]   - Heartbeat from ftdi_clk (blinks at 5Hz)
 
 reg [1:0] usb_tdata_d = 2'h0;
 
-always @ (posedge clk_100)
+always @ (posedge regACLK)
     if (usb_rx_tvalid)
         usb_tdata_d <= usb_rx_tdata[1:0];
 
-wire clk_100_beat;
+wire regACLK_beat;
 wire ftdi_clk_beat;
 
 clock_beat # (
     .CLK_FREQ              ( 100000000          ),
     .BEAT_FREQ             ( 5                  )
-) u_clk_100_beat (
-    .clk                   ( clk_100            ),
-    .beat                  ( clk_100_beat       )
+) u_regACLK_beat (
+    .clk                   ( regACLK            ),
+    .beat                  ( regACLK_beat       )
 );
 
 clock_beat # (
@@ -993,7 +990,7 @@ clock_beat # (
 );
 
 assign LED[1:0] = usb_tdata_d;
-assign LED[2]   = clk_100_beat;
+assign LED[2]   = regACLK_beat;
 assign LED[3]   = ftdi_clk_beat;
 
 endmodule

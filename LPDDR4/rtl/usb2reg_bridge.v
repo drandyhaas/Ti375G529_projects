@@ -90,17 +90,21 @@ localparam ADDR_THRESHOLD = 15'h0080;
 wire wr_sel = (s_axi_awaddr >= ADDR_THRESHOLD);  // 0=m0, 1=m1
 reg  wr_sel_latched;
 
+// Latch write routing decision at address phase
+// Keep latched value until next write - don't auto-clear
 always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
         wr_sel_latched <= 1'b0;
     end else if (s_axi_awvalid && s_axi_awready) begin
+        // Latch routing when write address handshake completes
+        // This overwrites previous value
         wr_sel_latched <= wr_sel;
     end
 end
 
 assign m0_axi_awaddr  = s_axi_awaddr;
 assign m0_axi_awvalid = s_axi_awvalid && !wr_sel;
-assign m1_axi_awaddr  = s_axi_awaddr;
+assign m1_axi_awaddr  = s_axi_awaddr - ADDR_THRESHOLD;  // Subtract 0x80 offset for DDR controller
 assign m1_axi_awvalid = s_axi_awvalid && wr_sel;
 
 always @(*) begin
@@ -143,17 +147,21 @@ end
 wire rd_sel = (s_axi_araddr >= ADDR_THRESHOLD);  // 0=m0, 1=m1
 reg  rd_sel_latched;
 
+// Latch read routing decision at address phase
+// Keep latched value until next read - don't auto-clear
 always @(posedge clk or negedge rstn) begin
     if (!rstn) begin
         rd_sel_latched <= 1'b0;
     end else if (s_axi_arvalid && s_axi_arready) begin
+        // Latch routing when read address handshake completes
+        // This overwrites previous value
         rd_sel_latched <= rd_sel;
     end
 end
 
 assign m0_axi_araddr  = s_axi_araddr;
 assign m0_axi_arvalid = s_axi_arvalid && !rd_sel;
-assign m1_axi_araddr  = s_axi_araddr;
+assign m1_axi_araddr  = s_axi_araddr - ADDR_THRESHOLD;  // Subtract 0x80 offset for DDR controller
 assign m1_axi_arvalid = s_axi_arvalid && rd_sel;
 
 always @(*) begin

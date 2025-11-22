@@ -95,6 +95,8 @@ reg [31:0] length = 0;
 reg [31:0] reg_addr = 0;
 reg [31:0] reg_data = 0;
 
+// Write response handling removed - now using proper AXI protocol in state machine
+
 // Watchdog timeout counter - reset state machine if stuck for too long
 // At 100MHz, 28 bits = ~2.68 seconds max
 reg [27:0] timeout_counter = 0;
@@ -131,7 +133,7 @@ always @ (posedge clk or negedge rstn)
                 o_tvalid <= 1'b0;
                 axi_awvalid <= 1'b0;
                 axi_wvalid <= 1'b0;
-                axi_bready <= 1'b0;
+                axi_bready <= 1'b0;  // Clear bready on timeout
                 axi_arvalid <= 1'b0;
                 axi_rready <= 1'b0;
                 timeout_counter <= 0;
@@ -146,7 +148,11 @@ always @ (posedge clk or negedge rstn)
             // Receive command byte
             // ============================================
             RX_CMD : begin
+                // Make sure all TX signals are clean when waiting for new command
                 o_tvalid <= 1'b0;
+                o_tlast  <= 1'b0;
+                o_tkeep  <= 4'h0;
+
                 if (i_tvalid) begin
                     command <= i_tdata;
                     // Dispatch to appropriate state based on command
@@ -162,10 +168,13 @@ always @ (posedge clk or negedge rstn)
             end
 
             LOAD_VERSION : begin
-                o_tvalid <= 1'b0;  // Make sure tvalid is clear before transmitting
+                // Clear tvalid and wait one cycle before starting TX
+                // This ensures clean transition into TX_DATA state
+                o_tvalid <= 1'b0;
+                o_tlast  <= 1'b0;
                 length <= 4;  // Send 4 bytes
                 if (command == CMD_GET_VERSION) begin
-                    reg_data <= 32'h20250127;  // Version: 2025-01-27 (added DDR keepalive module)
+                    reg_data <= 32'h20250208;  // Version: 2025-02-08 (Never clear latches)
                 end else if (command == CMD_GET_STATUS) begin
                     // Status: bit[0]=ddr_pll_lock, bit[1]=axi_arready, bit[2]=axi_rvalid, bit[3:31]=reserved
                     reg_data <= {29'h0, axi_rvalid, axi_arready, ddr_pll_lock};
@@ -280,24 +289,27 @@ always @ (posedge clk or negedge rstn)
             end
 
             AXI_WRITE : begin
-                // Assert write address and data for one cycle
+                // Assert write address and data, wait for handshake
                 axi_awaddr  <= reg_addr[14:0];  // 15-bit address
                 axi_awvalid <= 1'b1;
                 axi_wdata   <= reg_data;
                 axi_wstrb   <= 4'hF;  // All bytes valid
                 axi_wvalid  <= 1'b1;
-                // Always transition since awready and wready are always 1
-                state <= AXI_WRESP;
+                // Wait for both awready and wready before transitioning
+                if (axi_awready && axi_wready) begin
+                    state <= AXI_WRESP;
+                end
             end
 
             AXI_WRESP : begin
-                // Clear write signals after one cycle
+                // Wait for write response with proper AXI protocol
                 axi_awvalid <= 1'b0;
                 axi_wvalid  <= 1'b0;
-                axi_bready  <= 1'b1;
+                axi_bready  <= 1'b1;  // Ready to accept write response
+
                 if (axi_bvalid) begin
                     axi_bready <= 1'b0;
-                    state <= RX_CMD;  // Done, return to command state
+                    state <= RX_CMD;  // Return to command state after receiving response
                 end
             end
 
@@ -305,12 +317,14 @@ always @ (posedge clk or negedge rstn)
             // CMD_REG_READ: Read from AXI and send data
             // ============================================
             AXI_READ : begin
-                // Real AXI read path - assert arvalid and transition
+                // Real AXI read path - assert arvalid and wait for arready
                 axi_araddr  <= reg_addr[14:0];
                 axi_arvalid <= 1'b1;
                 axi_rready  <= 1'b1;
-                // Always transition to AXI_RRESP since arready is always 1
-                state <= AXI_RRESP;
+                // Wait for arready before transitioning
+                if (axi_arready) begin
+                    state <= AXI_RRESP;
+                end
             end
 
             AXI_RRESP : begin
@@ -351,9 +365,13 @@ always @ (posedge clk or negedge rstn)
     end
 
 
-assign i_tready = (state != TX_DATA) && (state != TX_RDATA) &&
-                  (state != AXI_WRITE) && (state != AXI_WRESP) &&
-                  (state != AXI_READ) && (state != AXI_RRESP);
+// Only accept new RX data when in RX states or RX_CMD
+assign i_tready = (state == RX_CMD) || (state == RX_LEN0) || (state == RX_LEN1) ||
+                  (state == RX_LEN2) || (state == RX_LEN3) ||
+                  (state == RX_ADDR0) || (state == RX_ADDR1) ||
+                  (state == RX_ADDR2) || (state == RX_ADDR3) ||
+                  (state == RX_DATA0) || (state == RX_DATA1) ||
+                  (state == RX_DATA2) || (state == RX_DATA3);
 
 
 endmodule

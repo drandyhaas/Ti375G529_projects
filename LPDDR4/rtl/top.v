@@ -181,7 +181,6 @@ tools_core core0(
 .ftdi_be_IN(ftdi_be_IN),
 .ftdi_be_OUT(ftdi_be_OUT),
 .ftdi_be_OE(ftdi_be_OE),
-.clk_100(clk_100),
 
 // DDR Interface
 .axi0_ACLK(axi0_ACLK),

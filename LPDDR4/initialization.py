@@ -146,14 +146,24 @@ class initialization:
 
         LOGGER.info('Write CTL Register')
         start_time = time.time()
-        for i in range(len(ctl_reg)):
+
+        # DEBUG: Start from write 85 to see if issue is cumulative or address-specific
+        start_index = 85
+        LOGGER.info(f'  DEBUG: Starting from CTL[{start_index}] to test issue')
+
+        for i in range(start_index, len(ctl_reg)):
             write_start = time.time()
             self.drv_obj.lpddr4_ctrl_write('CTL', ctl_reg[i][0], ctl_reg[i][1])
             write_time = (time.time() - write_start) * 1000  # Convert to ms
+
+            # DEBUG: Add delay between writes to see if DDR controller needs time
+            import time as time_module
+            time_module.sleep(0.1)  # 100ms delay between writes
+
             if write_time > 10.0:  # Report any write that takes > 10ms
                 LOGGER.info(f'  SLOW: CTL[{i}] addr=0x{ctl_reg[i][0]:04X} took {write_time:.1f}ms')
-            elif i % 50 == 0:
-                LOGGER.info(f'  CTL[{i}/{len(ctl_reg)}] last write: {write_time:.1f}ms')
+            else:
+                LOGGER.info(f'  CTL[{i}/{len(ctl_reg)}] addr=0x{ctl_reg[i][0]:04X} took {write_time:.1f}ms')
         ctl_time = time.time() - start_time
         LOGGER.info(f'Wrote {len(ctl_reg)} CTL registers in {ctl_time:.2f}s')
 
@@ -162,6 +172,13 @@ class initialization:
         for i in range(len(phy_reg)):
             if i % 50 == 0:
                 LOGGER.info(f'  Writing PHY register {i}/{len(phy_reg)}...')
+                # DEBUG: Test if version read still works
+                try:
+                    version = self.drv_obj.get_version()
+                    LOGGER.info(f'  Version check OK: 0x{version:08X}')
+                except Exception as e:
+                    LOGGER.error(f'  VERSION READ FAILED after {i} PHY writes: {e}')
+                    raise
             self.drv_obj.lpddr4_ctrl_write('PHY', phy_reg[i][0], phy_reg[i][1])
         phy_time = time.time() - start_time
         LOGGER.info(f'Wrote {len(phy_reg)} PHY registers in {phy_time:.2f}s')
@@ -171,6 +188,13 @@ class initialization:
         for i in range(len(pi_reg)):
             if i % 50 == 0:
                 LOGGER.info(f'  Writing PI register {i}/{len(pi_reg)}...')
+                # DEBUG: Test if version read still works
+                try:
+                    version = self.drv_obj.get_version()
+                    LOGGER.info(f'  Version check OK: 0x{version:08X}')
+                except Exception as e:
+                    LOGGER.error(f'  VERSION READ FAILED after {i} PI writes: {e}')
+                    raise
             self.drv_obj.lpddr4_ctrl_write('PI', pi_reg[i][0], pi_reg[i][1])
         pi_time = time.time() - start_time
         LOGGER.info(f'Wrote {len(pi_reg)} PI registers in {pi_time:.2f}s')
@@ -520,7 +544,40 @@ class initialization:
 
     def reset_pi_controller(self):
 
+        # Debug: First try a simple control register write to see if basic USB works
+        LOGGER.info('reset_pi_controller: Testing simple register write...')
+        try:
+            self.drv_obj.reg_write(0x00, 0x12345678)
+            LOGGER.info('reset_pi_controller: Write succeeded')
+        except Exception as e:
+            LOGGER.error(f'reset_pi_controller: Write failed: {e}')
+
+        # Debug: Check firmware version and status
+        LOGGER.info('reset_pi_controller: Getting firmware version...')
+        try:
+            version = self.drv_obj.get_version()
+            LOGGER.info(f'reset_pi_controller: Firmware version = 0x{version:08X}')
+        except Exception as e:
+            LOGGER.error(f'reset_pi_controller: Version read failed: {e}')
+
+        LOGGER.info('reset_pi_controller: Getting hardware status...')
+        try:
+            status = self.drv_obj.get_status()
+            LOGGER.info(f'reset_pi_controller: Status = 0x{status:08X} (bit0=pll_lock, bit1=arready, bit2=rvalid)')
+        except Exception as e:
+            LOGGER.error(f'reset_pi_controller: Status read failed: {e}')
+
+        # Test: Try reading from axi_lite_slave first (addr < 0x80)
+        LOGGER.info('reset_pi_controller: Testing read from control register 0x00...')
+        try:
+            test_val = self.drv_obj.reg_read(0x00, timeout=5.0, verbose=True)
+            LOGGER.info(f'reset_pi_controller: Control reg[0] = 0x{test_val:08X} - READS WORK!')
+        except Exception as e:
+            LOGGER.error(f'reset_pi_controller: Control reg read failed: {e}')
+
+        LOGGER.info('reset_pi_controller: Reading PI register 10...')
         output = self.drv_obj.lpddr4_ctrl_read('PI', 10)
+        LOGGER.info(f'reset_pi_controller: Read PI[10] = 0x{output:08X}')
         output = output & 0xFFFEFFFF
         self.drv_obj.lpddr4_ctrl_write('PI', 10, output)
 
@@ -546,6 +603,7 @@ class initialization:
         self.start_pi_controller(1)
         self.start_mem_controller(1)
 
+        LOGGER.info('Waiting for PLL lock...')
         time_out = 0
         while True:
             if self.check_phy_pll_lock():
@@ -562,6 +620,8 @@ class initialization:
             time_out = time_out+1
             time.sleep(0.1)
 
+        LOGGER.info('Waiting for MC initialization...')
+        time_out = 0
         while True:
             if self.mmc_init_status():
                 LOGGER.info('MC Initialization Done')
@@ -577,6 +637,9 @@ class initialization:
             time_out = time_out+1
             time.sleep(0.1)
 
+        LOGGER.info('Waiting for PI initialization...')
+        time_out = 0
+        while True:
             if self.pi_init_status():
                 LOGGER.info('PI Initialization Done')
                 time_out = 0
