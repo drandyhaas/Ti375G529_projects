@@ -60,15 +60,25 @@ input [31:0]test_size
 
 );
 wire [511:0] mask;
-assign awid = 6'h00;
-assign arid = 6'h00;
+
+// Multiple outstanding AXI IDs for improved bandwidth
+// Cycle through 8 IDs to allow multiple transactions in flight
+reg [2:0] axi_id_counter;
+assign awid = {3'b000, axi_id_counter};  // Write ID
+assign arid = {3'b000, axi_id_counter};  // Read ID
+
 assign wstrb = 64'hFFFFFFFF_FFFFFFFF;
 assign mask = {16{check_mask}};
-parameter ALEN = 63;
+parameter ALEN = 255;  // 256 transfers per burst (optimized from 64)
 parameter ASIZE = 6;
 parameter START_ADDR = 33'h000000000;
 //parameter STOP_ADDR = 33'h000001900;
 parameter ADDR_OFFSET = (ALEN + 1)*64;
+
+// Bank-interleaved addressing is disabled for now - just use normal sequential addressing
+// The original simple increment works fine
+// (Bank interleaving optimization can be added later if needed)
+
 //Main states
 localparam
 	IDLE = 4'b0000, 
@@ -193,6 +203,7 @@ always @(posedge axi_clk or negedge rstn) begin
 		r_lfsr_en	<= 1'b0;
 		r_dq_fail_expression	<=32'b0;
 		r_test_size		<=32'b0;
+		axi_id_counter	<= 3'b000;
 
 	end else begin
 		if (states == IDLE) begin
@@ -231,6 +242,7 @@ always @(posedge axi_clk or negedge rstn) begin
 			r_lfsr_en <=lfsr_en;
 			r_dq_fail_expression	<=32'b0;
 			r_test_size	<= test_size;
+			axi_id_counter <= 3'b000;
 		end
 		if (states == WRITE_ADDR) begin
 			awvalid <= 1'b1;
@@ -327,10 +339,14 @@ always @(posedge axi_clk or negedge rstn) begin
 			if (write_done) begin
 				awaddr <= START_ADDR;
                                 r_lfsr_1P <= i_lfsr_seed;
+				axi_id_counter <= 3'b000;  // Reset AXI ID counter for read phase
 
 			end else begin
 				if (bvalid) begin
+				// Simple sequential addressing
 				awaddr <= awaddr + ADDR_OFFSET;
+				// Cycle through 8 AXI IDs for multiple outstanding transactions
+				axi_id_counter <= axi_id_counter + 3'b001;
 				write_cnt <= ALEN + 1;
 				end
 			end
@@ -467,7 +483,10 @@ always @(posedge axi_clk or negedge rstn) begin
 			end	
 		end
 		if (states == POST_READ) begin
+			// Simple sequential addressing (must match write pattern)
 			araddr <= araddr + ADDR_OFFSET;
+			// Cycle through 8 AXI IDs for multiple outstanding transactions
+			axi_id_counter <= axi_id_counter + 3'b001;
 			rready <= 1'b1;
 		end
 		if (states == DONE) begin
