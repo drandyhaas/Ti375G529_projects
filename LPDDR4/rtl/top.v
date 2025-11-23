@@ -1,4 +1,3 @@
-`include "define.vh"
 
 module top (
 
