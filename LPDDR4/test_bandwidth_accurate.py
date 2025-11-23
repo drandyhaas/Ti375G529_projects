@@ -89,10 +89,10 @@ def main():
         for i in range(5):
             passed, elapsed, polls = run_test(usb, 1, pattern_type='lfsr')
             if not passed:
-                print(f"  Test {i+1} FAILED")
+                print(f"  Test {i+1} FAILED - Data verification error")
                 return 1
             overhead_times.append(elapsed)
-            print(f"  Run {i+1}: {elapsed:.6f}s ({polls} polls)")
+            print(f"  Run {i+1}: {elapsed:.6f}s ({polls} polls) - PASS (data verified)")
 
         avg_overhead = sum(overhead_times) / len(overhead_times)
         print(f"\nAverage 1MB time: {avg_overhead:.6f}s")
@@ -107,7 +107,7 @@ def main():
         for i in range(5):
             passed, elapsed, polls = run_test(usb, 512, pattern_type='lfsr')
             if not passed:
-                print(f"  Test {i+1} FAILED")
+                print(f"  Test {i+1} FAILED - Data verification error")
                 return 1
 
             test_times.append(elapsed)
@@ -117,7 +117,7 @@ def main():
             total_bytes = 2 * size_bytes  # write + read
             bandwidth_raw_gbps = (total_bytes * 8) / elapsed / 1e9
 
-            print(f"  Run {i+1}: {elapsed:.6f}s ({polls} polls) - {bandwidth_raw_gbps:.2f} Gb/s raw")
+            print(f"  Run {i+1}: {elapsed:.6f}s ({polls} polls) - {bandwidth_raw_gbps:.2f} Gb/s - PASS (data verified)")
 
         # Step 3: Analyze results
         print("\n" + "=" * 70)
@@ -180,21 +180,15 @@ def main():
         print(f"  Bandwidth: {bandwidth_comp_gbps:.2f} Gb/s ({bandwidth_comp_mbps:.1f} MB/s)")
         print(f"  Test time: {compensated_time:.6f}s")
 
-        print(f"\nTheoretical maximum: 80 Gb/s (10000 MB/s)")
-        efficiency = (bandwidth_comp_gbps / 80.0) * 100
-        print(f"Efficiency: {efficiency:.1f}% of theoretical max")
-
         print("\n" + "=" * 70)
-        print("NOTES")
+        print("DATA INTEGRITY")
         print("=" * 70)
-        print("- Test uses single AXI port (AXI0 only)")
-        print("- Using both AXI0 + AXI1 could potentially double throughput")
-        print("- Bandwidth limited by:")
-        print("    1. AXI clock frequency")
-        print("    2. Memory checker logic efficiency")
-        print("    3. Single port utilization")
-        print("    4. Burst size and alignment")
+        print("All tests PASSED with 100% data verification")
+        print("- Write: LFSR pseudo-random pattern generated")
+        print("- Read: Every byte compared against expected LFSR value")
+        print("- Result: NO data corruption detected")
 
+        print("\n")
         return 0
 
     except Exception as e:

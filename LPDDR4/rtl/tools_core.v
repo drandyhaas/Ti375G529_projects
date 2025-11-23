@@ -66,46 +66,7 @@ input           axi0_RVALID,
 input [511:0]   axi0_RDATA,
 input [1:0]     axi0_RRESP,
 
-input           axi1_ACLK,
-output          axi1_ARESETn,
-output          axi1_ARQOS,
-output          axi1_AWQOS,
-output [5:0]    axi1_AWID,
-output [32:0]   axi1_AWADDR,
-output [7:0]    axi1_AWLEN,
-output [2:0]    axi1_AWSIZE,
-output [1:0]    axi1_AWBURST,
-output          axi1_AWVALID,
-output [3:0]    axi1_AWCACHE,
-output          axi1_AWCOBUF,
-output          axi1_AWLOCK,
-output          axi1_AWAPCMD,
-output          axi1_AWALLSTRB,
-output [5:0]    axi1_ARID,
-output [32:0]   axi1_ARADDR,
-output [7:0]    axi1_ARLEN,
-output [2:0]    axi1_ARSIZE,
-output [1:0]    axi1_ARBURST,
-output          axi1_ARVALID,
-output          axi1_ARLOCK,
-output          axi1_ARAPCMD,
-output          axi1_WLAST,
-output          axi1_WVALID,
-output [511:0]  axi1_WDATA,
-output [63:0]   axi1_WSTRB,
-output          axi1_BREADY,
-output          axi1_RREADY,
-input           axi1_AWREADY,
-input           axi1_ARREADY,
-input           axi1_WREADY,
-input [5:0]     axi1_BID,
-input [1:0]     axi1_BRESP,
-input           axi1_BVALID,
-input [5:0]     axi1_RID,
-input           axi1_RLAST,
-input           axi1_RVALID,
-input [511:0]   axi1_RDATA,
-input [1:0]     axi1_RRESP,
+// axi1 DDR Interface removed - only using axi0 for memory_checker_lfsr
 
 output          cfg_sel,
 output          cfg_start,
@@ -169,7 +130,7 @@ assign  phy_rstn      = ddr_pll_lock;   // PHY reset released when PLL locks
 assign  ctrl_rstn     = ddr_pll_lock;   // Controller reset released when PLL locks
 assign  regARESETn    = ddr_pll_lock;   // Register AXI reset released when PLL locks
 assign  axi0_ARESETn  = ddr_pll_lock;   // AXI0 reset released when PLL locks
-assign  axi1_ARESETn  = ddr_pll_lock;   // AXI1 reset released when PLL locks
+// axi1_ARESETn removed - axi1 interface no longer used
 
 wire    done_0;
 wire    fail_0;
@@ -507,7 +468,7 @@ axi_lite_slave axilite_inst
     .ctrl_rstn      (),              // Not used - ctrl_rstn driven by hardware
     .reg_axi_rstn   (),              // Not used - regARESETn driven by hardware
     .axi0_rstn      (),              // Not used - axi0_ARESETn driven by hardware
-    .axi1_rstn      (),              // Not used - axi1_ARESETn driven by hardware
+    .axi1_rstn      (),              // Not used - axi1_ARESETn removed (axi1 interface removed)
     .reg_axi_arlen  (reg_axi_arlen),
     .memtest_size   (w_memtest_size),
 	.dq_fail        (dq_fail),

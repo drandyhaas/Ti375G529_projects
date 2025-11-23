@@ -174,7 +174,7 @@ always @ (posedge clk or negedge rstn)
                 o_tlast  <= 1'b0;
                 length <= 4;  // Send 4 bytes
                 if (command == CMD_GET_VERSION) begin
-                    reg_data <= 32'h20251122;  // Version: 2025-11-22 (axi_ctrl_ver3 removed)
+                    reg_data <= 32'h20251123;  // Version: 2025-11-23 (axi1 + axi_ctrl_ver3 removed)
                 end else if (command == CMD_GET_STATUS) begin
                     // Status: bit[0]=ddr_pll_lock, bit[1]=axi_arready, bit[2]=axi_rvalid, bit[3:31]=reserved
                     reg_data <= {29'h0, axi_rvalid, axi_arready, ddr_pll_lock};

@@ -21,21 +21,6 @@ set_clock_groups -exclusive \
     -group {regACLK} \
     -group {ftdi_clk} 
 
-# Note: With -exclusive, the explicit set_false_path commands below are
-# technically redundant, but we keep them for defensive design and clarity
-# They ensure that if the clock groups constraint is not properly recognized,
-# we still have proper cross-domain handling
-
-# Relax inter-clock domain paths between AXI and register clocks
-set_false_path -from [get_clocks {regACLK}] -to [get_clocks {axi0_ACLK}]
-set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {regACLK}]
-
-# USB FT600 clock is asynchronous to all design clocks
-set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {axi0_ACLK}]
-set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {regACLK}]
-set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {ftdi_clk}]
-set_false_path -from [get_clocks {regACLK}] -to [get_clocks {ftdi_clk}]
-
 # Override Auto-Generated I/O Delay Constraints
 # The auto-generated BSP file uses fixed delay values (2.310/2.625 ns) that were
 # appropriate for slower AXI clocks but consume 98%+ of the 5ns period at 200 MHz.
@@ -78,4 +63,3 @@ set_input_delay -clock axi0_ACLK -min 0.600 [get_ports {axi0_RDATA[*] axi0_RLAST
 
 # For debugging timing issues: Uncomment to see detailed timing reports
 # set_max_delay 20 -from [get_clocks {axi0_ACLK}] -to [all_outputs]
-# set_max_delay 20 -from [get_clocks {axi1_ACLK}] -to [all_outputs]
