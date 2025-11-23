@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sat Nov 22 18:30:07 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sun Nov 23 09:06:36 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
     <efxpt:device_info>
         <efxpt:iobank_info>
             <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
@@ -438,48 +438,48 @@
                     <efxpt:pin name="axi0_ARESETn" type_name="ARSTN_0" is_bus="false"/>
                 </efxpt:gen_pin_axi>
             </efxpt:axi_target0>
-            <efxpt:axi_target1 is_axi_width_256="false" is_axi_enable="true">
+            <efxpt:axi_target1 is_axi_width_256="false" is_axi_enable="false">
                 <efxpt:gen_pin_axi>
-                    <efxpt:pin name="axi1_ACLK" type_name="ACLK_1" is_bus="false" is_clk="true" is_clk_invert="false"/>
-                    <efxpt:pin name="axi1_ARAPCMD" type_name="ARAPCMD_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_ARREADY" type_name="ARREADY_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_ARVALID" type_name="ARVALID_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_ARQOS" type_name="ARQOS_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWAPCMD" type_name="AWAPCMD_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWALLSTRB" type_name="AWALLSTRB_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWCOBUF" type_name="AWCOBUF_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWREADY" type_name="AWREADY_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWVALID" type_name="AWVALID_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWLOCK" type_name="AWLOCK_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWQOS" type_name="AWQOS_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_BREADY" type_name="BREADY_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_BVALID" type_name="BVALID_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_RLAST" type_name="RLAST_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_RREADY" type_name="RREADY_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_RVALID" type_name="RVALID_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_WLAST" type_name="WLAST_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_WREADY" type_name="WREADY_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_WVALID" type_name="WVALID_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_ARADDR" type_name="ARADDR_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_ARBURST" type_name="ARBURST_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_ARID" type_name="ARID_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_ARLEN" type_name="ARLEN_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_ARSIZE" type_name="ARSIZE_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_ARLOCK" type_name="ARLOCK_1" is_bus="false"/>
-                    <efxpt:pin name="axi1_AWADDR" type_name="AWADDR_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_AWBURST" type_name="AWBURST_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_AWID" type_name="AWID_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_AWLEN" type_name="AWLEN_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_AWSIZE" type_name="AWSIZE_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_AWCACHE" type_name="AWCACHE_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_BID" type_name="BID_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_BRESP" type_name="BRESP_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_RDATA" type_name="RDATA_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_RID" type_name="RID_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_RRESP" type_name="RRESP_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_WDATA" type_name="WDATA_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_WSTRB" type_name="WSTRB_1" is_bus="true"/>
-                    <efxpt:pin name="axi1_ARESETn" type_name="ARSTN_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="ACLK_1" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name="" type_name="ARAPCMD_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="ARREADY_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="ARVALID_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="ARQOS_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWAPCMD_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWALLSTRB_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWCOBUF_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWREADY_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWVALID_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWLOCK_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWQOS_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="BREADY_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="BVALID_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="RLAST_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="RREADY_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="RVALID_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="WLAST_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="WREADY_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="WVALID_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="ARADDR_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="ARBURST_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="ARID_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="ARLEN_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="ARSIZE_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="ARLOCK_1" is_bus="false"/>
+                    <efxpt:pin name="" type_name="AWADDR_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="AWBURST_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="AWID_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="AWLEN_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="AWSIZE_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="AWCACHE_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="BID_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="BRESP_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="RDATA_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="RID_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="RRESP_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="WDATA_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="WSTRB_1" is_bus="true"/>
+                    <efxpt:pin name="" type_name="ARSTN_1" is_bus="false"/>
                 </efxpt:gen_pin_axi>
             </efxpt:axi_target1>
             <efxpt:gen_pin_controller>
