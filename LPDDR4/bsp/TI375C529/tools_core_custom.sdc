@@ -5,15 +5,11 @@
 # Based on the working Ti375C529 OOB v2.1 example running at 1650 MHz
 # Reference: C:\Users\ahaas\.efinity\project\efx_ti375c529_oob_v2.1\bsp\TI375C529_DK\constraints.sdc
 
-# JTAG Clock Definition
-# The JTAG clock needs to be defined for proper timing analysis
-create_clock -period 166.67 [get_ports {jtag_inst1_TCK}]
-
 # USB FT600 Clock Definition
 # The FT600 provides a 100 MHz clock (10 ns period)
 create_clock -period 10.000 [get_ports {ftdi_clk}]
 
-create_clock -period 10.000 [get_ports {clk_100}]
+#create_clock -period 10.000 [get_ports {clk_100}]
 
 # Clock Domain Crossing Constraints
 # CRITICAL: Use -exclusive instead of -asynchronous for better timing closure
@@ -22,11 +18,8 @@ create_clock -period 10.000 [get_ports {clk_100}]
 # and no paths between them need to be analyzed
 set_clock_groups -exclusive \
     -group {axi0_ACLK} \
-    -group {axi1_ACLK} \
     -group {regACLK} \
-    -group {jtag_inst1_TCK} \
-    -group {ftdi_clk} \
-    -group {clk_100}
+    -group {ftdi_clk} 
 
 # Note: With -exclusive, the explicit set_false_path commands below are
 # technically redundant, but we keep them for defensive design and clarity
@@ -35,29 +28,13 @@ set_clock_groups -exclusive \
 
 # Relax inter-clock domain paths between AXI and register clocks
 set_false_path -from [get_clocks {regACLK}] -to [get_clocks {axi0_ACLK}]
-set_false_path -from [get_clocks {regACLK}] -to [get_clocks {axi1_ACLK}]
 set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {regACLK}]
-set_false_path -from [get_clocks {axi1_ACLK}] -to [get_clocks {regACLK}]
-set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {axi1_ACLK}]
-set_false_path -from [get_clocks {axi1_ACLK}] -to [get_clocks {axi0_ACLK}]
-
-# JTAG is always asynchronous to all design clocks
-set_false_path -from [get_clocks {jtag_inst1_TCK}] -to [get_clocks {axi0_ACLK}]
-set_false_path -from [get_clocks {jtag_inst1_TCK}] -to [get_clocks {axi1_ACLK}]
-set_false_path -from [get_clocks {jtag_inst1_TCK}] -to [get_clocks {regACLK}]
-set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {jtag_inst1_TCK}]
-set_false_path -from [get_clocks {axi1_ACLK}] -to [get_clocks {jtag_inst1_TCK}]
-set_false_path -from [get_clocks {regACLK}] -to [get_clocks {jtag_inst1_TCK}]
 
 # USB FT600 clock is asynchronous to all design clocks
 set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {axi0_ACLK}]
-set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {axi1_ACLK}]
 set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {regACLK}]
-set_false_path -from [get_clocks {ftdi_clk}] -to [get_clocks {jtag_inst1_TCK}]
 set_false_path -from [get_clocks {axi0_ACLK}] -to [get_clocks {ftdi_clk}]
-set_false_path -from [get_clocks {axi1_ACLK}] -to [get_clocks {ftdi_clk}]
 set_false_path -from [get_clocks {regACLK}] -to [get_clocks {ftdi_clk}]
-set_false_path -from [get_clocks {jtag_inst1_TCK}] -to [get_clocks {ftdi_clk}]
 
 # Override Auto-Generated I/O Delay Constraints
 # The auto-generated BSP file uses fixed delay values (2.310/2.625 ns) that were
@@ -98,28 +75,6 @@ set_input_delay -clock axi0_ACLK -min 0.600 [get_ports {axi0_BVALID axi0_RVALID}
 
 set_input_delay -clock axi0_ACLK -max 0.850 [get_ports {axi0_RDATA[*] axi0_RLAST}]
 set_input_delay -clock axi0_ACLK -min 0.600 [get_ports {axi0_RDATA[*] axi0_RLAST}]
-
-# AXI1 Output/Input Delays (if used - same scaling as AXI0)
-set_output_delay -clock axi1_ACLK -max 0.750 [get_ports {axi1_ARADDR[*] axi1_ARAPCMD axi1_ARBURST[*] axi1_ARID[*] axi1_ARLEN[*] axi1_ARSIZE[*] axi1_ARVALID axi1_ARLOCK axi1_ARQOS}]
-set_output_delay -clock axi1_ACLK -min -0.140 [get_ports {axi1_ARADDR[*] axi1_ARAPCMD axi1_ARBURST[*] axi1_ARID[*] axi1_ARLEN[*] axi1_ARSIZE[*] axi1_ARVALID axi1_ARLOCK axi1_ARQOS}]
-
-set_output_delay -clock axi1_ACLK -max 0.750 [get_ports {axi1_AWADDR[*] axi1_AWALLSTRB axi1_AWBURST[*] axi1_AWCOBUF axi1_AWID[*] axi1_AWLEN[*] axi1_AWSIZE[*] axi1_AWVALID axi1_AWLOCK axi1_AWCACHE[*] axi1_AWQOS}]
-set_output_delay -clock axi1_ACLK -min -0.140 [get_ports {axi1_AWADDR[*] axi1_AWALLSTRB axi1_AWBURST[*] axi1_AWCOBUF axi1_AWID[*] axi1_AWLEN[*] axi1_AWSIZE[*] axi1_AWVALID axi1_AWLOCK axi1_AWCACHE[*] axi1_AWQOS}]
-set_output_delay -clock axi1_ACLK -max 0.750 [get_ports {axi1_AWAPCMD}]
-set_output_delay -clock axi1_ACLK -min -0.350 [get_ports {axi1_AWAPCMD}]
-
-set_output_delay -clock axi1_ACLK -max 0.750 [get_ports {axi1_WDATA[*] axi1_WLAST axi1_WSTRB[*] axi1_WVALID axi1_BREADY axi1_RREADY}]
-set_output_delay -clock axi1_ACLK -min -0.140 [get_ports {axi1_WDATA[*] axi1_WLAST axi1_WSTRB[*] axi1_WVALID axi1_BREADY axi1_RREADY}]
-
-# AXI1 inputs - BID, RID, BRESP, RRESP are ALL removed (unconnected)
-set_input_delay -clock axi1_ACLK -max 0.850 [get_ports {axi1_ARREADY axi1_AWREADY axi1_WREADY}]
-set_input_delay -clock axi1_ACLK -min 0.600 [get_ports {axi1_ARREADY axi1_AWREADY axi1_WREADY}]
-
-set_input_delay -clock axi1_ACLK -max 0.850 [get_ports {axi1_BVALID axi1_RVALID}]
-set_input_delay -clock axi1_ACLK -min 0.600 [get_ports {axi1_BVALID axi1_RVALID}]
-
-set_input_delay -clock axi1_ACLK -max 0.850 [get_ports {axi1_RDATA[*] axi1_RLAST}]
-set_input_delay -clock axi1_ACLK -min 0.600 [get_ports {axi1_RDATA[*] axi1_RLAST}]
 
 # For debugging timing issues: Uncomment to see detailed timing reports
 # set_max_delay 20 -from [get_clocks {axi0_ACLK}] -to [all_outputs]
