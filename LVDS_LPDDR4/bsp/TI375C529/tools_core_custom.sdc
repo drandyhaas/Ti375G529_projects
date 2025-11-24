@@ -9,7 +9,7 @@
 # The FT600 provides a 100 MHz clock (10 ns period)
 create_clock -period 10.000 [get_ports {ftdi_clk}]
 
-#create_clock -period 10.000 [get_ports {clk_100}]
+create_clock -period 10.000 [get_ports {clk_100}]
 
 # Clock Domain Crossing Constraints
 # CRITICAL: Use -exclusive instead of -asynchronous for better timing closure
@@ -18,8 +18,8 @@ create_clock -period 10.000 [get_ports {ftdi_clk}]
 # and no paths between them need to be analyzed
 set_clock_groups -exclusive \
     -group {axi0_ACLK} \
-    -group {regACLK} \
-    -group {ftdi_clk} 
+    -group {regACLK clk_100} \
+    -group {ftdi_clk}
 
 # Override Auto-Generated I/O Delay Constraints
 # The auto-generated BSP file uses fixed delay values (2.310/2.625 ns) that were

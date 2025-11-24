@@ -1,7 +1,7 @@
 // the main module: gets commands from USB, and takes actions
 module command_processor (
    input  wire        rstn,
-   input  wire        clk, // the main 50 MHz clock
+   input  wire        clk, // the main clock
    
    // to talk to data I/O FT232H USB2
    output wire        i_tready, // AXI-stream slave

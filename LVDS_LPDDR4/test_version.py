@@ -30,16 +30,9 @@ print(f"RX: {rxdata.hex()} ({len(rxdata)} bytes)")
 
 if len(rxdata) == 4:
     version = rxdata[0] | (rxdata[1] << 8) | (rxdata[2] << 16) | (rxdata[3] << 24)
-    print(f"\n✓ Firmware Version: 0x{version:08X}")
-
-    if version == 0x20250120:
-        print("✓ CORRECT! This is the updated firmware from 2025-01-20")
-    else:
-        print(f"✗ UNEXPECTED version (expected 0x20250120)")
-        print("  This suggests an old firmware is loaded or build didn't include changes")
+    print(f"Firmware Version: 0x{version:08X}")
 else:
-    print(f"✗ FAILED - Expected 4 bytes, got {len(rxdata)}")
-    print("  The command may not be recognized (old firmware?)")
+    print(f"FAILED - Expected 4 bytes, got {len(rxdata)}")
 
 usb.close()
-print("\nDone!")
+print("Done!")
