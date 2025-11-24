@@ -113,9 +113,6 @@ input           regBVALID,
 output          regARESETn
 );
 
-// LVDS
-assign lvds_rx_inst1_RX_RST = 1'b0;
-
 // ================================================================
 // DDR Auto-Initialization (Hardware Mode)
 // ================================================================
