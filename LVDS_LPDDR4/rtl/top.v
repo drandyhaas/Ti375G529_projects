@@ -1,6 +1,9 @@
 
 module top (
 
+// LVDS
+output lvds_rx_inst1_RX_RST,
+
 // LEDs
 output [3:0]    LED,
 

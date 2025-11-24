@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sun Nov 23 09:19:13 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sun Nov 23 19:50:27 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
     <efxpt:device_info>
         <efxpt:iobank_info>
             <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
@@ -388,9 +388,136 @@
                 <efxpt:param name="SSC_MODULATION_TYPE" value="DOWN" value_type="str"/>
             </efxpt:gen_param>
         </efxpt:pll>
+        <efxpt:pll name="pll_lvds_top" pll_def="PLL_TL0" ref_clock_name="regACLK" ref_clock_freq="100.0000" multiplier="1" pre_divider="1" post_divider="1" reset_name="" locked_name="" is_ipfrz="false" is_bypass_lock="true">
+            <efxpt:adv_prop ref_clock_mode="core" ref_clock1_name="" ext_ref_clock_id="2" clksel_name="" feedback_clock_name="pll_lvds_100" feedback_mode="local"/>
+            <efxpt:gen_pin>
+                <efxpt:pin name="" type_name="SHIFT_ENA" is_bus="false"/>
+                <efxpt:pin name="" type_name="DESKEWED" is_bus="false"/>
+                <efxpt:pin name="" type_name="CFG_CLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                <efxpt:pin name="" type_name="CFG_DATA_IN" is_bus="false"/>
+                <efxpt:pin name="" type_name="CFG_DATA_OUT" is_bus="false"/>
+                <efxpt:pin name="" type_name="CFG_SEL" is_bus="false"/>
+                <efxpt:pin name="" type_name="USER_SSC_EN" is_bus="false"/>
+                <efxpt:pin name="" type_name="SHIFT" is_bus="true"/>
+                <efxpt:pin name="" type_name="SHIFT_SEL" is_bus="true"/>
+            </efxpt:gen_pin>
+            <efxpt:comp_output_clock name="lvds_clk_fast" number="0" out_divider="4" is_dyn_phase="false" phase_setting="2" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+                <efxpt:gen_pin/>
+                <efxpt:gen_param/>
+            </efxpt:comp_output_clock>
+            <efxpt:comp_output_clock name="pll_lvds_100" number="1" out_divider="30" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+                <efxpt:gen_pin/>
+                <efxpt:gen_param>
+                    <efxpt:param name="HALF_DC_SHIFT_EN" value="false" value_type="bool"/>
+                    <efxpt:param name="PDIV" value="15" value_type="int"/>
+                    <efxpt:param name="PROG_DUTY_CYCLE_EN" value="false" value_type="bool"/>
+                    <efxpt:param name="REQUEST_DUTY_CYCLE" value="50.0000" value_type="float"/>
+                    <efxpt:param name="SWALLOWING_DIV" value="15" value_type="int"/>
+                </efxpt:gen_param>
+            </efxpt:comp_output_clock>
+            <efxpt:comp_output_clock name="lvds_clk_slow" number="2" out_divider="20" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+                <efxpt:gen_pin/>
+                <efxpt:gen_param/>
+            </efxpt:comp_output_clock>
+            <efxpt:comp_prop/>
+            <efxpt:gen_param>
+                <efxpt:param name="DYN_RECONFIG_EN" value="false" value_type="bool"/>
+                <efxpt:param name="FRACTIONAL_EN" value="false" value_type="bool"/>
+                <efxpt:param name="FRACTIONAL_K" value="0" value_type="int"/>
+                <efxpt:param name="REFCLK" value="CORE_CLK1" value_type="str"/>
+                <efxpt:param name="SSC_AMPLITUDE" value="0.5000" value_type="float"/>
+                <efxpt:param name="SSC_EN" value="DISABLE" value_type="str"/>
+                <efxpt:param name="SSC_FREQUENCY" value="30.0000" value_type="float"/>
+                <efxpt:param name="SSC_MODULATION_TYPE" value="DOWN" value_type="str"/>
+            </efxpt:gen_param>
+        </efxpt:pll>
+        <efxpt:pll name="pll_lvds_top_clkin" pll_def="PLL_TR1" ref_clock_name="" ref_clock_freq="750.0000" multiplier="1" pre_divider="1" post_divider="1" reset_name="" locked_name="" is_ipfrz="false" is_bypass_lock="true">
+            <efxpt:adv_prop ref_clock_mode="external" ref_clock1_name="" ext_ref_clock_id="2" clksel_name="" feedback_clock_name="lvds_clk_feedback_clkin" feedback_mode="local"/>
+            <efxpt:gen_pin>
+                <efxpt:pin name="" type_name="SHIFT_ENA" is_bus="false"/>
+                <efxpt:pin name="" type_name="DESKEWED" is_bus="false"/>
+                <efxpt:pin name="" type_name="CFG_CLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                <efxpt:pin name="" type_name="CFG_DATA_IN" is_bus="false"/>
+                <efxpt:pin name="" type_name="CFG_DATA_OUT" is_bus="false"/>
+                <efxpt:pin name="" type_name="CFG_SEL" is_bus="false"/>
+                <efxpt:pin name="" type_name="USER_SSC_EN" is_bus="false"/>
+                <efxpt:pin name="" type_name="SHIFT" is_bus="true"/>
+                <efxpt:pin name="" type_name="SHIFT_SEL" is_bus="true"/>
+            </efxpt:gen_pin>
+            <efxpt:comp_output_clock name="lvds_clk_fast_clkin" number="0" out_divider="4" is_dyn_phase="false" phase_setting="2" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+                <efxpt:gen_pin/>
+                <efxpt:gen_param/>
+            </efxpt:comp_output_clock>
+            <efxpt:comp_output_clock name="lvds_clk_feedback_clkin" number="1" out_divider="4" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+                <efxpt:gen_pin/>
+                <efxpt:gen_param>
+                    <efxpt:param name="HALF_DC_SHIFT_EN" value="false" value_type="bool"/>
+                    <efxpt:param name="PDIV" value="2" value_type="int"/>
+                    <efxpt:param name="PROG_DUTY_CYCLE_EN" value="false" value_type="bool"/>
+                    <efxpt:param name="REQUEST_DUTY_CYCLE" value="50.0000" value_type="float"/>
+                    <efxpt:param name="SWALLOWING_DIV" value="2" value_type="int"/>
+                </efxpt:gen_param>
+            </efxpt:comp_output_clock>
+            <efxpt:comp_output_clock name="lvds_clk_slow_clkin" number="2" out_divider="20" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+                <efxpt:gen_pin/>
+                <efxpt:gen_param/>
+            </efxpt:comp_output_clock>
+            <efxpt:comp_prop/>
+            <efxpt:gen_param>
+                <efxpt:param name="DYN_RECONFIG_EN" value="false" value_type="bool"/>
+                <efxpt:param name="FRACTIONAL_EN" value="false" value_type="bool"/>
+                <efxpt:param name="FRACTIONAL_K" value="0" value_type="int"/>
+                <efxpt:param name="REFCLK" value="EXT_CLK0" value_type="str"/>
+                <efxpt:param name="SSC_AMPLITUDE" value="0.5000" value_type="float"/>
+                <efxpt:param name="SSC_EN" value="DISABLE" value_type="str"/>
+                <efxpt:param name="SSC_FREQUENCY" value="30.0000" value_type="float"/>
+                <efxpt:param name="SSC_MODULATION_TYPE" value="DOWN" value_type="str"/>
+            </efxpt:gen_param>
+        </efxpt:pll>
     </efxpt:pll_info>
     <efxpt:osc_info/>
-    <efxpt:lvds_info/>
+    <efxpt:lvds_info>
+        <efxpt:lvds name="lvds_rx_inst1" lvds_def="GPIOT_PN_05" ops_type="rx">
+            <efxpt:adv_lrx_info pll_instance="" fast_clock_name="lvds_clk_fast_clkin" slow_clock_name="lvds_clk_slow_clkin" in_bname="lvds_rx_inst1_RX_DATA" reset_name="lvds_rx_inst1_RX_RST" conn_type="normal" clkmux_buf_name="" delay="16" delay_mode="dynamic" is_fifo="false" is_half_rate="true" is_serial="true" serial_width="10" is_voc_driver="false" termination="on" is_slvs="false">
+                <efxpt:gen_pin>
+                    <efxpt:pin name="lvds_rx_inst1_RX_DATA" type_name="IN" is_bus="true"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_FIFO_EMPTY" type_name="FIFO_EMPTY" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_LOCK" type_name="LOCK" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_TERM" type_name="TERM" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_ENA" type_name="ENA" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_DLY_RST" type_name="DLY_RST" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_RST" type_name="INRST" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_DLY_INC" type_name="DLY_INC" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_DLY_ENA" type_name="DLY_ENA" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_FIFO_RD" type_name="FIFO_RD" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_inst1_RX_DBG" type_name="DBG" is_bus="true"/>
+                    <efxpt:pin name="lvds_clk_fast_clkin" type_name="INFASTCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name="" type_name="FIFOCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name="lvds_clk_slow_clkin" type_name="INSLOWCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                </efxpt:gen_pin>
+            </efxpt:adv_lrx_info>
+        </efxpt:lvds>
+        <efxpt:lvds name="lvds_rx_top_clkin" lvds_def="GPIOT_PN_59" ops_type="rx">
+            <efxpt:adv_lrx_info pll_instance="" fast_clock_name="" slow_clock_name="" in_bname="lvds_rx_top_clkin_RX_DATA" reset_name="lvds_rx_top_clkin_RX_RST" conn_type="pll_clkin" clkmux_buf_name="" delay="0" delay_mode="static" is_fifo="false" is_half_rate="false" is_serial="false" serial_width="8" is_voc_driver="false" termination="on" is_slvs="false">
+                <efxpt:gen_pin>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_DATA" type_name="IN" is_bus="true"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_FIFO_EMPTY" type_name="FIFO_EMPTY" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_LOCK" type_name="LOCK" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_TERM" type_name="TERM" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_ENA" type_name="ENA" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_DLY_RST" type_name="DLY_RST" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_RST" type_name="INRST" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_DLY_INC" type_name="DLY_INC" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_DLY_ENA" type_name="DLY_ENA" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_FIFO_RD" type_name="FIFO_RD" is_bus="false"/>
+                    <efxpt:pin name="lvds_rx_top_clkin_RX_DBG" type_name="DBG" is_bus="true"/>
+                    <efxpt:pin name="" type_name="INFASTCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name="" type_name="FIFOCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                    <efxpt:pin name="" type_name="INSLOWCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
+                </efxpt:gen_pin>
+            </efxpt:adv_lrx_info>
+        </efxpt:lvds>
+    </efxpt:lvds_info>
     <efxpt:jtag_info/>
     <efxpt:ddr_info>
         <efxpt:adv_ddr name="ddr_inst1" ddr_def="DDR_0" clkin_sel="0" data_width="32" physical_rank="1" mem_type="LPDDR4x" mem_density="8G">
