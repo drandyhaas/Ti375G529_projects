@@ -17,6 +17,7 @@ import time
 TEST_COUNT = 50
 
 # Command codes
+CMD_PREFIX = 0xFE
 CMD_TX_MASS = 0x01
 
 if __name__ == '__main__':
@@ -28,10 +29,10 @@ if __name__ == '__main__':
 
     total_rx_len = 0
     expect_len = 10 * 1000 * 1000  # randint(1, 10000000) # random a length
-    # Protocol: [CMD][LENGTH(4B,LE)]
-    txdata = bytes([CMD_TX_MASS,
+    # Protocol: [CMD_PREFIX][CMD][LENGTH(4B,LE)] = 6 bytes (no padding needed)
+    txdata = bytes([CMD_PREFIX, CMD_TX_MASS,
                     expect_len & 0xff, (expect_len >> 8) & 0xff, (expect_len >> 16) & 0xff,
-                    (expect_len >> 24) & 0xff])  # command byte + length (4 bytes, little-endian)
+                    (expect_len >> 24) & 0xff])  # prefix + command + length
 
     time_start = time.time()
     for i in range(TEST_COUNT):

@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
 
+CMD_PREFIX = 0xFE
 CMD_GET_VERSION = 0x04
 
 print("Opening USB device...")
@@ -13,9 +14,10 @@ usb = USB_FTX232H_FT60X_sync245mode(device_to_open_list=(
     ('FT60X', 'Haasoscope USB3'),
     ('FT60X', 'FTDI SuperSpeed-FIFO Bridge')))
 
-print("\n=== Testing GET_VERSION Command (0x04) ===")
+print("\n=== Testing GET_VERSION Command (0xFE 0x04) ===")
 print("Sending GET_VERSION command...")
-txdata = bytes([CMD_GET_VERSION])
+# Just prefix + command, no padding needed
+txdata = bytes([CMD_PREFIX, CMD_GET_VERSION])
 print(f"TX: {txdata.hex()}")
 usb.send(txdata)
 

@@ -42,9 +42,11 @@ from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
 import time
 
 # USB Command codes
+CMD_PREFIX    = 0xFE  # Prefix for usb_command_handler's own commands
 CMD_TX_MASS   = 0x01
 CMD_REG_WRITE = 0x02
 CMD_REG_READ  = 0x03
+CMD_GET_STATUS = 0x05
 
 # Register map (from axi_lite_slave.v)
 # These are byte addresses that map to slaveReg[] array
@@ -98,8 +100,10 @@ class USBDDRControl:
             addr: Register address (32-bit)
             data: Data to write (32-bit)
         """
-        # Protocol: [CMD][ADDR(4B,LE)][DATA(4B,LE)]
+        # Protocol: [PREFIX][CMD][ADDR(4B,LE)][DATA(4B,LE)] = 10 bytes total
+        # Note: This is 10 bytes, not 8, because REG_WRITE needs addr(4B) + data(4B)
         txdata = bytes([
+            CMD_PREFIX,
             CMD_REG_WRITE,
             addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >> 24) & 0xFF,
             data & 0xFF, (data >> 8) & 0xFF, (data >> 16) & 0xFF, (data >> 24) & 0xFF
@@ -119,8 +123,9 @@ class USBDDRControl:
         Returns:
             data: 32-bit value read from register
         """
-        # Protocol: [CMD][ADDR(4B,LE)]
+        # Protocol: [PREFIX][CMD][ADDR(4B,LE)] = 6 bytes (no padding)
         txdata = bytes([
+            CMD_PREFIX,
             CMD_REG_READ,
             addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >> 24) & 0xFF
         ])
@@ -161,7 +166,7 @@ class USBDDRControl:
 
     def get_status(self):
         """
-        Get hardware status using GET_STATUS command (0x05)
+        Get hardware status using GET_STATUS command (0xFE 0x05)
 
         Returns:
             status: 32-bit status word
@@ -169,8 +174,8 @@ class USBDDRControl:
                 bit[1] = axi_arready
                 bit[2] = axi_rvalid
         """
-        # Send GET_STATUS command
-        self.usb.send(bytes([0x05]))
+        # Send GET_STATUS command (just prefix + command)
+        self.usb.send(bytes([CMD_PREFIX, CMD_GET_STATUS]))
 
         # Read 4-byte response
         rxdata = bytes()

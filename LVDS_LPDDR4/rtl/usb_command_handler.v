@@ -7,10 +7,12 @@
 //           Protocol: [CMD][DATA...]
 //
 //           Supported commands:
-//           0x01 - TX_MASS: [LENGTH(4B,LE)] - Send back specified number of bytes
-//           0x02 - REG_WRITE: [ADDR(4B,LE)][DATA(4B,LE)] - Write to AXI-Lite register
-//           0x03 - REG_READ: [ADDR(4B,LE)] - Read from AXI-Lite register, returns [DATA(4B,LE)]
-//           0x10 - SCOPE_CMD: [8 bytes] - Forward to command_processor (scope control)
+//           0xFE 0x01 - TX_MASS: [LENGTH(4B,LE)] - Send back specified number of bytes
+//           0xFE 0x02 - REG_WRITE: [ADDR(4B,LE)][DATA(4B,LE)] - Write to AXI-Lite register
+//           0xFE 0x03 - REG_READ: [ADDR(4B,LE)] - Read from AXI-Lite register, returns [DATA(4B,LE)]
+//           0xFE 0x04 - GET_VERSION: Returns 4-byte version
+//           0xFE 0x05 - GET_STATUS: Returns 4-byte status with debug info
+//           [Any other 8 bytes] - Forward to command_processor (scope control)
 //--------------------------------------------------------------------------------------------------------
 
 module usb_command_handler (
@@ -70,6 +72,7 @@ module usb_command_handler (
 
 
 localparam [4:0] RX_CMD      = 5'd0,
+                 RX_USB_CMD  = 5'd22,  // New state to receive USB command after prefix
                  // TX_MASS states
                  RX_LEN0     = 5'd1,
                  RX_LEN1     = 5'd2,
@@ -99,12 +102,12 @@ localparam [4:0] RX_CMD      = 5'd0,
                  ERROR       = 5'd31;
 
 // Command codes
+localparam [7:0] CMD_PREFIX      = 8'hFE;  // Prefix for usb_command_handler's own commands
 localparam [7:0] CMD_TX_MASS     = 8'h01;
 localparam [7:0] CMD_REG_WRITE   = 8'h02;
 localparam [7:0] CMD_REG_READ    = 8'h03;
 localparam [7:0] CMD_GET_VERSION = 8'h04;  // Returns 4-byte version: 0x20250120 (2025-01-20)
 localparam [7:0] CMD_GET_STATUS  = 8'h05;  // Returns 4-byte status with debug info
-localparam [7:0] CMD_SCOPE       = 8'h10;  // Scope command - forward to command_processor
 
 reg [4:0]  state = RX_CMD;
 reg [7:0]  command = 8'h00;
@@ -176,6 +179,24 @@ always @ (posedge clk or negedge rstn)
                 o_tkeep  <= 4'h0;
 
                 if (i_tvalid) begin
+                    // Check if this is the USB command prefix
+                    if (i_tdata == CMD_PREFIX) begin
+                        // Next byte will be the actual USB command
+                        state <= RX_USB_CMD;
+                    end else begin
+                        // Default: forward all 8 bytes to command_processor
+                        command <= i_tdata;
+                        scope_byte_count <= 0;
+                        state <= SCOPE_TX;
+                    end
+                end
+            end
+
+            // ============================================
+            // Receive USB command after prefix
+            // ============================================
+            RX_USB_CMD : begin
+                if (i_tvalid) begin
                     command <= i_tdata;
                     // Dispatch to appropriate state based on command
                     case (i_tdata)
@@ -184,10 +205,6 @@ always @ (posedge clk or negedge rstn)
                         CMD_REG_READ:    state <= RX_ADDR0;
                         CMD_GET_VERSION: state <= LOAD_VERSION;  // Load version then transmit
                         CMD_GET_STATUS:  state <= LOAD_VERSION;  // Reuse LOAD_VERSION state for status too
-                        CMD_SCOPE:       begin
-                            state <= SCOPE_TX;
-                            scope_byte_count <= 0;
-                        end
                         default:         state <= ERROR;
                     endcase
                 end
@@ -434,13 +451,15 @@ always @ (posedge clk or negedge rstn)
     end
 
 
-// Only accept new RX data when in RX states or RX_CMD
-assign i_tready = (state == RX_CMD) || (state == RX_LEN0) || (state == RX_LEN1) ||
+// Only accept new RX data when in RX states or RX_CMD or SCOPE_TX
+assign i_tready = (state == RX_CMD) || (state == RX_USB_CMD) ||
+                  (state == RX_LEN0) || (state == RX_LEN1) ||
                   (state == RX_LEN2) || (state == RX_LEN3) ||
                   (state == RX_ADDR0) || (state == RX_ADDR1) ||
                   (state == RX_ADDR2) || (state == RX_ADDR3) ||
                   (state == RX_DATA0) || (state == RX_DATA1) ||
-                  (state == RX_DATA2) || (state == RX_DATA3);
+                  (state == RX_DATA2) || (state == RX_DATA3) ||
+                  (state == SCOPE_TX);  // Also ready during scope command forwarding
 
 
 endmodule
