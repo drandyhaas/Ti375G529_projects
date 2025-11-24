@@ -110,7 +110,19 @@ input [5:0]     regBID,
 input [1:0]     regBRESP,
 input           regBVALID,
 
-output          regARESETn
+output          regARESETn,
+
+// Scope interface to command_processor (exposed from usb_command_handler)
+// scope_i_* = TO command_processor (cmd_proc i_t* ports)
+// scope_o_* = FROM command_processor (cmd_proc o_t* ports)
+input           scope_i_tready,
+output          scope_i_tvalid,
+output [7:0]    scope_i_tdata,
+output          scope_o_tready,
+input           scope_o_tvalid,
+input  [31:0]   scope_o_tdata,
+input  [3:0]    scope_o_tkeep,
+input           scope_o_tlast
 );
 
 // ================================================================
@@ -563,6 +575,7 @@ wire        usb_axi_rready;
 // Command 0x01: TX_MASS - sends back specified number of bytes
 // Command 0x02: REG_WRITE - writes to AXI-Lite register
 // Command 0x03: REG_READ - reads from AXI-Lite register
+// Command 0x10: SCOPE_CMD - forwards to command_processor
 usb_command_handler u_usb_command_handler (
     .rstn                  ( 1'b1               ),
     .clk                   ( regACLK            ),
@@ -601,7 +614,17 @@ usb_command_handler u_usb_command_handler (
     .axi_rready            ( usb_axi_rready     ),
 
     // Debug status
-    .ddr_pll_lock          ( ddr_pll_lock       )
+    .ddr_pll_lock          ( ddr_pll_lock       ),
+
+    // Scope interface (exposed to top level)
+    .scope_i_tready        ( scope_i_tready     ),
+    .scope_i_tvalid        ( scope_i_tvalid     ),
+    .scope_i_tdata         ( scope_i_tdata      ),
+    .scope_o_tready        ( scope_o_tready     ),
+    .scope_o_tvalid        ( scope_o_tvalid     ),
+    .scope_o_tdata         ( scope_o_tdata      ),
+    .scope_o_tkeep         ( scope_o_tkeep      ),
+    .scope_o_tlast         ( scope_o_tlast      )
 );
 
 // ================================================================

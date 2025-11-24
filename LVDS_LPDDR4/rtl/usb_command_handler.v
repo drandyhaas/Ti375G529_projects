@@ -10,6 +10,7 @@
 //           0x01 - TX_MASS: [LENGTH(4B,LE)] - Send back specified number of bytes
 //           0x02 - REG_WRITE: [ADDR(4B,LE)][DATA(4B,LE)] - Write to AXI-Lite register
 //           0x03 - REG_READ: [ADDR(4B,LE)] - Read from AXI-Lite register, returns [DATA(4B,LE)]
+//           0x10 - SCOPE_CMD: [8 bytes] - Forward to command_processor (scope control)
 //--------------------------------------------------------------------------------------------------------
 
 module usb_command_handler (
@@ -52,7 +53,19 @@ module usb_command_handler (
     output reg         axi_rready,
 
     // Debug status inputs
-    input  wire        ddr_pll_lock
+    input  wire        ddr_pll_lock,
+
+    // Interface to command_processor (scope functionality)
+    // Note: scope_o_* sends TO command_processor (i_t* ports)
+    //       scope_i_* receives FROM command_processor (o_t* ports)
+    output reg         scope_o_tready,   // To cmd_proc i_tready (ready to accept commands)
+    input  wire        scope_o_tvalid,   // From cmd_proc o_tvalid (command response valid)
+    input  wire [31:0] scope_o_tdata,    // From cmd_proc o_tdata (32-bit response)
+    input  wire [3:0]  scope_o_tkeep,    // From cmd_proc o_tkeep
+    input  wire        scope_o_tlast,    // From cmd_proc o_tlast
+    input  wire        scope_i_tready,   // From cmd_proc i_tready (ready for commands)
+    output reg         scope_i_tvalid,   // To cmd_proc i_tvalid (command valid)
+    output reg  [7:0]  scope_i_tdata     // To cmd_proc i_tdata (8-bit command bytes)
 );
 
 
@@ -80,20 +93,25 @@ localparam [4:0] RX_CMD      = 5'd0,
                  TX_RDATA    = 5'd18,
                  // GET_VERSION state
                  LOAD_VERSION= 5'd19,
+                 // SCOPE_CMD states
+                 SCOPE_TX    = 5'd20,
+                 SCOPE_RX    = 5'd21,
                  ERROR       = 5'd31;
 
 // Command codes
-localparam [7:0] CMD_TX_MASS   = 8'h01;
-localparam [7:0] CMD_REG_WRITE = 8'h02;
-localparam [7:0] CMD_REG_READ  = 8'h03;
+localparam [7:0] CMD_TX_MASS     = 8'h01;
+localparam [7:0] CMD_REG_WRITE   = 8'h02;
+localparam [7:0] CMD_REG_READ    = 8'h03;
 localparam [7:0] CMD_GET_VERSION = 8'h04;  // Returns 4-byte version: 0x20250120 (2025-01-20)
-localparam [7:0] CMD_GET_STATUS = 8'h05;  // Returns 4-byte status with debug info
+localparam [7:0] CMD_GET_STATUS  = 8'h05;  // Returns 4-byte status with debug info
+localparam [7:0] CMD_SCOPE       = 8'h10;  // Scope command - forward to command_processor
 
 reg [4:0]  state = RX_CMD;
 reg [7:0]  command = 8'h00;
 reg [31:0] length = 0;
 reg [31:0] reg_addr = 0;
 reg [31:0] reg_data = 0;
+reg [2:0]  scope_byte_count = 0;  // For CMD_SCOPE (counts 0-7 for 8 bytes)
 
 // Write response handling removed - now using proper AXI protocol in state machine
 
@@ -110,6 +128,7 @@ always @ (posedge clk or negedge rstn)
         length     <= 0;
         reg_addr   <= 0;
         reg_data   <= 0;
+        scope_byte_count <= 0;
         o_tvalid   <= 1'b0;
         o_tdata    <= 32'h0;
         o_tkeep    <= 4'h0;
@@ -123,6 +142,9 @@ always @ (posedge clk or negedge rstn)
         axi_araddr <= 15'h0;
         axi_arvalid<= 1'b0;
         axi_rready <= 1'b0;
+        scope_i_tvalid <= 1'b0;
+        scope_i_tdata  <= 8'h0;
+        scope_o_tready <= 1'b0;
         timeout_counter <= 0;
     end else begin
         // Watchdog timeout - if stuck in non-idle state for too long, reset to RX_CMD
@@ -162,6 +184,10 @@ always @ (posedge clk or negedge rstn)
                         CMD_REG_READ:    state <= RX_ADDR0;
                         CMD_GET_VERSION: state <= LOAD_VERSION;  // Load version then transmit
                         CMD_GET_STATUS:  state <= LOAD_VERSION;  // Reuse LOAD_VERSION state for status too
+                        CMD_SCOPE:       begin
+                            state <= SCOPE_TX;
+                            scope_byte_count <= 0;
+                        end
                         default:         state <= ERROR;
                     endcase
                 end
@@ -350,6 +376,49 @@ always @ (posedge clk or negedge rstn)
                 if (o_tready) begin
                     o_tvalid <= 1'b0;
                     state <= RX_CMD;
+                end
+            end
+
+            // ============================================
+            // SCOPE_CMD: Forward 8 bytes to command_processor
+            // ============================================
+            SCOPE_TX : begin
+                // Forward incoming USB bytes to command_processor (8 bytes total)
+                scope_i_tvalid <= 1'b1;
+                scope_i_tdata <= i_tdata;  // 8-bit command bytes
+
+                if (i_tvalid && scope_i_tready) begin
+                    if (scope_byte_count == 7) begin
+                        // All 8 bytes sent, now wait for response
+                        scope_i_tvalid <= 1'b0;
+                        scope_o_tready <= 1'b1;  // Ready to receive response
+                        state <= SCOPE_RX;
+                    end else begin
+                        scope_byte_count <= scope_byte_count + 1;
+                    end
+                end
+            end
+
+            SCOPE_RX : begin
+                // Receive response from command_processor and forward to USB TX
+                // This handles streaming data (command_processor sends o_tvalid/o_tdata/o_tlast)
+                scope_o_tready <= o_tready;  // Flow control: only accept data when USB TX is ready
+
+                if (scope_o_tvalid && o_tready) begin
+                    // Forward command_processor's streaming response directly to USB
+                    o_tvalid <= scope_o_tvalid;
+                    o_tdata <= scope_o_tdata;  // command_processor sends 32-bit data
+                    o_tkeep <= scope_o_tkeep;
+                    o_tlast <= scope_o_tlast;
+
+                    // When command_processor signals last word, we're done
+                    if (scope_o_tlast) begin
+                        scope_o_tready <= 1'b0;
+                        state <= RX_CMD;
+                    end
+                end else if (!scope_o_tvalid && !o_tvalid) begin
+                    // If no data is being transferred, keep output clean
+                    o_tvalid <= 1'b0;
                 end
             end
 

@@ -240,6 +240,14 @@ wire [23:0] neo_color [2];
 assign neo_color0 = neo_color[0];
 assign neo_color1 = neo_color[1];
 
+// AXI-stream wires between tools_core (usb_command_handler) and command_processor
+wire cmd_i_tvalid, cmd_i_tready;
+wire [7:0] cmd_i_tdata;
+wire cmd_o_tvalid, cmd_o_tready;
+wire [31:0] cmd_o_tdata;
+wire [3:0] cmd_o_tkeep;
+wire cmd_o_tlast;
+
 // Buffer registers for LVDS data deserialization (14 cycles × 10 bits = 140 bits)
 // According to the downsampler comments, each lvdsbits input represents deserialized data
 // where each of the 10 bits in lvds_rx_inst1_RX_DATA represents one of 4 channels
@@ -344,21 +352,20 @@ triggerer triggerer_inst (
 );
 
 // Command processor instantiation
-// Note: USB AXI-stream interface removed - needs to be replaced with simple interface
-// TODO: Create simple command/data interface to replace AXI-stream
+// Now connected directly to USB via tools_core→usb_command_handler (CMD_SCOPE command)
 command_processor cmd_proc_inst (
    .rstn(rstn),
    .clk(clk_100),
 
-   // USB interface - STUBBED OUT (to be replaced)
-   .i_tready(),      // TODO: Connect to USB3 interface
-   .i_tvalid(1'b0),  // TODO: Connect to USB3 interface
-   .i_tdata(8'd0),   // TODO: Connect to USB3 interface
-   .o_tready(1'b1),  // TODO: Connect to USB3 interface
-   .o_tvalid(),      // TODO: Connect to USB3 interface
-   .o_tdata(),       // TODO: Connect to USB3 interface
-   .o_tkeep(),       // TODO: Connect to USB3 interface
-   .o_tlast(),       // TODO: Connect to USB3 interface
+   // USB interface - Connected via cmd_proc_axi_slave
+   .i_tready(cmd_i_tready),
+   .i_tvalid(cmd_i_tvalid),
+   .i_tdata(cmd_i_tdata),
+   .o_tready(cmd_o_tready),
+   .o_tvalid(cmd_o_tvalid),
+   .o_tdata(cmd_o_tdata),
+   .o_tkeep(cmd_o_tkeep),
+   .o_tlast(cmd_o_tlast),
 
    .pllreset(pllreset),
 
@@ -555,7 +562,17 @@ tools_core core0(
 .regBRESP(regBRESP),
 .regBVALID(regBVALID),
 
-.regARESETn(regARESETn)
+.regARESETn(regARESETn),
+
+// Scope interface to command_processor
+.scope_i_tready(cmd_i_tready),
+.scope_i_tvalid(cmd_i_tvalid),
+.scope_i_tdata(cmd_i_tdata),
+.scope_o_tready(cmd_o_tready),
+.scope_o_tvalid(cmd_o_tvalid),
+.scope_o_tdata(cmd_o_tdata),
+.scope_o_tkeep(cmd_o_tkeep),
+.scope_o_tlast(cmd_o_tlast)
 );
 
 endmodule
