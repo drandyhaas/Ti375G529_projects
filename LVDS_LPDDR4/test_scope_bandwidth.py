@@ -2,6 +2,10 @@
 """
 Test bandwidth of command_processor RAM readout (command 0).
 Measures data transfer rate from FPGA to PC via USB.
+
+NOTE: This test uses scope commands (0x00, 0x01) which are unchanged
+in the consolidated command_processor. These commands do NOT use
+the old 0xFE prefix format.
 """
 import sys
 from pathlib import Path

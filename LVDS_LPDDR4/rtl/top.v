@@ -240,13 +240,28 @@ wire [23:0] neo_color [2];
 assign neo_color0 = neo_color[0];
 assign neo_color1 = neo_color[1];
 
-// AXI-stream wires between tools_core (usb_command_handler) and command_processor
-wire cmd_i_tvalid, cmd_i_tready;
-wire [7:0] cmd_i_tdata;
-wire cmd_o_tvalid, cmd_o_tready;
-wire [31:0] cmd_o_tdata;
-wire [3:0] cmd_o_tkeep;
-wire cmd_o_tlast;
+// USB data stream wires between tools_core and command_processor
+// (usb_command_handler has been removed, command_processor connects directly to USB)
+wire usb_rx_tvalid, usb_rx_tready;
+wire [7:0] usb_rx_tdata;
+wire usb_tx_tvalid, usb_tx_tready;
+wire [31:0] usb_tx_tdata;
+wire [3:0] usb_tx_tkeep;
+wire usb_tx_tlast;
+
+// AXI-Lite wires from command_processor to tools_core (for register access)
+wire [14:0] cmd_axi_awaddr;
+wire cmd_axi_awvalid, cmd_axi_awready;
+wire [31:0] cmd_axi_wdata;
+wire [3:0] cmd_axi_wstrb;
+wire cmd_axi_wvalid, cmd_axi_wready;
+wire [1:0] cmd_axi_bresp;
+wire cmd_axi_bvalid, cmd_axi_bready;
+wire [14:0] cmd_axi_araddr;
+wire cmd_axi_arvalid, cmd_axi_arready;
+wire [31:0] cmd_axi_rdata;
+wire [1:0] cmd_axi_rresp;
+wire cmd_axi_rvalid, cmd_axi_rready;
 
 // Buffer registers for LVDS data deserialization (14 cycles × 10 bits = 140 bits)
 // According to the downsampler comments, each lvdsbits input represents deserialized data
@@ -352,20 +367,40 @@ triggerer triggerer_inst (
 );
 
 // Command processor instantiation
-// Now connected directly to USB via tools_core→usb_command_handler (CMD_SCOPE command)
+// Now connected directly to USB (usb_command_handler removed, commands consolidated here)
+// NOTE: Using regACLK (same as FTDI interface) to avoid clock domain crossing
 command_processor cmd_proc_inst (
    .rstn(rstn),
-   .clk(clk_100),
+   .clk(regACLK),
 
-   // USB interface - Connected via cmd_proc_axi_slave
-   .i_tready(cmd_i_tready),
-   .i_tvalid(cmd_i_tvalid),
-   .i_tdata(cmd_i_tdata),
-   .o_tready(cmd_o_tready),
-   .o_tvalid(cmd_o_tvalid),
-   .o_tdata(cmd_o_tdata),
-   .o_tkeep(cmd_o_tkeep),
-   .o_tlast(cmd_o_tlast),
+   // USB interface - Connected directly to FTDI via tools_core
+   .i_tready(usb_rx_tready),
+   .i_tvalid(usb_rx_tvalid),
+   .i_tdata(usb_rx_tdata),
+   .o_tready(usb_tx_tready),
+   .o_tvalid(usb_tx_tvalid),
+   .o_tdata(usb_tx_tdata),
+   .o_tkeep(usb_tx_tkeep),
+   .o_tlast(usb_tx_tlast),
+
+   // AXI-Lite Master (for register access) - NEW
+   .axi_awaddr(cmd_axi_awaddr),
+   .axi_awvalid(cmd_axi_awvalid),
+   .axi_awready(cmd_axi_awready),
+   .axi_wdata(cmd_axi_wdata),
+   .axi_wstrb(cmd_axi_wstrb),
+   .axi_wvalid(cmd_axi_wvalid),
+   .axi_wready(cmd_axi_wready),
+   .axi_bresp(cmd_axi_bresp),
+   .axi_bvalid(cmd_axi_bvalid),
+   .axi_bready(cmd_axi_bready),
+   .axi_araddr(cmd_axi_araddr),
+   .axi_arvalid(cmd_axi_arvalid),
+   .axi_arready(cmd_axi_arready),
+   .axi_rdata(cmd_axi_rdata),
+   .axi_rresp(cmd_axi_rresp),
+   .axi_rvalid(cmd_axi_rvalid),
+   .axi_rready(cmd_axi_rready),
 
    .pllreset(pllreset),
 
@@ -399,7 +434,7 @@ command_processor cmd_proc_inst (
    .clkswitch(clkswitch),
    .lvdsin_spare(lvdsin_spare),
    .lvdsout_spare(lvdsout_spare),
-   .clk50(clk_100),  // Using clk_100 as requested
+   .clk50(regACLK),  // Using regACLK for consistency with main clock
    .clk_over_4(clk_over_4),
 
    // Flash interface
@@ -564,15 +599,34 @@ tools_core core0(
 
 .regARESETn(regARESETn),
 
-// Scope interface to command_processor
-.scope_i_tready(cmd_i_tready),
-.scope_i_tvalid(cmd_i_tvalid),
-.scope_i_tdata(cmd_i_tdata),
-.scope_o_tready(cmd_o_tready),
-.scope_o_tvalid(cmd_o_tvalid),
-.scope_o_tdata(cmd_o_tdata),
-.scope_o_tkeep(cmd_o_tkeep),
-.scope_o_tlast(cmd_o_tlast)
+// USB data stream interface to command_processor
+.usb_rx_tready(usb_rx_tready),
+.usb_rx_tvalid(usb_rx_tvalid),
+.usb_rx_tdata(usb_rx_tdata),
+.usb_tx_tready(usb_tx_tready),
+.usb_tx_tvalid(usb_tx_tvalid),
+.usb_tx_tdata(usb_tx_tdata),
+.usb_tx_tkeep(usb_tx_tkeep),
+.usb_tx_tlast(usb_tx_tlast),
+
+// AXI-Lite interface from command_processor for register access
+.cmd_axi_awaddr(cmd_axi_awaddr),
+.cmd_axi_awvalid(cmd_axi_awvalid),
+.cmd_axi_awready(cmd_axi_awready),
+.cmd_axi_wdata(cmd_axi_wdata),
+.cmd_axi_wstrb(cmd_axi_wstrb),
+.cmd_axi_wvalid(cmd_axi_wvalid),
+.cmd_axi_wready(cmd_axi_wready),
+.cmd_axi_bresp(cmd_axi_bresp),
+.cmd_axi_bvalid(cmd_axi_bvalid),
+.cmd_axi_bready(cmd_axi_bready),
+.cmd_axi_araddr(cmd_axi_araddr),
+.cmd_axi_arvalid(cmd_axi_arvalid),
+.cmd_axi_arready(cmd_axi_arready),
+.cmd_axi_rdata(cmd_axi_rdata),
+.cmd_axi_rresp(cmd_axi_rresp),
+.cmd_axi_rvalid(cmd_axi_rvalid),
+.cmd_axi_rready(cmd_axi_rready)
 );
 
 endmodule

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Test echo command to verify multi-byte reception in usb_command_handler.
-Protocol: 0xFE 0x06 [LEN_LO] [LEN_HI] [DATA...] -> returns [DATA...]
+Test echo command to verify multi-byte reception in command_processor.
+Updated: Now uses 8-byte command format with 0x25 command code
+         (previously used 0xFE 0x06 prefix format)
+Protocol: 0x25 [LEN_LO] [LEN_HI] [DATA0-4...] + optional extra data -> returns [DATA...]
+Note: First 5 data bytes fit in the 8-byte command, extra bytes sent separately
 """
 import sys
 from pathlib import Path
@@ -11,8 +14,8 @@ from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
 from usb_utils import recv_with_timeout
 import time
 
-CMD_PREFIX = 0xFE
-CMD_ECHO = 0x06  # New echo command
+# New command code (consolidated into command_processor)
+CMD_ECHO = 0x25  # Was 0xFE 0x06
 
 print("Opening USB device...")
 usb = USB_FTX232H_FT60X_sync245mode(device_to_open_list=(
@@ -24,10 +27,24 @@ def test_echo(data_bytes, description=""):
     length = len(data_bytes)
     print(f"\n=== Echo Test: {description} ({length} bytes) ===")
 
-    # Build command: prefix + cmd + length (2 bytes LE) + data
-    txdata = bytes([CMD_PREFIX, CMD_ECHO, length & 0xFF, (length >> 8) & 0xFF]) + bytes(data_bytes)
-    print(f"TX: {txdata.hex()} ({len(txdata)} total bytes)")
+    # Build 8-byte command: cmd + length (2 bytes LE) + first 5 data bytes
+    # rx_data[0]=cmd, rx_data[1:2]=length, rx_data[3:7]=first 5 data bytes
+    cmd_data = [CMD_ECHO, length & 0xFF, (length >> 8) & 0xFF]
+    # Add first 5 bytes of data (or pad with 0s)
+    for i in range(5):
+        if i < len(data_bytes):
+            cmd_data.append(data_bytes[i])
+        else:
+            cmd_data.append(0)
+    txdata = bytes(cmd_data)
+    print(f"TX: {txdata.hex()} ({len(txdata)} bytes)")
     usb.send(txdata)
+
+    # If more than 5 bytes, send remaining data
+    if length > 5:
+        extra_data = bytes(data_bytes[5:])
+        print(f"TX extra: {extra_data.hex()} ({len(extra_data)} bytes)")
+        usb.send(extra_data)
 
     time.sleep(0.1)
 

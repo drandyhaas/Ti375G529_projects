@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Debug test for ECHO command - checks state machine status.
+Updated for new consolidated command_processor (no 0xFE prefix).
 """
 import sys
 from pathlib import Path
@@ -9,25 +10,24 @@ sys.path.insert(0, str(Path(__file__).parent))
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
 import time
 
-CMD_PREFIX = 0xFE
-CMD_GET_VERSION = 0x04
-CMD_GET_STATUS = 0x05
-CMD_ECHO = 0x06
+# New command codes (consolidated into command_processor)
+CMD_GET_VERSION = 0x23  # Was 0xFE 0x04
+CMD_GET_STATUS = 0x24   # Was 0xFE 0x05
+CMD_ECHO = 0x25         # Was 0xFE 0x06
 
-# State name lookup
+# State name lookup (for new command_processor)
 STATE_NAMES = {
-    0: "RX_CMD",
-    1: "RX_LEN0", 2: "RX_LEN1", 3: "RX_LEN2", 4: "RX_LEN3",
-    5: "TX_DATA",
-    6: "RX_ADDR0", 7: "RX_ADDR1", 8: "RX_ADDR2", 9: "RX_ADDR3",
-    10: "RX_DATA0", 11: "RX_DATA1", 12: "RX_DATA2", 13: "RX_DATA3",
-    14: "AXI_WRITE", 15: "AXI_WRESP",
-    16: "AXI_READ", 17: "AXI_RRESP", 18: "TX_RDATA",
-    19: "LOAD_VERSION",
-    20: "SCOPE_TX", 21: "SCOPE_RX",
-    22: "RX_USB_CMD",
-    23: "ECHO_LEN0", 24: "ECHO_LEN1", 25: "ECHO_RX", 26: "ECHO_TX",
-    31: "ERROR"
+    0: "INIT",
+    1: "RX",
+    2: "PROCESS",
+    3: "TX_DATA_CONST",
+    4: "TX_DATA1", 5: "TX_DATA2", 6: "TX_DATA3", 7: "TX_DATA4",
+    8: "PLLCLOCK",
+    9: "BOOTUP",
+    10: "TX_MASS",
+    11: "AXI_WRITE", 12: "AXI_WRESP",
+    13: "AXI_READ", 14: "AXI_RRESP", 15: "TX_RDATA",
+    16: "ECHO_RX", 17: "ECHO_TX", 18: "RX_VARLEN"
 }
 
 def get_state_name(state_num):
@@ -40,7 +40,7 @@ usb = USB_FTX232H_FT60X_sync245mode(device_to_open_list=(
 
 # Check version first
 print("\n=== VERSION CHECK ===")
-usb.send(bytes([CMD_PREFIX, CMD_GET_VERSION]))
+usb.send(bytes([CMD_GET_VERSION, 0, 0, 0, 0, 0, 0, 0]))
 time.sleep(0.1)
 rxdata = usb.recv(4)
 if len(rxdata) == 4:
@@ -53,20 +53,18 @@ else:
 
 # Check initial status
 print("\n=== INITIAL STATUS ===")
-usb.send(bytes([CMD_PREFIX, CMD_GET_STATUS]))
+usb.send(bytes([CMD_GET_STATUS, 0, 0, 0, 0, 0, 0, 0]))
 time.sleep(0.1)
 rxdata = usb.recv(4)
 if len(rxdata) == 4:
     status = rxdata[0] | (rxdata[1] << 8) | (rxdata[2] << 16) | (rxdata[3] << 24)
     state = status & 0x1F
-    echo_len = (status >> 8) & 0xFF
-    echo_rx_cnt = (status >> 16) & 0xFF
+    rx_counter = (status >> 8) & 0x0F
     cmd = (status >> 24) & 0xFF
     print(f"Raw status: 0x{status:08X}")
     print(f"  State: {state} ({get_state_name(state)})")
-    print(f"  echo_length[7:0]: {echo_len}")
-    print(f"  echo_rx_count[7:0]: {echo_rx_cnt}")
-    print(f"  command: 0x{cmd:02X}")
+    print(f"  rx_counter: {rx_counter}")
+    print(f"  command echo: 0x{cmd:02X}")
 else:
     print(f"ERROR: Status read failed")
 
@@ -74,7 +72,15 @@ else:
 print("\n=== SENDING ECHO COMMAND ===")
 data = bytes([0x42])  # Single byte echo
 length = len(data)
-txdata = bytes([CMD_PREFIX, CMD_ECHO, length & 0xFF, (length >> 8) & 0xFF]) + data
+# New 8-byte format: [CMD][LEN_LO][LEN_HI][DATA0][DATA1][DATA2][DATA3][DATA4]
+cmd_data = [CMD_ECHO, length & 0xFF, (length >> 8) & 0xFF]
+# Add first 5 bytes of data (or pad with 0s)
+for i in range(5):
+    if i < len(data):
+        cmd_data.append(data[i])
+    else:
+        cmd_data.append(0)
+txdata = bytes(cmd_data)
 print(f"TX: {txdata.hex()} ({len(txdata)} bytes)")
 usb.send(txdata)
 
@@ -94,37 +100,33 @@ try:
 except Exception as e:
     print(f"Receive error: {e}")
 
-# Wait for watchdog timeout (2+ seconds) then check status
-print("\nWaiting 3 seconds for watchdog timeout...")
-time.sleep(3.0)
+# Wait for watchdog timeout (10+ seconds) then check status
+print("\nWaiting 12 seconds for watchdog timeout...")
+time.sleep(12.0)
 
 print("\n=== POST-TIMEOUT STATUS (after watchdog reset) ===")
-usb.send(bytes([CMD_PREFIX, CMD_GET_STATUS]))
+usb.send(bytes([CMD_GET_STATUS, 0, 0, 0, 0, 0, 0, 0]))
 time.sleep(0.1)
 rxdata = usb.recv(4)
 if len(rxdata) == 4:
     status = rxdata[0] | (rxdata[1] << 8) | (rxdata[2] << 16) | (rxdata[3] << 24)
     state = status & 0x1F
-    echo_len = (status >> 8) & 0xFF
-    echo_rx_cnt = (status >> 16) & 0xFF
+    rx_counter = (status >> 8) & 0x0F
     cmd = (status >> 24) & 0xFF
     print(f"Raw status: 0x{status:08X}")
     print(f"  State: {state} ({get_state_name(state)})")
-    print(f"  echo_length[7:0]: {echo_len}")
-    print(f"  echo_rx_count[7:0]: {echo_rx_cnt}")
-    print(f"  command: 0x{cmd:02X}")
+    print(f"  rx_counter: {rx_counter}")
+    print(f"  command echo: 0x{cmd:02X}")
 
     # Interpretation
-    if state == 0:
-        print("\n=> State machine returned to RX_CMD (good!)")
-        print("   But we didn't get the echo response...")
-    elif state in [23, 24, 25]:
-        print(f"\n=> STUCK in echo receive phase ({get_state_name(state)})")
-        print(f"   Expected to receive {echo_len} bytes, got {echo_rx_cnt} so far")
-    elif state == 26:
+    if state == 0 or state == 1:
+        print(f"\n=> State machine in {get_state_name(state)} (good!)")
+    elif state == 16:
+        print("\n=> STUCK in ECHO_RX - waiting for more data")
+    elif state == 17:
         print("\n=> STUCK in ECHO_TX - transmission issue")
     else:
-        print(f"\n=> Unexpected state: {get_state_name(state)}")
+        print(f"\n=> State: {get_state_name(state)}")
 else:
     print("ERROR: Could not read post-echo status")
 

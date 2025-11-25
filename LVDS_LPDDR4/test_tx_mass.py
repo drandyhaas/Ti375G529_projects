@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Test TX_MASS command to verify multi-byte reception works.
-This command was already in the firmware before our changes.
-Protocol: 0xFE 0x01 [LEN0] [LEN1] [LEN2] [LEN3] -> returns LEN bytes
+Updated: Now uses 8-byte command format with 0x20 command code
+         (previously used 0xFE 0x01 prefix format)
+Protocol: 0x20 [LEN0] [LEN1] [LEN2] [LEN3] [0] [0] [0] -> returns LEN bytes
 """
 import sys
 from pathlib import Path
@@ -11,8 +12,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
 import time
 
-CMD_PREFIX = 0xFE
-CMD_TX_MASS = 0x01
+# New command code (consolidated into command_processor)
+CMD_TX_MASS = 0x20  # Was 0xFE 0x01
 
 print("Opening USB device...")
 usb = USB_FTX232H_FT60X_sync245mode(device_to_open_list=(
@@ -23,12 +24,13 @@ def test_tx_mass(length, description=""):
     """Send TX_MASS command and verify we get the right number of bytes back."""
     print(f"\n=== TX_MASS Test: {description} ({length} bytes) ===")
 
-    # Build command: prefix + cmd + length (4 bytes LE)
-    txdata = bytes([CMD_PREFIX, CMD_TX_MASS,
+    # Build command: 8-byte format with length in bytes 1-4
+    txdata = bytes([CMD_TX_MASS,
                     length & 0xFF,
                     (length >> 8) & 0xFF,
                     (length >> 16) & 0xFF,
-                    (length >> 24) & 0xFF])
+                    (length >> 24) & 0xFF,
+                    0, 0, 0])
     print(f"TX: {txdata.hex()} ({len(txdata)} total bytes)")
     usb.send(txdata)
 

@@ -41,12 +41,16 @@ sys.path.insert(0, str(Path(__file__).parent))
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
 import time
 
-# USB Command codes
-CMD_PREFIX    = 0xFE  # Prefix for usb_command_handler's own commands
-CMD_TX_MASS   = 0x01
-CMD_REG_WRITE = 0x02
-CMD_REG_READ  = 0x03
-CMD_GET_STATUS = 0x05
+# USB Command codes (consolidated into command_processor)
+# OLD codes (0xFE prefix format):
+#   CMD_PREFIX = 0xFE, CMD_TX_MASS = 0x01, CMD_REG_WRITE = 0x02, CMD_REG_READ = 0x03, CMD_GET_STATUS = 0x05
+# NEW codes (8-byte format):
+CMD_TX_MASS    = 0x20  # Was 0xFE 0x01
+CMD_REG_WRITE  = 0x21  # Was 0xFE 0x02
+CMD_REG_READ   = 0x22  # Was 0xFE 0x03
+CMD_GET_VERSION= 0x23  # Was 0xFE 0x04
+CMD_GET_STATUS = 0x24  # Was 0xFE 0x05
+CMD_ECHO       = 0x25  # Was 0xFE 0x06
 
 # Register map (from axi_lite_slave.v)
 # These are byte addresses that map to slaveReg[] array
@@ -97,37 +101,38 @@ class USBDDRControl:
         Write to AXI-Lite register
 
         Args:
-            addr: Register address (32-bit)
-            data: Data to write (32-bit)
+            addr: Register address (16-bit, bytes 1-2)
+            data: Data to write (32-bit, bytes 3-6)
         """
-        # Protocol: [PREFIX][CMD][ADDR(4B,LE)][DATA(4B,LE)] = 10 bytes total
-        # Note: This is 10 bytes, not 8, because REG_WRITE needs addr(4B) + data(4B)
+        # NEW 8-byte Protocol: [CMD][ADDR_LO][ADDR_HI][DATA0][DATA1][DATA2][DATA3][0]
         txdata = bytes([
-            CMD_PREFIX,
             CMD_REG_WRITE,
-            addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >> 24) & 0xFF,
-            data & 0xFF, (data >> 8) & 0xFF, (data >> 16) & 0xFF, (data >> 24) & 0xFF
+            addr & 0xFF, (addr >> 8) & 0xFF,
+            data & 0xFF, (data >> 8) & 0xFF, (data >> 16) & 0xFF, (data >> 24) & 0xFF,
+            0
         ])
         self.usb.send(txdata)
-        # No response expected for write
+        # Wait for response (new format returns 4 bytes)
+        time.sleep(0.01)
+        self.usb.recv(4)  # Discard response
 
     def reg_read(self, addr, timeout=2.0, verbose=False):
         """
         Read from AXI-Lite register
 
         Args:
-            addr: Register address (32-bit)
+            addr: Register address (16-bit)
             timeout: Timeout in seconds (default 2.0)
             verbose: Print debug info
 
         Returns:
             data: 32-bit value read from register
         """
-        # Protocol: [PREFIX][CMD][ADDR(4B,LE)] = 6 bytes (no padding)
+        # NEW 8-byte Protocol: [CMD][ADDR_LO][ADDR_HI][0][0][0][0][0]
         txdata = bytes([
-            CMD_PREFIX,
             CMD_REG_READ,
-            addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >> 24) & 0xFF
+            addr & 0xFF, (addr >> 8) & 0xFF,
+            0, 0, 0, 0, 0
         ])
 
         if verbose:
@@ -166,16 +171,16 @@ class USBDDRControl:
 
     def get_status(self):
         """
-        Get hardware status using GET_STATUS command (0xFE 0x05)
+        Get hardware status using GET_STATUS command (0x24)
 
         Returns:
             status: 32-bit status word
-                bit[0] = ddr_pll_lock
-                bit[1] = axi_arready
-                bit[2] = axi_rvalid
+                [7:0]   = state
+                [15:8]  = rx_counter
+                [31:24] = 0x24 (command echo)
         """
-        # Send GET_STATUS command (just prefix + command)
-        self.usb.send(bytes([CMD_PREFIX, CMD_GET_STATUS]))
+        # Send GET_STATUS command (8-byte format)
+        self.usb.send(bytes([CMD_GET_STATUS, 0, 0, 0, 0, 0, 0, 0]))
 
         # Read 4-byte response
         rxdata = bytes()

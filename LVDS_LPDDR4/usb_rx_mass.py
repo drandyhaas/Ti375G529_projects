@@ -5,9 +5,9 @@
 # It sends a command byte + 4 bytes (length) to FTDI chip.
 # The FPGA interprets the command and length, then sends back the requested data.
 #
-# Protocol: [CMD][LENGTH(4B,LE)]
+# Protocol (NEW 8-byte format): [CMD][LENGTH(4B,LE)][0][0][0]
 # Commands:
-#   0x01 - TX_MASS: Receive length, send back that many bytes
+#   0x20 - TX_MASS: Receive length, send back that many bytes (was 0xFE 0x01)
 #
 
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode  # see USB_FTX232H_FT60X.py
@@ -16,9 +16,8 @@ import time
 
 TEST_COUNT = 50
 
-# Command codes
-CMD_PREFIX = 0xFE
-CMD_TX_MASS = 0x01
+# Command codes (consolidated into command_processor)
+CMD_TX_MASS = 0x20  # Was 0xFE 0x01
 
 if __name__ == '__main__':
 
@@ -29,10 +28,10 @@ if __name__ == '__main__':
 
     total_rx_len = 0
     expect_len = 10 * 1000 * 1000  # randint(1, 10000000) # random a length
-    # Protocol: [CMD_PREFIX][CMD][LENGTH(4B,LE)] = 6 bytes (no padding needed)
-    txdata = bytes([CMD_PREFIX, CMD_TX_MASS,
+    # Protocol (NEW): [CMD][LENGTH(4B,LE)][0][0][0] = 8 bytes
+    txdata = bytes([CMD_TX_MASS,
                     expect_len & 0xff, (expect_len >> 8) & 0xff, (expect_len >> 16) & 0xff,
-                    (expect_len >> 24) & 0xff])  # prefix + command + length
+                    (expect_len >> 24) & 0xff, 0, 0, 0])  # command + length + padding
 
     time_start = time.time()
     for i in range(TEST_COUNT):

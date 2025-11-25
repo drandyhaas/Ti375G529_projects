@@ -1,8 +1,10 @@
 // the main module: gets commands from USB, and takes actions
+// Now handles both scope commands (0x00-0x17) and USB commands (0x20-0x26)
+// that were previously in usb_command_handler
 module command_processor (
    input  wire        rstn,
    input  wire        clk, // the main clock
-   
+
    // to talk to data I/O FT232H USB2
    output wire        i_tready, // AXI-stream slave
    input  wire        i_tvalid, // ...
@@ -12,6 +14,25 @@ module command_processor (
    output reg  [31:0] o_tdata,
    output wire [ 3:0] o_tkeep,
    output wire        o_tlast,
+
+   // AXI-Lite Master interface (for register access) - NEW
+   output reg  [14:0] axi_awaddr,
+   output reg         axi_awvalid,
+   input  wire        axi_awready,
+   output reg  [31:0] axi_wdata,
+   output reg  [3:0]  axi_wstrb,
+   output reg         axi_wvalid,
+   input  wire        axi_wready,
+   input  wire [1:0]  axi_bresp,
+   input  wire        axi_bvalid,
+   output reg         axi_bready,
+   output reg  [14:0] axi_araddr,
+   output reg         axi_arvalid,
+   input  wire        axi_arready,
+   input  wire [31:0] axi_rdata,
+   input  wire [1:0]  axi_rresp,
+   input  wire        axi_rvalid,
+   output reg         axi_rready,
 
    output reg pllreset, // to reset pll's
 
@@ -132,15 +153,39 @@ assign debugout[11]= fanon; // the cooling fan (could be PWM'ed for finer contro
 // other 7 boardout's are for controlling relays
 
 // variables in clk domain, reading out of the RAM buffer
-localparam [3:0] INIT=4'd0, RX=4'd1, PROCESS=4'd2, TX_DATA_CONST=4'd3, TX_DATA1=4'd4, TX_DATA2=4'd5, TX_DATA3=4'd6, TX_DATA4=4'd7, PLLCLOCK=4'd8, BOOTUP=4'd9;
-reg [ 3:0]  state = INIT;
+// Original scope states
+localparam [4:0] INIT=5'd0, RX=5'd1, PROCESS=5'd2, TX_DATA_CONST=5'd3, TX_DATA1=5'd4, TX_DATA2=5'd5, TX_DATA3=5'd6, TX_DATA4=5'd7, PLLCLOCK=5'd8, BOOTUP=5'd9;
+// New states for USB commands (migrated from usb_command_handler)
+localparam [4:0] TX_MASS=5'd10, AXI_WRITE=5'd11, AXI_WRESP=5'd12, AXI_READ=5'd13, AXI_RRESP=5'd14, TX_RDATA=5'd15;
+localparam [4:0] ECHO_RX=5'd16, ECHO_TX=5'd17, RX_VARLEN=5'd18;
+
+// New command codes (0x20-0x26) - migrated from usb_command_handler's 0xFE prefix commands
+localparam [7:0] CMD_TX_MASS     = 8'h20;  // [LEN(4B,LE)] - Send back N bytes (bandwidth test)
+localparam [7:0] CMD_REG_WRITE   = 8'h21;  // [ADDR(4B,LE)][DATA(4B,LE)] - AXI-Lite write
+localparam [7:0] CMD_REG_READ    = 8'h22;  // [ADDR(4B,LE)] - AXI-Lite read, returns [DATA(4B,LE)]
+localparam [7:0] CMD_GET_VERSION = 8'h23;  // Returns 4-byte version: 0x20251125
+localparam [7:0] CMD_GET_STATUS  = 8'h24;  // Returns 4-byte status with debug info
+localparam [7:0] CMD_ECHO        = 8'h25;  // [LEN(2B,LE)][DATA...] - Echo test (max 256 bytes)
+
+reg [ 4:0]  state = INIT;
 reg         didbootup = 0;
 integer     watchdog_counter = 0;
 integer     watchdog_timer = 0; // counts up to WATCHDOG_LIMIT
 localparam  WATCHDOG_LIMIT = 500_000_000; // 10 seconds at 50 MHz
 reg [ 3:0]  rx_counter = 0;
-reg [ 7:0]  rx_data[7:0];
+reg [ 7:0]  rx_data[15:0];  // Expanded to 16 bytes to hold variable-length commands
 integer     length = 0;
+
+// Variables for new USB commands (migrated from usb_command_handler)
+reg [31:0]  reg_addr = 0;       // For REG_READ/REG_WRITE
+reg [31:0]  reg_data = 0;       // For REG_READ/REG_WRITE
+reg [7:0]   usb_cmd = 0;        // Current USB command being processed
+// Echo buffer - 256 bytes max
+(* ram_style = "distributed" *) reg [7:0] echo_buffer [0:255];
+reg [15:0]  echo_length = 0;
+reg [15:0]  echo_rx_count = 0;
+reg [15:0]  echo_tx_count = 0;
+reg [3:0]   varlen_counter = 0; // For receiving variable-length command data
 reg [ 3:0]  spistate = 0;
 reg [5:0]   channel = 0;
 reg [5:0]   channel2 = 0; // the "channel" we are sending out for two-channel mode, to reorder samples
@@ -235,6 +280,21 @@ always @ (posedge clk) begin
       channel2 <= 6'd0;
       triggerlive <= 1'b0;
       didreadout <= 1'b0;
+      // Initialize AXI-Lite signals
+      axi_awaddr <= 15'd0;
+      axi_awvalid <= 1'b0;
+      axi_wdata <= 32'd0;
+      axi_wstrb <= 4'hF;
+      axi_wvalid <= 1'b0;
+      axi_bready <= 1'b0;
+      axi_araddr <= 15'd0;
+      axi_arvalid <= 1'b0;
+      axi_rready <= 1'b0;
+      // Initialize echo state
+      echo_length <= 0;
+      echo_rx_count <= 0;
+      echo_tx_count <= 0;
+      varlen_counter <= 0;
       if (didbootup) state <= RX;
       else state <= BOOTUP;
    end
@@ -624,6 +684,67 @@ always @ (posedge clk) begin
          endcase
       end
 
+      // ============================================
+      // NEW USB COMMANDS (0x20-0x25) - migrated from usb_command_handler
+      // These commands use different byte counts, handled via RX_VARLEN state
+      // ============================================
+
+      8'h20 : begin // CMD_TX_MASS - send back specified number of bytes (bandwidth test)
+         // rx_data[1:4] = length (little-endian, already received in 8-byte command)
+         length <= {rx_data[4], rx_data[3], rx_data[2], rx_data[1]};
+         usb_cmd <= 8'h20;
+         state <= TX_MASS;
+      end
+
+      8'h21 : begin // CMD_REG_WRITE - AXI-Lite write
+         // rx_data[1:4] = address, rx_data[5:8] would be data but we only have 8 bytes
+         // So for the 8-byte format: rx_data[1:2]=addr, rx_data[3:6]=data
+         reg_addr <= {16'h0, rx_data[2], rx_data[1]};  // 16-bit address in bytes 1-2
+         reg_data <= {rx_data[6], rx_data[5], rx_data[4], rx_data[3]};  // 32-bit data in bytes 3-6
+         usb_cmd <= 8'h21;
+         state <= AXI_WRITE;
+      end
+
+      8'h22 : begin // CMD_REG_READ - AXI-Lite read
+         // rx_data[1:4] = address (little-endian)
+         reg_addr <= {16'h0, rx_data[2], rx_data[1]};  // 16-bit address in bytes 1-2
+         usb_cmd <= 8'h22;
+         state <= AXI_READ;
+      end
+
+      8'h23 : begin // CMD_GET_VERSION - return firmware version
+         o_tdata <= 32'h20251125;  // Version: 2025-11-25
+         `SEND_STD_USB_RESPONSE
+      end
+
+      8'h24 : begin // CMD_GET_STATUS - return debug status
+         // [7:0]=state, [15:8]=rx_counter, [23:16]=0, [31:24]=0x24
+         o_tdata <= {8'h24, 8'd0, 4'd0, rx_counter, 3'd0, state};
+         `SEND_STD_USB_RESPONSE
+      end
+
+      8'h25 : begin // CMD_ECHO - echo test (variable length)
+         // rx_data[1:2] = length (little-endian), rx_data[3:7] = first 5 data bytes
+         echo_length <= {rx_data[2], rx_data[1]};
+         echo_rx_count <= 0;
+         echo_tx_count <= 0;
+         usb_cmd <= 8'h25;
+         // Store first 5 bytes of data (rx_data[3:7])
+         echo_buffer[0] <= rx_data[3];
+         echo_buffer[1] <= rx_data[4];
+         echo_buffer[2] <= rx_data[5];
+         echo_buffer[3] <= rx_data[6];
+         echo_buffer[4] <= rx_data[7];
+         // If length <= 5, we have all data, go to TX
+         // If length > 5, need to receive more
+         if ({rx_data[2], rx_data[1]} <= 16'd5) begin
+            state <= ECHO_TX;
+         end else begin
+            echo_rx_count <= 5;  // Already received 5 bytes
+            state <= ECHO_RX;
+         end
+      end
+
       default : begin // some command we didn't know, don't send anything back, just return
          length <= 0;
          o_tvalid <= 1'b0;
@@ -777,6 +898,115 @@ always @ (posedge clk) begin
       state <= PROCESS;
    end
 
+   // ============================================
+   // NEW STATE HANDLERS for USB commands (0x20-0x25)
+   // ============================================
+
+   TX_MASS : begin
+      // Send counting pattern data (bandwidth test)
+      if (length > 0) begin
+         o_tvalid <= 1'b1;
+         o_tdata <= {length[7:0] - 8'd4,
+                     length[7:0] - 8'd3,
+                     length[7:0] - 8'd2,
+                     length[7:0] - 8'd1};
+         if (o_tready) begin
+            if (length > 4) begin
+               length <= length - 4;
+            end else begin
+               length <= 0;
+               o_tvalid <= 1'b0;
+               state <= INIT;
+            end
+         end
+      end else begin
+         o_tvalid <= 1'b0;
+         state <= INIT;
+      end
+   end
+
+   AXI_WRITE : begin
+      // Assert write address and data, wait for handshake
+      axi_awaddr <= reg_addr[14:0];
+      axi_awvalid <= 1'b1;
+      axi_wdata <= reg_data;
+      axi_wstrb <= 4'hF;
+      axi_wvalid <= 1'b1;
+      if (axi_awready && axi_wready) begin
+         state <= AXI_WRESP;
+      end
+   end
+
+   AXI_WRESP : begin
+      // Wait for write response
+      axi_awvalid <= 1'b0;
+      axi_wvalid <= 1'b0;
+      axi_bready <= 1'b1;
+      if (axi_bvalid) begin
+         axi_bready <= 1'b0;
+         // Return success response
+         o_tdata <= 32'h00000000;  // Success
+         `SEND_STD_USB_RESPONSE
+      end
+   end
+
+   AXI_READ : begin
+      // Assert read address, wait for handshake
+      axi_araddr <= reg_addr[14:0];
+      axi_arvalid <= 1'b1;
+      axi_rready <= 1'b1;
+      if (axi_arready) begin
+         state <= AXI_RRESP;
+      end
+   end
+
+   AXI_RRESP : begin
+      // Wait for read response
+      axi_arvalid <= 1'b0;
+      axi_rready <= 1'b1;
+      if (axi_rvalid) begin
+         reg_data <= axi_rdata;
+         axi_rready <= 1'b0;
+         // Send read data back
+         o_tdata <= axi_rdata;
+         `SEND_STD_USB_RESPONSE
+      end
+   end
+
+   ECHO_RX : begin
+      // Receive remaining echo data bytes
+      if (i_tvalid) begin
+         echo_buffer[echo_rx_count[7:0]] <= i_tdata;
+         if (echo_rx_count + 16'd1 >= echo_length) begin
+            echo_rx_count <= echo_rx_count + 16'd1;
+            state <= ECHO_TX;
+         end else begin
+            echo_rx_count <= echo_rx_count + 16'd1;
+         end
+      end
+   end
+
+   ECHO_TX : begin
+      // Transmit buffered data back (4 bytes at a time)
+      o_tdata <= {echo_buffer[echo_tx_count[7:0] + 8'd3],
+                  echo_buffer[echo_tx_count[7:0] + 8'd2],
+                  echo_buffer[echo_tx_count[7:0] + 8'd1],
+                  echo_buffer[echo_tx_count[7:0]]};
+      length <= (echo_length > echo_tx_count) ? (echo_length - echo_tx_count) : 0;
+
+      if (!o_tvalid) begin
+         o_tvalid <= 1'b1;
+      end else if (o_tready) begin
+         if (echo_tx_count + 16'd4 >= echo_length) begin
+            o_tvalid <= 1'b0;
+            state <= INIT;
+         end else begin
+            echo_tx_count <= echo_tx_count + 16'd4;
+            o_tvalid <= 1'b0;  // Deassert to update data
+         end
+      end
+   end
+
    default : state <= INIT;
    endcase
 
@@ -821,8 +1051,8 @@ always @ (posedge clk50) begin
 end
 
 assign flash_reset = ~rstn; // active high flash controller reset signal
-assign i_tready = (state == RX); // for FT232H data output
+assign i_tready = (state == RX) || (state == ECHO_RX); // Ready in RX state and ECHO_RX state
 assign o_tkeep  = (length>=4) ? 4'b1111 : (length==3) ? 4'b0111 :(length==2) ? 4'b0011 : (length==1) ? 4'b0001 : /*length==0*/ 4'b0000;
-assign o_tlast  = (length>=4) ? 1'b0 : 1'b1;
+assign o_tlast  = (length>4) ? 1'b0 : 1'b1;  // Changed from >= to > so tlast=1 when 4 or fewer bytes remain
 
 endmodule

@@ -112,17 +112,36 @@ input           regBVALID,
 
 output          regARESETn,
 
-// Scope interface to command_processor (exposed from usb_command_handler)
-// scope_i_* = TO command_processor (cmd_proc i_t* ports)
-// scope_o_* = FROM command_processor (cmd_proc o_t* ports)
-input           scope_i_tready,
-output          scope_i_tvalid,
-output [7:0]    scope_i_tdata,
-output          scope_o_tready,
-input           scope_o_tvalid,
-input  [31:0]   scope_o_tdata,
-input  [3:0]    scope_o_tkeep,
-input           scope_o_tlast
+// USB data stream interface (directly to command_processor)
+// usb_rx_* = FROM USB/FTDI (data received from host) -> to command_processor
+// usb_tx_* = TO USB/FTDI (data sent to host) <- from command_processor
+input           usb_rx_tready,   // FROM command_processor (ready to receive)
+output          usb_rx_tvalid,   // TO command_processor (data valid from USB)
+output [7:0]    usb_rx_tdata,    // TO command_processor (data from USB)
+output          usb_tx_tready,   // TO command_processor (FTDI ready to accept)
+input           usb_tx_tvalid,   // FROM command_processor (data valid to USB)
+input  [31:0]   usb_tx_tdata,    // FROM command_processor (data to USB)
+input  [3:0]    usb_tx_tkeep,    // FROM command_processor (byte enables)
+input           usb_tx_tlast,    // FROM command_processor (last word)
+
+// AXI-Lite interface for command_processor register access
+input  [14:0]   cmd_axi_awaddr,
+input           cmd_axi_awvalid,
+output          cmd_axi_awready,
+input  [31:0]   cmd_axi_wdata,
+input  [3:0]    cmd_axi_wstrb,
+input           cmd_axi_wvalid,
+output          cmd_axi_wready,
+output [1:0]    cmd_axi_bresp,
+output          cmd_axi_bvalid,
+input           cmd_axi_bready,
+input  [14:0]   cmd_axi_araddr,
+input           cmd_axi_arvalid,
+output          cmd_axi_arready,
+output [31:0]   cmd_axi_rdata,
+output [1:0]    cmd_axi_rresp,
+output          cmd_axi_rvalid,
+input           cmd_axi_rready
 );
 
 // ================================================================
@@ -499,19 +518,19 @@ axi_lite_slave axilite_inst
 // ================================================================
 // ==================== USB3 Interface ============================
 // ================================================================
-// Simple USB3 test interface: receives 4 bytes (length),
-// then sends back that many bytes (for usb_rx_mass.py testing)
+// USB3 interface now directly exposed to command_processor (in top.v)
+// usb_command_handler has been removed - command_processor handles all commands
 
-// USB RX/TX AXI-Stream signals
-wire        usb_rx_tready;
-wire        usb_rx_tvalid;
-wire [ 7:0] usb_rx_tdata;
+// Internal USB RX/TX AXI-Stream signals (between FTDI and module ports)
+wire        usb_rx_tready_int;
+wire        usb_rx_tvalid_int;
+wire [ 7:0] usb_rx_tdata_int;
 
-wire        usb_tx_tready;
-wire        usb_tx_tvalid;
-wire [31:0] usb_tx_tdata;
-wire [ 3:0] usb_tx_tkeep;
-wire        usb_tx_tlast;
+wire        usb_tx_tready_int;
+wire        usb_tx_tvalid_int;
+wire [31:0] usb_tx_tdata_int;
+wire [ 3:0] usb_tx_tkeep_int;
+wire        usb_tx_tlast_int;
 
 // FTDI 245FIFO interface controller
 ftdi_245fifo_top #(
@@ -523,15 +542,15 @@ ftdi_245fifo_top #(
 ) u_ftdi_245fifo_top (
     .rstn_async            ( 1'b1               ),
     .tx_clk                ( regACLK            ),
-    .tx_tready             ( usb_tx_tready      ),
-    .tx_tvalid             ( usb_tx_tvalid      ),
-    .tx_tdata              ( usb_tx_tdata       ),
-    .tx_tkeep              ( usb_tx_tkeep       ),
-    .tx_tlast              ( usb_tx_tlast       ),
+    .tx_tready             ( usb_tx_tready_int  ),
+    .tx_tvalid             ( usb_tx_tvalid_int  ),
+    .tx_tdata              ( usb_tx_tdata_int   ),
+    .tx_tkeep              ( usb_tx_tkeep_int   ),
+    .tx_tlast              ( usb_tx_tlast_int   ),
     .rx_clk                ( regACLK            ),
-    .rx_tready             ( usb_rx_tready      ),
-    .rx_tvalid             ( usb_rx_tvalid      ),
-    .rx_tdata              ( usb_rx_tdata       ),
+    .rx_tready             ( usb_rx_tready_int  ),
+    .rx_tvalid             ( usb_rx_tvalid_int  ),
+    .rx_tdata              ( usb_rx_tdata_int   ),
     .rx_tkeep              (                    ),
     .rx_tlast              (                    ),
     .ftdi_clk              ( ftdi_clk           ),
@@ -548,7 +567,18 @@ ftdi_245fifo_top #(
     .ftdi_be_OE            ( ftdi_be_OE         )
 );
 
-// AXI-Lite signals from USB command handler to axi_lite_slave
+// Expose USB streams to module ports (directly to command_processor in top.v)
+assign usb_rx_tvalid = usb_rx_tvalid_int;
+assign usb_rx_tdata  = usb_rx_tdata_int;
+assign usb_rx_tready_int = usb_rx_tready;  // Input from module port (command_processor ready)
+
+assign usb_tx_tready = usb_tx_tready_int;  // Output to module port (FTDI ready)
+assign usb_tx_tvalid_int = usb_tx_tvalid;  // Input from module port (command_processor valid)
+assign usb_tx_tdata_int  = usb_tx_tdata;   // Input from module port
+assign usb_tx_tkeep_int  = usb_tx_tkeep;   // Input from module port
+assign usb_tx_tlast_int  = usb_tx_tlast;   // Input from module port
+
+// AXI-Lite signals from command_processor (via module ports) to usb2reg_bridge
 wire [14:0] usb_axi_awaddr;
 wire        usb_axi_awvalid;
 wire        usb_axi_awready;
@@ -571,61 +601,28 @@ wire [1:0]  usb_axi_rresp;
 wire        usb_axi_rvalid;
 wire        usb_axi_rready;
 
-// USB Command handler (receives CMD, executes commands)
-// Command 0x01: TX_MASS - sends back specified number of bytes
-// Command 0x02: REG_WRITE - writes to AXI-Lite register
-// Command 0x03: REG_READ - reads from AXI-Lite register
-// Command 0x10: SCOPE_CMD - forwards to command_processor
-usb_command_handler u_usb_command_handler (
-    .rstn                  ( 1'b1               ),
-    .clk                   ( regACLK            ),
+// Connect command_processor's AXI-Lite interface (from module ports) to bridge
+assign usb_axi_awaddr  = cmd_axi_awaddr;
+assign usb_axi_awvalid = cmd_axi_awvalid;
+assign cmd_axi_awready = usb_axi_awready;
 
-    // USB RX/TX streams
-    .i_tready              ( usb_rx_tready      ),
-    .i_tvalid              ( usb_rx_tvalid      ),
-    .i_tdata               ( usb_rx_tdata       ),
-    .o_tready              ( usb_tx_tready      ),
-    .o_tvalid              ( usb_tx_tvalid      ),
-    .o_tdata               ( usb_tx_tdata       ),
-    .o_tkeep               ( usb_tx_tkeep       ),
-    .o_tlast               ( usb_tx_tlast       ),
+assign usb_axi_wdata   = cmd_axi_wdata;
+assign usb_axi_wstrb   = cmd_axi_wstrb;
+assign usb_axi_wvalid  = cmd_axi_wvalid;
+assign cmd_axi_wready  = usb_axi_wready;
 
-    // AXI-Lite Master (for register access)
-    .axi_awaddr            ( usb_axi_awaddr     ),
-    .axi_awvalid           ( usb_axi_awvalid    ),
-    .axi_awready           ( usb_axi_awready    ),
+assign cmd_axi_bresp   = usb_axi_bresp;
+assign cmd_axi_bvalid  = usb_axi_bvalid;
+assign usb_axi_bready  = cmd_axi_bready;
 
-    .axi_wdata             ( usb_axi_wdata      ),
-    .axi_wstrb             ( usb_axi_wstrb      ),
-    .axi_wvalid            ( usb_axi_wvalid     ),
-    .axi_wready            ( usb_axi_wready     ),
+assign usb_axi_araddr  = cmd_axi_araddr;
+assign usb_axi_arvalid = cmd_axi_arvalid;
+assign cmd_axi_arready = usb_axi_arready;
 
-    .axi_bresp             ( usb_axi_bresp      ),
-    .axi_bvalid            ( usb_axi_bvalid     ),
-    .axi_bready            ( usb_axi_bready     ),
-
-    .axi_araddr            ( usb_axi_araddr     ),
-    .axi_arvalid           ( usb_axi_arvalid    ),
-    .axi_arready           ( usb_axi_arready    ),
-
-    .axi_rdata             ( usb_axi_rdata      ),
-    .axi_rresp             ( usb_axi_rresp      ),
-    .axi_rvalid            ( usb_axi_rvalid     ),
-    .axi_rready            ( usb_axi_rready     ),
-
-    // Debug status
-    .ddr_pll_lock          ( ddr_pll_lock       ),
-
-    // Scope interface (exposed to top level)
-    .scope_i_tready        ( scope_i_tready     ),
-    .scope_i_tvalid        ( scope_i_tvalid     ),
-    .scope_i_tdata         ( scope_i_tdata      ),
-    .scope_o_tready        ( scope_o_tready     ),
-    .scope_o_tvalid        ( scope_o_tvalid     ),
-    .scope_o_tdata         ( scope_o_tdata      ),
-    .scope_o_tkeep         ( scope_o_tkeep      ),
-    .scope_o_tlast         ( scope_o_tlast      )
-);
+assign cmd_axi_rdata   = usb_axi_rdata;
+assign cmd_axi_rresp   = usb_axi_rresp;
+assign cmd_axi_rvalid  = usb_axi_rvalid;
+assign usb_axi_rready  = cmd_axi_rready;
 
 // ================================================================
 // ============= USB to Register Bridge ===========================

@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
 # Test firmware version command
+# Updated: Now uses 8-byte command format with 0x23 command code
+#          (previously used 0xFE 0x04 prefix format)
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
 
-CMD_PREFIX = 0xFE
-CMD_GET_VERSION = 0x04
+# New command codes (consolidated into command_processor)
+CMD_GET_VERSION = 0x23  # Was 0xFE 0x04
 
 print("Opening USB device...")
 usb = USB_FTX232H_FT60X_sync245mode(device_to_open_list=(
     ('FT60X', 'Haasoscope USB3'),
     ('FT60X', 'FTDI SuperSpeed-FIFO Bridge')))
 
-print("\n=== Testing GET_VERSION Command (0xFE 0x04) ===")
-print("Sending GET_VERSION command...")
-# Just prefix + command, no padding needed
-txdata = bytes([CMD_PREFIX, CMD_GET_VERSION])
+print("\n=== Testing GET_VERSION Command (0x23) ===")
+print("Sending GET_VERSION command (8 bytes)...")
+# Now uses 8-byte command format like other scope commands
+txdata = bytes([CMD_GET_VERSION, 0, 0, 0, 0, 0, 0, 0])
 print(f"TX: {txdata.hex()}")
 usb.send(txdata)
 
