@@ -376,21 +376,22 @@ wire [`NUM_OF_AXI_PORT-1:0]                 axi_master_r_ready;
     // clk_command drives: command_processor, USB interface (ftdi tx/rx), usb2reg_bridge, axi_lite_slave
     // regACLK drives: DDR controller registers (must stay at DDR controller's clock)
     //
-    // IMPORTANT: If clk_command != regACLK, the DDR register access path (bridge_m1_axi_*)
-    // crosses clock domains! For initial testing, keep clk_command = regACLK.
-    // To run clk_command faster (e.g., 200 MHz), add CDC synchronizers here.
+    // Clock Domain Crossing (CDC):
+    // - bridge_m1_axi_* signals are in clk_command domain (from usb2reg_bridge)
+    // - ddr_reg_axi_* signals are in regACLK domain (after axi_lite_cdc)
+    // - The axi_lite_cdc module handles the CDC using handshake synchronizers
     //
-    // Current implementation assumes clk_command and regACLK are the same clock
-    // (or at least synchronous). DDR register access (REG_READ/REG_WRITE commands)
-    // is rare and not performance-critical, so some latency is acceptable.
+    // This allows clk_command to run faster than regACLK (e.g., 200 MHz vs 100 MHz)
+    // DDR register access (REG_READ/REG_WRITE commands) has some CDC latency
+    // but this is acceptable since these operations are rare and not performance-critical.
 
     // Latch which master initiated the read transaction
-    // IMPORTANT: Use regACLK (DDR register clock) and unsynchronized signals
+    // IMPORTANT: Use regACLK (DDR register clock) - ddr_reg_axi_* signals are in regACLK domain
     reg rd_from_usb = 1'b0;
     always @(posedge regACLK) begin
         if (regARREADY && regARVALID) begin
-            // Latch: did USB initiate this read? (using direct signal - safe for mesochronous)
-            rd_from_usb <= bridge_m1_axi_arvalid;
+            // Latch: did USB initiate this read? (CDC output is in regACLK domain)
+            rd_from_usb <= ddr_reg_axi_arvalid;
         end
     end
 
@@ -398,62 +399,59 @@ wire [`NUM_OF_AXI_PORT-1:0]                 axi_master_r_ready;
     reg wr_from_usb = 1'b0;
     always @(posedge regACLK) begin
         if (regAWREADY && regAWVALID) begin
-            // Latch: did USB initiate this write? (using direct signal - safe for mesochronous)
-            wr_from_usb <= bridge_m1_axi_awvalid;
+            // Latch: did USB initiate this write? (CDC output is in regACLK domain)
+            wr_from_usb <= ddr_reg_axi_awvalid;
         end
     end
 
     // Read Address Channel - USB has priority
-    // Use direct signals (no sync) since clocks are mesochronous
-    // IMPORTANT: Must mux ALL transaction attributes based on which master is active
-    assign regARADDR                              = bridge_m1_axi_arvalid ? bridge_m1_axi_araddr : axi_master_ar_addr[14:0];
+    // ddr_reg_axi_* signals are from CDC, already in regACLK domain
+    assign regARADDR                              = ddr_reg_axi_arvalid ? ddr_reg_axi_araddr : axi_master_ar_addr[14:0];
     assign regARID                                = 6'h1;
-    assign regARLEN                               = bridge_m1_axi_arvalid ? 8'h0 : reg_axi_arlen;    // USB: single beat
+    assign regARLEN                               = ddr_reg_axi_arvalid ? 8'h0 : reg_axi_arlen;    // USB: single beat
     assign regARSIZE                              = 3'h2;                                             // Both: 4 bytes
-    assign regARBURST                             = bridge_m1_axi_arvalid ? 2'h1 : 2'h1;             // Both: INCR
-    assign regARVALID                             = bridge_m1_axi_arvalid | axi_master_ar_valid[0];
-    assign bridge_m1_axi_arready                  = regARREADY & bridge_m1_axi_arvalid;
-    assign axi_master_ar_ready[0]                 = regARREADY & !bridge_m1_axi_arvalid;
+    assign regARBURST                             = ddr_reg_axi_arvalid ? 2'h1 : 2'h1;             // Both: INCR
+    assign regARVALID                             = ddr_reg_axi_arvalid | axi_master_ar_valid[0];
+    assign ddr_reg_axi_arready                    = regARREADY & ddr_reg_axi_arvalid;
+    assign axi_master_ar_ready[0]                 = regARREADY & !ddr_reg_axi_arvalid;
 
     // Read Data Channel - route based on who made the request
-    assign bridge_m1_axi_rdata                    = regRDATA;
-    assign bridge_m1_axi_rvalid                   = regRVALID & rd_from_usb;
-    assign bridge_m1_axi_rresp                    = regRRESP;
+    assign ddr_reg_axi_rdata                      = regRDATA;
+    assign ddr_reg_axi_rvalid                     = regRVALID & rd_from_usb;
+    assign ddr_reg_axi_rresp                      = regRRESP;
     assign axi_master_r_data[`AXI_DATA_WIDTH-1:0] = regRDATA;
     assign axi_master_r_valid[0]                  = regRVALID & !rd_from_usb;
     assign axi_master_r_last[0]                   = regRLAST;
     assign axi_master_r_resp[1:0]                 = regRRESP;
     assign axi_master_r_id[`AXI_ID_WIDTH-1:0]     = regRID;
-    assign regRREADY                              = rd_from_usb ? bridge_m1_axi_rready : axi_master_r_ready[0];
+    assign regRREADY                              = rd_from_usb ? ddr_reg_axi_rready : axi_master_r_ready[0];
 
     // Write Address Channel - USB has priority
-    // Use direct signals (no sync) since clocks are mesochronous
-    // IMPORTANT: Must mux ALL transaction attributes based on which master is active
-    assign regAWADDR                              = bridge_m1_axi_awvalid ? bridge_m1_axi_awaddr : axi_master_aw_addr[14:0];
+    // ddr_reg_axi_* signals are from CDC, already in regACLK domain
+    assign regAWADDR                              = ddr_reg_axi_awvalid ? ddr_reg_axi_awaddr : axi_master_aw_addr[14:0];
     assign regAWID                                = 6'h1;
     assign regAWLEN                               = 8'h0;                  // Both: single beat
     assign regAWSIZE                              = 3'h2;                  // Both: 4 bytes
     assign regAWBURST                             = 2'h1;                  // Both: INCR
-    assign regAWVALID                             = bridge_m1_axi_awvalid | axi_master_aw_valid[0];
-    assign bridge_m1_axi_awready                  = regAWREADY & bridge_m1_axi_awvalid;
-    assign axi_master_aw_ready[0]                 = regAWREADY & !bridge_m1_axi_awvalid;
+    assign regAWVALID                             = ddr_reg_axi_awvalid | axi_master_aw_valid[0];
+    assign ddr_reg_axi_awready                    = regAWREADY & ddr_reg_axi_awvalid;
+    assign axi_master_aw_ready[0]                 = regAWREADY & !ddr_reg_axi_awvalid;
 
     // Write Data Channel - route based on who made the request
-    // Note: wvalid doesn't need sync since it follows awvalid which is already synced
-    assign regWDATA                               = bridge_m1_axi_wvalid ? bridge_m1_axi_wdata : axi_master_w_data[`AXI_DATA_WIDTH-1:0];
-    assign regWSTRB                               = bridge_m1_axi_wvalid ? bridge_m1_axi_wstrb : axi_master_w_strb[`AXI_DATA_WIDTH/8-1:0];
-    assign regWLAST                               = bridge_m1_axi_wvalid ? 1'b1 : axi_master_w_last[0];
-    assign regWVALID                              = bridge_m1_axi_wvalid | axi_master_w_valid[0];
-    assign bridge_m1_axi_wready                   = regWREADY & bridge_m1_axi_wvalid;
-    assign axi_master_w_ready[0]                  = regWREADY & !bridge_m1_axi_wvalid;
+    assign regWDATA                               = ddr_reg_axi_wvalid ? ddr_reg_axi_wdata : axi_master_w_data[`AXI_DATA_WIDTH-1:0];
+    assign regWSTRB                               = ddr_reg_axi_wvalid ? ddr_reg_axi_wstrb : axi_master_w_strb[`AXI_DATA_WIDTH/8-1:0];
+    assign regWLAST                               = ddr_reg_axi_wvalid ? 1'b1 : axi_master_w_last[0];
+    assign regWVALID                              = ddr_reg_axi_wvalid | axi_master_w_valid[0];
+    assign ddr_reg_axi_wready                     = regWREADY & ddr_reg_axi_wvalid;
+    assign axi_master_w_ready[0]                  = regWREADY & !ddr_reg_axi_wvalid;
 
     // Write Response Channel - route based on who made the request
-    assign bridge_m1_axi_bvalid                   = regBVALID & wr_from_usb;
-    assign bridge_m1_axi_bresp                    = regBRESP;
+    assign ddr_reg_axi_bvalid                     = regBVALID & wr_from_usb;
+    assign ddr_reg_axi_bresp                      = regBRESP;
     assign axi_master_b_valid[0]                  = regBVALID & !wr_from_usb;
     assign axi_master_b_id[`AXI_ID_WIDTH-1:0]     = regBID;
     assign axi_master_b_resp[1:0]                 = regBRESP;
-    assign regBREADY                              = wr_from_usb ? bridge_m1_axi_bready : axi_master_b_ready[0];
+    assign regBREADY                              = wr_from_usb ? ddr_reg_axi_bready : axi_master_b_ready[0];
 
 // ================================================================
 // ==================== AXI-Lite Slave (Control Registers) =======
@@ -654,7 +652,7 @@ wire [1:0]  bridge_m0_axi_rresp;
 wire        bridge_m0_axi_rvalid;
 wire        bridge_m0_axi_rready;
 
-// AXI signals from bridge to DDR controller
+// AXI signals from bridge to CDC (clk_command domain)
 wire [14:0] bridge_m1_axi_awaddr;
 wire        bridge_m1_axi_awvalid;
 wire        bridge_m1_axi_awready;
@@ -672,6 +670,25 @@ wire [31:0] bridge_m1_axi_rdata;
 wire [1:0]  bridge_m1_axi_rresp;
 wire        bridge_m1_axi_rvalid;
 wire        bridge_m1_axi_rready;
+
+// AXI signals from CDC to DDR controller (regACLK domain)
+wire [14:0] ddr_reg_axi_awaddr;
+wire        ddr_reg_axi_awvalid;
+wire        ddr_reg_axi_awready;
+wire [31:0] ddr_reg_axi_wdata;
+wire [3:0]  ddr_reg_axi_wstrb;
+wire        ddr_reg_axi_wvalid;
+wire        ddr_reg_axi_wready;
+wire [1:0]  ddr_reg_axi_bresp;
+wire        ddr_reg_axi_bvalid;
+wire        ddr_reg_axi_bready;
+wire [14:0] ddr_reg_axi_araddr;
+wire        ddr_reg_axi_arvalid;
+wire        ddr_reg_axi_arready;
+wire [31:0] ddr_reg_axi_rdata;
+wire [1:0]  ddr_reg_axi_rresp;
+wire        ddr_reg_axi_rvalid;
+wire        ddr_reg_axi_rready;
 
 usb2reg_bridge usb_bridge_inst (
     .clk                (clk_command),  // Use clk_command for USB-facing AXI interface
@@ -715,7 +732,7 @@ usb2reg_bridge usb_bridge_inst (
     .m0_axi_rvalid      (bridge_m0_axi_rvalid),
     .m0_axi_rready      (bridge_m0_axi_rready),
 
-    // Master 1 (to DDR controller)
+    // Master 1 (to CDC, then to DDR controller)
     .m1_axi_awaddr      (bridge_m1_axi_awaddr),
     .m1_axi_awvalid     (bridge_m1_axi_awvalid),
     .m1_axi_awready     (bridge_m1_axi_awready),
@@ -733,6 +750,60 @@ usb2reg_bridge usb_bridge_inst (
     .m1_axi_rresp       (bridge_m1_axi_rresp),
     .m1_axi_rvalid      (bridge_m1_axi_rvalid),
     .m1_axi_rready      (bridge_m1_axi_rready)
+);
+
+// ================================================================
+// ============= AXI-Lite CDC (clk_command -> regACLK) =============
+// ================================================================
+// Crosses DDR register access from clk_command domain to regACLK domain
+// This allows clk_command to run faster than regACLK (e.g., 200 MHz vs 100 MHz)
+
+axi_lite_cdc ddr_reg_cdc_inst (
+    // Source clock domain (clk_command)
+    .s_clk              (clk_command),
+    .s_rstn             (ddr_pll_lock),
+
+    // Destination clock domain (regACLK)
+    .m_clk              (regACLK),
+    .m_rstn             (ddr_pll_lock),
+
+    // AXI-Lite Slave (from usb2reg_bridge m1)
+    .s_axi_awaddr       (bridge_m1_axi_awaddr),
+    .s_axi_awvalid      (bridge_m1_axi_awvalid),
+    .s_axi_awready      (bridge_m1_axi_awready),
+    .s_axi_wdata        (bridge_m1_axi_wdata),
+    .s_axi_wstrb        (bridge_m1_axi_wstrb),
+    .s_axi_wvalid       (bridge_m1_axi_wvalid),
+    .s_axi_wready       (bridge_m1_axi_wready),
+    .s_axi_bresp        (bridge_m1_axi_bresp),
+    .s_axi_bvalid       (bridge_m1_axi_bvalid),
+    .s_axi_bready       (bridge_m1_axi_bready),
+    .s_axi_araddr       (bridge_m1_axi_araddr),
+    .s_axi_arvalid      (bridge_m1_axi_arvalid),
+    .s_axi_arready      (bridge_m1_axi_arready),
+    .s_axi_rdata        (bridge_m1_axi_rdata),
+    .s_axi_rresp        (bridge_m1_axi_rresp),
+    .s_axi_rvalid       (bridge_m1_axi_rvalid),
+    .s_axi_rready       (bridge_m1_axi_rready),
+
+    // AXI-Lite Master (to DDR register mux, regACLK domain)
+    .m_axi_awaddr       (ddr_reg_axi_awaddr),
+    .m_axi_awvalid      (ddr_reg_axi_awvalid),
+    .m_axi_awready      (ddr_reg_axi_awready),
+    .m_axi_wdata        (ddr_reg_axi_wdata),
+    .m_axi_wstrb        (ddr_reg_axi_wstrb),
+    .m_axi_wvalid       (ddr_reg_axi_wvalid),
+    .m_axi_wready       (ddr_reg_axi_wready),
+    .m_axi_bresp        (ddr_reg_axi_bresp),
+    .m_axi_bvalid       (ddr_reg_axi_bvalid),
+    .m_axi_bready       (ddr_reg_axi_bready),
+    .m_axi_araddr       (ddr_reg_axi_araddr),
+    .m_axi_arvalid      (ddr_reg_axi_arvalid),
+    .m_axi_arready      (ddr_reg_axi_arready),
+    .m_axi_rdata        (ddr_reg_axi_rdata),
+    .m_axi_rresp        (ddr_reg_axi_rresp),
+    .m_axi_rvalid       (ddr_reg_axi_rvalid),
+    .m_axi_rready       (ddr_reg_axi_rready)
 );
 
 // ================================================================
