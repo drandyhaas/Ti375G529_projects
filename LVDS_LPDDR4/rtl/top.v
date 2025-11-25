@@ -37,8 +37,11 @@ input  [3:0]    ftdi_be_IN,
 output [3:0]    ftdi_be_OUT,
 output [3:0]    ftdi_be_OE,
 
-// 100MHz clock for USB processing
-input           clk_100,
+// Clock for command_processor and USB interface (can be 100-200+ MHz)
+input           clk_command,
+
+// 50 MHz clock for slow peripherals (fan PWM, clk_over_4, PLL reset)
+input           clk50,
 
 // SPI interface
 output [7:0]    spitx,
@@ -285,7 +288,7 @@ sample_ram sample_ram_inst (
    .wr_en(ram_wr),
    .wr_addr(ram_wr_address),
    .wr_data(lvdsbitsout),
-   .clk_rd(clk_100),
+   .clk_rd(clk_command),
    .rd_addr(ram_rd_address),
    .rd_data(ram_rd_data)
 );
@@ -368,10 +371,10 @@ triggerer triggerer_inst (
 
 // Command processor instantiation
 // Now connected directly to USB (usb_command_handler removed, commands consolidated here)
-// NOTE: Using regACLK (same as FTDI interface) to avoid clock domain crossing
+// NOTE: Using clk_command which can run faster than ftdi_clk (async FIFOs handle CDC)
 command_processor cmd_proc_inst (
    .rstn(rstn),
-   .clk(regACLK),
+   .clk(clk_command),
 
    // USB interface - Connected directly to FTDI via tools_core
    .i_tready(usb_rx_tready),
@@ -434,7 +437,7 @@ command_processor cmd_proc_inst (
    .clkswitch(clkswitch),
    .lvdsin_spare(lvdsin_spare),
    .lvdsout_spare(lvdsout_spare),
-   .clk50(regACLK),  // Using regACLK for consistency with main clock
+   .clk50(clk50),  // 50 MHz for fan PWM, clk_over_4, PLL reset
    .clk_over_4(clk_over_4),
 
    // Flash interface
@@ -563,6 +566,8 @@ tools_core core0(
 .ctrl_rstn(ctrl_rstn),
 .ddr_pll_lock(ddr_pll_lock),
 .ddr_pll_rstn(ddr_pll_rstn),
+
+.clk_command(clk_command),
 
 .regACLK(regACLK),
 .regARADDR(regARADDR),

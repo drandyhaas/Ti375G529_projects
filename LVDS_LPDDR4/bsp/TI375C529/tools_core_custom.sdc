@@ -12,7 +12,7 @@ create_clock -period 10.000 [get_ports {ftdi_clk}]
 # Clock Domain Crossing Constraints
 set_clock_groups -exclusive \
     -group {axi0_ACLK} \
-    -group {regACLK clk_100} \
+    -group {regACLK clk_command clk50} \
     -group {ftdi_clk}
 
 # Override Auto-Generated I/O Delay Constraints

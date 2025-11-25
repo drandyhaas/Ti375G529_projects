@@ -1026,7 +1026,7 @@ pwm_generator fan_pwm_control (
    .pwm_out(fanon)
 );
 
-// make 12.5 MHz clock, for flash and RGB LEDs
+// make 12.5 MHz clock from 50 MHz clk50, for flash and RGB LEDs
 reg clk_over_4_counter = 0;
 always @ (posedge clk50) begin
    if (clk_over_4_counter) clk_over_4 <= ~clk_over_4;

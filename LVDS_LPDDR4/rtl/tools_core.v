@@ -76,6 +76,9 @@ output          phy_rstn,
 output          ctrl_rstn,
 input           ddr_pll_lock,
 output          ddr_pll_rstn,
+// Clock for command_processor and USB interface (can be faster than ftdi_clk)
+input           clk_command,
+
 //config
 input           regACLK,
 output [14:0]   regARADDR,
@@ -370,17 +373,16 @@ wire [`NUM_OF_AXI_PORT-1:0]                 axi_master_r_ready;
 // Track which master made the request and route response back correctly
 
     // ========== Clock Domain Note ==========
-    // USB bridge runs on clk_100 (100 MHz), DDR registers run on regACLK (100 MHz)
-    // BOTH CLOCKS ARE THE SAME FREQUENCY - No clock domain crossing!
+    // clk_command drives: command_processor, USB interface (ftdi tx/rx), usb2reg_bridge, axi_lite_slave
+    // regACLK drives: DDR controller registers (must stay at DDR controller's clock)
     //
-    // Previous attempts with regACLK at 50 MHz caused issues:
-    // 1. Adding CDC synchronizers broke AXI handshake timing (latency issues)
-    // 2. Direct connection without sync had metastability/sampling issues
-    // 3. Using async FIFOs or AXI clock converter would add complexity
+    // IMPORTANT: If clk_command != regACLK, the DDR register access path (bridge_m1_axi_*)
+    // crosses clock domains! For initial testing, keep clk_command = regACLK.
+    // To run clk_command faster (e.g., 200 MHz), add CDC synchronizers here.
     //
-    // Solution: Set regACLK = 100 MHz to match clk_100
-    // This eliminates all CDC issues and allows direct, reliable connections.
-    // All AXI signals are now in the same clock domain.
+    // Current implementation assumes clk_command and regACLK are the same clock
+    // (or at least synchronous). DDR register access (REG_READ/REG_WRITE commands)
+    // is rare and not performance-critical, so some latency is acceptable.
 
     // Latch which master initiated the read transaction
     // IMPORTANT: Use regACLK (DDR register clock) and unsynchronized signals
@@ -459,7 +461,7 @@ wire [`NUM_OF_AXI_PORT-1:0]                 axi_master_r_ready;
 
 axi_lite_slave axilite_inst
 (
-    .axi_aclk(regACLK),
+    .axi_aclk(clk_command),  // Use clk_command for USB-facing AXI interface
 	.axi_resetn(ddr_pll_lock),  // Use DDR PLL lock as reset (active when PLL locked)
 
 	.axi_awaddr ({17'h0, bridge_m0_axi_awaddr}),
@@ -533,6 +535,8 @@ wire [ 3:0] usb_tx_tkeep_int;
 wire        usb_tx_tlast_int;
 
 // FTDI 245FIFO interface controller
+// NOTE: tx_clk and rx_clk use clk_command which can run faster than ftdi_clk
+// The async FIFOs inside ftdi_245fifo_top handle the clock domain crossing
 ftdi_245fifo_top #(
     .TX_EW                 ( 2                  ),   // TX data stream width,  2=32bit
     .TX_EA                 ( 14                 ),   // TX FIFO depth = 2^14 = 16384
@@ -541,13 +545,13 @@ ftdi_245fifo_top #(
     .CHIP_TYPE             ( "FT601"            )
 ) u_ftdi_245fifo_top (
     .rstn_async            ( 1'b1               ),
-    .tx_clk                ( regACLK            ),
+    .tx_clk                ( clk_command        ),   // Can be faster than ftdi_clk
     .tx_tready             ( usb_tx_tready_int  ),
     .tx_tvalid             ( usb_tx_tvalid_int  ),
     .tx_tdata              ( usb_tx_tdata_int   ),
     .tx_tkeep              ( usb_tx_tkeep_int   ),
     .tx_tlast              ( usb_tx_tlast_int   ),
-    .rx_clk                ( regACLK            ),
+    .rx_clk                ( clk_command        ),   // Can be faster than ftdi_clk
     .rx_tready             ( usb_rx_tready_int  ),
     .rx_tvalid             ( usb_rx_tvalid_int  ),
     .rx_tdata              ( usb_rx_tdata_int   ),
@@ -670,7 +674,7 @@ wire        bridge_m1_axi_rvalid;
 wire        bridge_m1_axi_rready;
 
 usb2reg_bridge usb_bridge_inst (
-    .clk                (regACLK),  // Use regACLK
+    .clk                (clk_command),  // Use clk_command for USB-facing AXI interface
     .rstn               (ddr_pll_lock),
 
     // Slave (from USB command handler)
@@ -747,7 +751,7 @@ usb2reg_bridge usb_bridge_inst (
 
 reg [1:0] usb_tdata_d = 2'h0;
 
-always @ (posedge regACLK)
+always @ (posedge clk_command)
     if (usb_rx_tvalid)
         usb_tdata_d <= usb_rx_tdata[1:0];
 
