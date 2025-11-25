@@ -989,23 +989,32 @@ always @ (posedge clk) begin
 
    ECHO_TX : begin
       // Transmit buffered data back (4 bytes at a time)
-      o_tdata <= {echo_buffer[echo_tx_count[7:0] + 8'd3],
-                  echo_buffer[echo_tx_count[7:0] + 8'd2],
-                  echo_buffer[echo_tx_count[7:0] + 8'd1],
-                  echo_buffer[echo_tx_count[7:0]]};
+      // Proper AXI-Stream handshake: hold data stable until accepted
       length <= (echo_length > echo_tx_count) ? (echo_length - echo_tx_count) : 0;
 
       if (!o_tvalid) begin
+         // Load new data and assert valid
+         o_tdata <= {echo_buffer[echo_tx_count[7:0] + 8'd3],
+                     echo_buffer[echo_tx_count[7:0] + 8'd2],
+                     echo_buffer[echo_tx_count[7:0] + 8'd1],
+                     echo_buffer[echo_tx_count[7:0]]};
          o_tvalid <= 1'b1;
       end else if (o_tready) begin
+         // Data accepted - move to next chunk or finish
          if (echo_tx_count + 16'd4 >= echo_length) begin
             o_tvalid <= 1'b0;
             state <= INIT;
          end else begin
             echo_tx_count <= echo_tx_count + 16'd4;
-            o_tvalid <= 1'b0;  // Deassert to update data
+            // Load next data immediately (registered, so safe)
+            o_tdata <= {echo_buffer[echo_tx_count[7:0] + 8'd7],
+                        echo_buffer[echo_tx_count[7:0] + 8'd6],
+                        echo_buffer[echo_tx_count[7:0] + 8'd5],
+                        echo_buffer[echo_tx_count[7:0] + 8'd4]};
+            // Keep o_tvalid high for back-to-back transfers
          end
       end
+      // When o_tvalid && !o_tready, hold data stable (do nothing)
    end
 
    default : state <= INIT;

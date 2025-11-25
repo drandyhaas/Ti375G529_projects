@@ -102,11 +102,12 @@ TEST_SIZES = [
     (16 * 1024, "16 KB", 10),     # Medium
     (64 * 1024, "64 KB", 5),      # Medium-large
     (100 * 1024, "100 KB", 5),    # Near max RAM size
-    (256 * 1024, "256 KB", 3),    # Large (may wrap RAM)
-    (512 * 1024, "512 KB", 3),    # Larger
-    (1024 * 1024, "1 MB", 3),     # Very large
-    (2 * 1024 * 1024, "2 MB", 3), # Extra large
-    (4 * 1024 * 1024, "4 MB", 2), # Maximum test size
+    (256 * 1024, "256 KB", 5),    # Large (may wrap RAM)
+    (512 * 1024, "512 KB", 5),    # Larger
+    (1024 * 1024, "1 MB", 5),     # Very large
+    (2 * 1024 * 1024, "2 MB", 5), # Extra large
+    (5 * 1024 * 1024, "5 MB", 5), # XXL
+    (15 * 1024 * 1024, "15 MB", 5), # XXXL
 ]
 
 all_results = {}
