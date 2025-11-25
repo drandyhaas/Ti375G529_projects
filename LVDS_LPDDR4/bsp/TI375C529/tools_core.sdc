@@ -5,7 +5,7 @@
 
 # Efinity Interface Designer SDC
 # Version: 2025.1.110.5.9
-# Date: 2025-11-23 09:35
+# Date: 2025-11-24 22:22
 
 # Copyright (C) 2013 - 2025 Efinix Inc. All rights reserved.
 
@@ -16,8 +16,14 @@
 # PLL Constraints
 #################
 create_clock -period 10.000 -name regACLK [get_ports {regACLK}]
-create_clock -period 5.000 -name axi0_ACLK [get_ports {axi0_ACLK}]
-create_clock -period 5.000 -name axi1_ACLK [get_ports {axi1_ACLK}]
+create_clock -period 5.556 -name axi0_ACLK [get_ports {axi0_ACLK}]
+create_clock -period 10.000 -name clk_100 [get_ports {clk_100}]
+create_clock -waveform {0.333 1.000} -period 1.333 -name lvds_clk_fast [get_ports {lvds_clk_fast}]
+create_clock -period 10.000 -name pll_lvds_100 [get_ports {pll_lvds_100}]
+create_clock -period 6.667 -name lvds_clk_slow [get_ports {lvds_clk_slow}]
+create_clock -waveform {0.333 1.000} -period 1.333 -name lvds_clk_fast_clkin [get_ports {lvds_clk_fast_clkin}]
+create_clock -period 1.333 -name lvds_clk_feedback_clkin [get_ports {lvds_clk_feedback_clkin}]
+create_clock -period 6.667 -name lvds_clk_slow_clkin [get_ports {lvds_clk_slow_clkin}]
 
 # GPIO Constraints
 ####################
@@ -414,11 +420,36 @@ set_input_delay -clock regACLK -reference_pin [get_ports {regACLK~CLKOUT~1~129}]
 # set_output_delay -clock <CLOCK> [-reference_pin <clkout_pad>] -max <MAX CALCULATION> [get_ports {ftdi_data_OE[31]}]
 # set_output_delay -clock <CLOCK> [-reference_pin <clkout_pad>] -min <MIN CALCULATION> [get_ports {ftdi_data_OE[31]}]
 
+# LVDS Rx Constraints
+#######################
+set_input_delay -clock lvds_clk_slow_clkin -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -max 2.230 [get_ports {lvds_rx_inst1_RX_DATA[*]}]
+set_input_delay -clock lvds_clk_slow_clkin -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -min 0.838 [get_ports {lvds_rx_inst1_RX_DATA[*]}]
+set_output_delay -clock lvds_clk_slow_clkin -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -max 1.156 [get_ports {lvds_rx_inst1_RX_RST}]
+set_output_delay -clock lvds_clk_slow_clkin -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -min -0.031 [get_ports {lvds_rx_inst1_RX_RST}]
+set_output_delay -clock lvds_clk_slow_clkin -clock_fall -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -max 1.093 [get_ports {lvds_rx_inst1_RX_DLY_ENA}]
+set_output_delay -clock lvds_clk_slow_clkin -clock_fall -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -min -0.031 [get_ports {lvds_rx_inst1_RX_DLY_ENA}]
+set_output_delay -clock lvds_clk_slow_clkin -clock_fall -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -max 1.093 [get_ports {lvds_rx_inst1_RX_DLY_INC}]
+set_output_delay -clock lvds_clk_slow_clkin -clock_fall -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -min -0.031 [get_ports {lvds_rx_inst1_RX_DLY_INC}]
+set_output_delay -clock lvds_clk_slow_clkin -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -max 1.156 [get_ports {lvds_rx_inst1_RX_DLY_RST}]
+set_output_delay -clock lvds_clk_slow_clkin -reference_pin [get_ports {lvds_clk_slow_clkin~CLKOUT~1~945}] -min -0.031 [get_ports {lvds_rx_inst1_RX_DLY_RST}]
+
 # Clock Latency Constraints
 ############################
 # set_clock_latency -source -setup <board_max + 3.698> [get_ports {regACLK}]
 # set_clock_latency -source -hold <board_min + 2.074> [get_ports {regACLK}]
 # set_clock_latency -source -setup <board_max + 3.698> [get_ports {axi0_ACLK}]
 # set_clock_latency -source -hold <board_min + 2.074> [get_ports {axi0_ACLK}]
-# set_clock_latency -source -setup <board_max + 3.698> [get_ports {axi1_ACLK}]
-# set_clock_latency -source -hold <board_min + 2.074> [get_ports {axi1_ACLK}]
+# set_clock_latency -source -setup <board_max + 3.698> [get_ports {clk_100}]
+# set_clock_latency -source -hold <board_min + 2.074> [get_ports {clk_100}]
+# set_clock_latency -source -setup <pll_clk_latency_regACLK_max + 2.103> [get_ports {lvds_clk_fast}]
+# set_clock_latency -source -hold <pll_clk_latency_regACLK_min + 1.361> [get_ports {lvds_clk_fast}]
+# set_clock_latency -source -setup <pll_clk_latency_regACLK_max + 2.103> [get_ports {pll_lvds_100}]
+# set_clock_latency -source -hold <pll_clk_latency_regACLK_min + 1.361> [get_ports {pll_lvds_100}]
+# set_clock_latency -source -setup <pll_clk_latency_regACLK_max + 2.103> [get_ports {lvds_clk_slow}]
+# set_clock_latency -source -hold <pll_clk_latency_regACLK_min + 1.361> [get_ports {lvds_clk_slow}]
+# set_clock_latency -source -setup <board_max + 1.665> [get_ports {lvds_clk_fast_clkin}]
+# set_clock_latency -source -hold <board_min + 0.907> [get_ports {lvds_clk_fast_clkin}]
+# set_clock_latency -source -setup <board_max + 1.665> [get_ports {lvds_clk_feedback_clkin}]
+# set_clock_latency -source -hold <board_min + 0.907> [get_ports {lvds_clk_feedback_clkin}]
+# set_clock_latency -source -setup <board_max + 1.665> [get_ports {lvds_clk_slow_clkin}]
+# set_clock_latency -source -hold <board_min + 0.907> [get_ports {lvds_clk_slow_clkin}]

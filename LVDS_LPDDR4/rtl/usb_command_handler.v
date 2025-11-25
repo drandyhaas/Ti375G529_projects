@@ -12,6 +12,7 @@
 //           0xFE 0x03 - REG_READ: [ADDR(4B,LE)] - Read from AXI-Lite register, returns [DATA(4B,LE)]
 //           0xFE 0x04 - GET_VERSION: Returns 4-byte version
 //           0xFE 0x05 - GET_STATUS: Returns 4-byte status with debug info
+//           0xFE 0x06 - ECHO: [LEN(2B,LE)][DATA...] - Echo back received data (max 256 bytes)
 //           [Any other 8 bytes] - Forward to command_processor (scope control)
 //--------------------------------------------------------------------------------------------------------
 
@@ -99,6 +100,11 @@ localparam [4:0] RX_CMD      = 5'd0,
                  // SCOPE_CMD states
                  SCOPE_TX    = 5'd20,
                  SCOPE_RX    = 5'd21,
+                 // ECHO states
+                 ECHO_LEN0   = 5'd23,
+                 ECHO_LEN1   = 5'd24,
+                 ECHO_RX     = 5'd25,
+                 ECHO_TX     = 5'd26,
                  ERROR       = 5'd31;
 
 // Command codes
@@ -108,6 +114,8 @@ localparam [7:0] CMD_REG_WRITE   = 8'h02;
 localparam [7:0] CMD_REG_READ    = 8'h03;
 localparam [7:0] CMD_GET_VERSION = 8'h04;  // Returns 4-byte version: 0x20250120 (2025-01-20)
 localparam [7:0] CMD_GET_STATUS  = 8'h05;  // Returns 4-byte status with debug info
+localparam [7:0] CMD_ECHO        = 8'h06;  // Echo test: [LEN_LO][LEN_HI][DATA...] returns [DATA...]
+localparam [7:0] CMD_DEBUG_RX    = 8'h07;  // Debug: receive 4 bytes, return state+received bytes
 
 reg [4:0]  state = RX_CMD;
 reg [7:0]  command = 8'h00;
@@ -115,6 +123,13 @@ reg [31:0] length = 0;
 reg [31:0] reg_addr = 0;
 reg [31:0] reg_data = 0;
 reg [2:0]  scope_byte_count = 0;  // For CMD_SCOPE (counts 0-7 for 8 bytes)
+
+// Echo buffer - 256 bytes max for testing
+// synthesis attribute ram_style of echo_buffer is "distributed"
+(* ram_style = "distributed" *) reg [7:0]  echo_buffer [0:255];
+reg [15:0] echo_length = 0;      // Total length to echo (up to 65535, but buffer is 256)
+reg [15:0] echo_rx_count = 0;    // Bytes received so far
+reg [15:0] echo_tx_count = 0;    // Bytes transmitted so far
 
 // Write response handling removed - now using proper AXI protocol in state machine
 
@@ -149,6 +164,9 @@ always @ (posedge clk or negedge rstn)
         scope_i_tdata  <= 8'h0;
         scope_o_tready <= 1'b0;
         timeout_counter <= 0;
+        echo_length <= 0;
+        echo_rx_count <= 0;
+        echo_tx_count <= 0;
     end else begin
         // Watchdog timeout - if stuck in non-idle state for too long, reset to RX_CMD
         if (state != RX_CMD) begin
@@ -205,6 +223,7 @@ always @ (posedge clk or negedge rstn)
                         CMD_REG_READ:    state <= RX_ADDR0;
                         CMD_GET_VERSION: state <= LOAD_VERSION;  // Load version then transmit
                         CMD_GET_STATUS:  state <= LOAD_VERSION;  // Reuse LOAD_VERSION state for status too
+                        CMD_ECHO:        state <= ECHO_LEN0;     // Echo test command
                         default:         state <= ERROR;
                     endcase
                 end
@@ -217,10 +236,10 @@ always @ (posedge clk or negedge rstn)
                 o_tlast  <= 1'b0;
                 length <= 4;  // Send 4 bytes
                 if (command == CMD_GET_VERSION) begin
-                    reg_data <= 32'h20251123;  // Version: 2025-11-23 (axi1 + axi_ctrl_ver3 removed)
+                    reg_data <= 32'h20251130;  // Version: 2025-11-30 (fixed SCOPE_TX i_tready)
                 end else if (command == CMD_GET_STATUS) begin
-                    // Status: bit[0]=ddr_pll_lock, bit[1]=axi_arready, bit[2]=axi_rvalid, bit[3:31]=reserved
-                    reg_data <= {29'h0, axi_rvalid, axi_arready, ddr_pll_lock};
+                    // Debug status: [0]=scope_i_tready, [1]=scope_o_tvalid, [7:3]=state, [10:8]=scope_byte_count, [31:24]=0x05
+                    reg_data <= {8'h05, 13'b0, scope_byte_count, state, 1'b0, scope_o_tvalid, scope_i_tready};
                 end else begin
                     reg_data <= 32'hDEADBEEF;  // Should never happen
                 end
@@ -401,17 +420,32 @@ always @ (posedge clk or negedge rstn)
             // ============================================
             SCOPE_TX : begin
                 // Forward incoming USB bytes to command_processor (8 bytes total)
-                scope_i_tvalid <= 1'b1;
-                scope_i_tdata <= i_tdata;  // 8-bit command bytes
+                // Byte 0 is already in 'command' register (captured in RX_CMD)
+                // Bytes 1-7 come from i_tdata
 
-                if (i_tvalid && scope_i_tready) begin
-                    if (scope_byte_count == 7) begin
-                        // All 8 bytes sent, now wait for response
-                        scope_i_tvalid <= 1'b0;
-                        scope_o_tready <= 1'b1;  // Ready to receive response
-                        state <= SCOPE_RX;
-                    end else begin
-                        scope_byte_count <= scope_byte_count + 1;
+                if (scope_byte_count == 0) begin
+                    // First byte: send the command we already captured
+                    scope_i_tvalid <= 1'b1;
+                    scope_i_tdata <= command;
+
+                    // Proper AXI-stream handshake: transfer when BOTH valid AND ready
+                    if (scope_i_tvalid && scope_i_tready) begin
+                        scope_byte_count <= 1;
+                    end
+                end else begin
+                    // Bytes 1-7: forward from USB RX
+                    scope_i_tdata <= i_tdata;
+                    scope_i_tvalid <= i_tvalid;  // Valid when USB has data
+
+                    if (i_tvalid && scope_i_tready) begin
+                        if (scope_byte_count == 7) begin
+                            // All 8 bytes sent, now wait for response
+                            scope_i_tvalid <= 1'b0;
+                            scope_o_tready <= 1'b1;  // Ready to receive response
+                            state <= SCOPE_RX;
+                        end else begin
+                            scope_byte_count <= scope_byte_count + 1;
+                        end
                     end
                 end
             end
@@ -440,6 +474,87 @@ always @ (posedge clk or negedge rstn)
             end
 
             // ============================================
+            // CMD_ECHO: Receive length, receive data, echo back
+            // ============================================
+            ECHO_LEN0 : begin
+                if (i_tvalid) begin
+                    echo_length[7:0] <= i_tdata;
+                    echo_rx_count <= 0;
+                    echo_tx_count <= 0;
+                    state <= ECHO_LEN1;
+                end
+            end
+
+            ECHO_LEN1 : begin
+                if (i_tvalid) begin
+                    echo_length[15:8] <= i_tdata;
+                    // Check if zero-length echo (just return immediately)
+                    if ({i_tdata, echo_length[7:0]} == 16'd0) begin
+                        state <= RX_CMD;  // Nothing to echo
+                    end else begin
+                        state <= ECHO_RX;
+                    end
+                end
+            end
+
+            ECHO_RX : begin
+                // Receive data bytes and store in buffer
+                if (i_tvalid) begin
+                    // Store in buffer (wrap at 256 bytes)
+                    echo_buffer[echo_rx_count[7:0]] <= i_tdata;
+                    if (echo_rx_count + 1 >= echo_length) begin
+                        // All bytes received, start transmitting
+                        echo_rx_count <= echo_rx_count + 1;
+                        state <= ECHO_TX;
+                    end else begin
+                        echo_rx_count <= echo_rx_count + 1;
+                    end
+                end
+            end
+
+            ECHO_TX : begin
+                // Transmit buffered data back
+                // Send 4 bytes at a time from the buffer
+                o_tdata <= {echo_buffer[echo_tx_count[7:0] + 3],
+                           echo_buffer[echo_tx_count[7:0] + 2],
+                           echo_buffer[echo_tx_count[7:0] + 1],
+                           echo_buffer[echo_tx_count[7:0]]};
+
+                // Calculate how many bytes remain
+                if (echo_length - echo_tx_count >= 4) begin
+                    o_tkeep <= 4'b1111;
+                    o_tlast <= (echo_length - echo_tx_count <= 4) ? 1'b1 : 1'b0;
+                end else begin
+                    // Partial last word
+                    case (echo_length - echo_tx_count)
+                        16'd3: o_tkeep <= 4'b0111;
+                        16'd2: o_tkeep <= 4'b0011;
+                        16'd1: o_tkeep <= 4'b0001;
+                        default: o_tkeep <= 4'b0000;
+                    endcase
+                    o_tlast <= 1'b1;
+                end
+
+                // AXI-stream handshake: hold valid high, wait for ready
+                if (!o_tvalid) begin
+                    // First cycle: assert valid
+                    o_tvalid <= 1'b1;
+                end else if (o_tready) begin
+                    // Handshake complete
+                    if (echo_tx_count + 4 >= echo_length) begin
+                        // Done transmitting - clear valid and exit
+                        o_tvalid <= 1'b0;
+                        state <= RX_CMD;
+                    end else begin
+                        // More data to send - increment counter and deassert valid
+                        // to create a new transaction
+                        echo_tx_count <= echo_tx_count + 4;
+                        o_tvalid <= 1'b0;  // Deassert for one cycle to update data
+                    end
+                end
+            end
+
+            // ============================================
             // ERROR: Invalid command
             // ============================================
             ERROR : begin
@@ -451,7 +566,8 @@ always @ (posedge clk or negedge rstn)
     end
 
 
-// Only accept new RX data when in RX states or RX_CMD or SCOPE_TX
+// Only accept new RX data when in RX states or RX_CMD or SCOPE_TX or ECHO_RX
+// For SCOPE_TX: only ready when we're past byte 0 AND command_processor is ready
 assign i_tready = (state == RX_CMD) || (state == RX_USB_CMD) ||
                   (state == RX_LEN0) || (state == RX_LEN1) ||
                   (state == RX_LEN2) || (state == RX_LEN3) ||
@@ -459,7 +575,8 @@ assign i_tready = (state == RX_CMD) || (state == RX_USB_CMD) ||
                   (state == RX_ADDR2) || (state == RX_ADDR3) ||
                   (state == RX_DATA0) || (state == RX_DATA1) ||
                   (state == RX_DATA2) || (state == RX_DATA3) ||
-                  (state == SCOPE_TX);  // Also ready during scope command forwarding
-
+                  ((state == SCOPE_TX) && (scope_byte_count != 0) && scope_i_tready) ||  // Only ready for bytes 1-7 when cmd_proc ready
+                  (state == ECHO_LEN0) || (state == ECHO_LEN1) ||
+                  (state == ECHO_RX);     // Ready during echo data reception
 
 endmodule
