@@ -693,6 +693,10 @@ always @ (posedge clk) begin
          // rx_data[1:4] = length (little-endian, already received in 8-byte command)
          length <= {rx_data[4], rx_data[3], rx_data[2], rx_data[1]};
          usb_cmd <= 8'h20;
+         // Set initial o_tdata based on the length (like SEND_STD_USB_RESPONSE does)
+         // First 4 bytes will be: len-1, len-2, len-3, len-4
+         o_tdata <= {rx_data[1] - 8'd4, rx_data[1] - 8'd3, rx_data[1] - 8'd2, rx_data[1] - 8'd1};
+         o_tvalid <= 1'b1;
          state <= TX_MASS;
       end
 
@@ -904,24 +908,21 @@ always @ (posedge clk) begin
 
    TX_MASS : begin
       // Send counting pattern data (bandwidth test)
-      if (length > 0) begin
-         o_tvalid <= 1'b1;
-         o_tdata <= {length[7:0] - 8'd4,
-                     length[7:0] - 8'd3,
-                     length[7:0] - 8'd2,
-                     length[7:0] - 8'd1};
-         if (o_tready) begin
-            if (length > 4) begin
-               length <= length - 4;
-            end else begin
-               length <= 0;
-               o_tvalid <= 1'b0;
-               state <= INIT;
-            end
+      // o_tvalid and o_tdata are set before entering this state (in PROCESS)
+      if (o_tready) begin
+         if (length > 4) begin
+            // More data to send - update data and decrement length
+            length <= length - 4;
+            o_tdata <= {length[7:0] - 8'd8,
+                        length[7:0] - 8'd7,
+                        length[7:0] - 8'd6,
+                        length[7:0] - 8'd5};
+         end else begin
+            // Last transfer complete
+            length <= 0;
+            o_tvalid <= 1'b0;
+            state <= INIT;
          end
-      end else begin
-         o_tvalid <= 1'b0;
-         state <= INIT;
       end
    end
 
