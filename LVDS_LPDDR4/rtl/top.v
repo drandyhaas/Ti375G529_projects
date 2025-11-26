@@ -3,8 +3,8 @@ module top (
 
 // LVDS
 input  [9:0]    lvds_rx_inst1_RX_DATA,
-input           lvds_clk_slow_clkin,
-input           lvds_clk_fast_clkin,  // Fast clock for phase detector
+input           lvds_clk_slow,
+input           lvds_clk_fast,
 output          lvds_rx_inst1_RX_RST,
 
 // LVDS Trigger signals for board-to-board communication
@@ -277,18 +277,18 @@ reg [139:0] lvds1bits, lvds2bits, lvds3bits, lvds4bits;
 
 // Simple assignment: replicate the 10-bit LVDS data across all four channels
 // TODO: Verify the correct mapping between lvds_rx_inst1_RX_DATA bits and the four channels
-always @(posedge lvds_clk_slow_clkin) begin
+always @(posedge lvds_clk_slow) begin
    // Direct assignment - each bit of lvds_rx_inst1_RX_DATA feeds all four channels
    // This is a placeholder and may need adjustment based on actual LVDS protocol
    lvds1bits <= {14{lvds_rx_inst1_RX_DATA}};
-   lvds2bits <= {14{lvds_rx_inst1_RX_DATA}};
+   lvds2bits <= {14{0}};
    lvds3bits <= {14{lvds_rx_inst1_RX_DATA}};
-   lvds4bits <= {14{lvds_rx_inst1_RX_DATA}};
+   lvds4bits <= {14{1}};
 end
 
 // Dual-port RAM for storing LVDS samples
 sample_ram sample_ram_inst (
-   .clk_wr(lvds_clk_slow_clkin),
+   .clk_wr(lvds_clk_slow),
    .wr_en(ram_wr),
    .wr_addr(ram_wr_address),
    .wr_data(lvdsbitsout),
@@ -299,7 +299,7 @@ sample_ram sample_ram_inst (
 
 // Downsampler instantiation
 downsampler downsampler_inst (
-   .clklvds(lvds_clk_slow_clkin),
+   .clklvds(lvds_clk_slow),
    .lvds1bits(lvds1bits),
    .lvds2bits(lvds2bits),
    .lvds3bits(lvds3bits),
@@ -315,7 +315,7 @@ downsampler downsampler_inst (
 
 // Phase detector for forward trigger path
 phase_detector phase_det_fwd (
-   .clk_fast(lvds_clk_fast_clkin),
+   .clk_fast(lvds_clk_fast),
    .start(lvdsout_trig),
    .stop(lvdsin_trig_b),
    .phase_diff(phase_diff)
@@ -323,7 +323,7 @@ phase_detector phase_det_fwd (
 
 // Phase detector for backward trigger path
 phase_detector phase_det_bwd (
-   .clk_fast(lvds_clk_fast_clkin),
+   .clk_fast(lvds_clk_fast),
    .start(lvdsout_trig_b),
    .stop(lvdsin_trig),
    .phase_diff(phase_diff_b)
@@ -331,7 +331,7 @@ phase_detector phase_det_bwd (
 
 // Triggerer instantiation
 triggerer triggerer_inst (
-   .clklvds(lvds_clk_slow_clkin),
+   .clklvds(lvds_clk_slow),
    .rstn(rstn),
    .ram_wr(ram_wr),
    .ram_wr_address(ram_wr_address),
