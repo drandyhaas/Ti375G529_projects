@@ -74,7 +74,9 @@ module axi_lite_slave #(
     input tester_loop_done,
 	input tester_error,
 	output tester_rst,
-	output[31:0]tester_pattern
+	output[31:0]tester_pattern,
+	input [63:0]write_cycles,
+	input [63:0]read_cycles
 );
 
 assign axi_bid      =8'b0;
@@ -259,6 +261,22 @@ always@ (posedge axi_aclk or negedge axi_resetn)
 				begin
 					r_axi_rdata[0]		<=tester_loop_done;
 					r_axi_rdata[1]		<=tester_error;
+				end
+				else if (slaveARAddr[ADDR_WIDTH-1:2] == 32'd18)	//REG18 - write_cycles[31:0]
+				begin
+					r_axi_rdata		<=write_cycles[31:0];
+				end
+				else if (slaveARAddr[ADDR_WIDTH-1:2] == 32'd19)	//REG19 - write_cycles[63:32]
+				begin
+					r_axi_rdata		<=write_cycles[63:32];
+				end
+				else if (slaveARAddr[ADDR_WIDTH-1:2] == 32'd20)	//REG20 - read_cycles[31:0]
+				begin
+					r_axi_rdata		<=read_cycles[31:0];
+				end
+				else if (slaveARAddr[ADDR_WIDTH-1:2] == 32'd21)	//REG21 - read_cycles[63:32]
+				begin
+					r_axi_rdata		<=read_cycles[63:32];
 				end
 
 				r_axi_rvalid	<=1'b1;

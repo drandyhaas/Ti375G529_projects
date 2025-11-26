@@ -57,7 +57,9 @@ input lfsr_en,
 input x16_en,
 output [31:0]dq_fail_expression,
 input [31:0]test_size,
-input [1:0] test_mode  // 0=write+read, 1=write-only, 2=read-only
+input [1:0] test_mode,  // 0=write+read, 1=write-only, 2=read-only
+output reg [63:0] write_cycles,  // cycle count for write phase
+output reg [63:0] read_cycles    // cycle count for read phase
 
 );
 wire [511:0] mask;
@@ -107,6 +109,11 @@ reg r_lfsr_en;
 reg [31:0]r_dq_fail_expression;
 assign dq_fail_expression = r_dq_fail_expression;
 reg [31:0]r_test_size;
+
+// Cycle counter for timing measurements
+reg [63:0] cycle_counter;
+reg counting_write;
+reg counting_read;
 
 always @(posedge axi_clk or negedge rstn) begin
 	if (!rstn) begin
@@ -209,8 +216,16 @@ always @(posedge axi_clk or negedge rstn) begin
 		r_dq_fail_expression	<=32'b0;
 		r_test_size		<=32'b0;
 		axi_id_counter	<= 3'b000;
+		cycle_counter	<= 64'b0;
+		counting_write	<= 1'b0;
+		counting_read	<= 1'b0;
+		write_cycles	<= 64'b0;
+		read_cycles		<= 64'b0;
 
 	end else begin
+		// Free-running cycle counter when in write or read phase
+		if (counting_write || counting_read)
+			cycle_counter <= cycle_counter + 1'b1;
 		if (states == IDLE) begin
 			awaddr <= START_ADDR;
 			awvalid <= 1'b0;
@@ -248,8 +263,18 @@ always @(posedge axi_clk or negedge rstn) begin
 			r_dq_fail_expression	<=32'b0;
 			r_test_size	<= test_size;
 			axi_id_counter <= 3'b000;
+			cycle_counter <= 64'b0;
+			counting_write <= 1'b0;
+			counting_read <= 1'b0;
+			write_cycles <= 64'b0;
+			read_cycles <= 64'b0;
 		end
 		if (states == WRITE_ADDR) begin
+			// Start write timing on first WRITE_ADDR
+			if (!counting_write) begin
+				cycle_counter <= 64'b0;
+				counting_write <= 1'b1;
+			end
 			awvalid <= 1'b1;
 			atype <= 1'b1;
 			awsize <= ASIZE;
@@ -341,6 +366,11 @@ always @(posedge axi_clk or negedge rstn) begin
 			end
 		end
 		if (states == POST_WRITE) begin
+			// Stop write timing and latch cycles when write is done
+			if (write_done && counting_write) begin
+				write_cycles <= cycle_counter;
+				counting_write <= 1'b0;
+			end
 			if (write_done) begin
 				awaddr <= START_ADDR;
                                 r_lfsr_1P <= i_lfsr_seed;
@@ -366,12 +396,17 @@ always @(posedge axi_clk or negedge rstn) begin
 			awready_f <= 1'b0;
 		end
 		if (states == READ_ADDR) begin
+			// Start read timing on first READ_ADDR
+			if (!counting_read) begin
+				cycle_counter <= 64'b0;
+				counting_read <= 1'b1;
+			end
 			arvalid <= 1'b1;
 			read_cnt <= ALEN + 1;
 			arsize <= ASIZE;
 			arlen <= ALEN;
-			arburst <= 2'b01; 
-				
+			arburst <= 2'b01;
+
 		end
 		if (states == PRE_READ) begin
 			arvalid <= 1'b0;
@@ -495,6 +530,11 @@ always @(posedge axi_clk or negedge rstn) begin
 			rready <= 1'b1;
 		end
 		if (states == DONE) begin
+			// Stop read timing and latch cycles
+			if (counting_read) begin
+				read_cycles <= cycle_counter;
+				counting_read <= 1'b0;
+			end
 			done <= 1'b1;
 		end
 	end

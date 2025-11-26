@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Wed Nov 26 00:19:19 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+<efxpt:design_db name="tools_core" device_def="Ti375C529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Wed Nov 26 18:21:55 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
     <efxpt:device_info>
         <efxpt:iobank_info>
             <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
@@ -427,7 +427,7 @@
                 <efxpt:param name="SSC_MODULATION_TYPE" value="DOWN" value_type="str"/>
             </efxpt:gen_param>
         </efxpt:pll>
-        <efxpt:pll name="pll_main" pll_def="PLL_BL0" ref_clock_name="" ref_clock_freq="100.0000" multiplier="1" pre_divider="1" post_divider="1" reset_name="ddr_pll_rstn" locked_name="ddr_pll_lock" is_ipfrz="false" is_bypass_lock="true">
+        <efxpt:pll name="pll_main" pll_def="PLL_BL0" ref_clock_name="" ref_clock_freq="100.0000" multiplier="1" pre_divider="1" post_divider="2" reset_name="ddr_pll_rstn" locked_name="ddr_pll_lock" is_ipfrz="false" is_bypass_lock="true">
             <efxpt:adv_prop ref_clock_mode="external" ref_clock1_name="" ext_ref_clock_id="3" clksel_name="" feedback_clock_name="regACLK" feedback_mode="local"/>
             <efxpt:gen_pin>
                 <efxpt:pin name="" type_name="SHIFT_ENA" is_bus="false"/>
@@ -440,29 +440,29 @@
                 <efxpt:pin name="" type_name="SHIFT" is_bus="true"/>
                 <efxpt:pin name="" type_name="SHIFT_SEL" is_bus="true"/>
             </efxpt:gen_pin>
-            <efxpt:comp_output_clock name="regACLK" number="0" out_divider="36" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+            <efxpt:comp_output_clock name="regACLK" number="0" out_divider="24" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
                 <efxpt:gen_pin/>
                 <efxpt:gen_param/>
             </efxpt:comp_output_clock>
-            <efxpt:comp_output_clock name="axi0_ACLK" number="1" out_divider="20" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+            <efxpt:comp_output_clock name="axi0_ACLK" number="1" out_divider="12" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
                 <efxpt:gen_pin/>
                 <efxpt:gen_param>
                     <efxpt:param name="HALF_DC_SHIFT_EN" value="false" value_type="bool"/>
-                    <efxpt:param name="PDIV" value="10" value_type="int"/>
+                    <efxpt:param name="PDIV" value="6" value_type="int"/>
                     <efxpt:param name="PROG_DUTY_CYCLE_EN" value="false" value_type="bool"/>
                     <efxpt:param name="REQUEST_DUTY_CYCLE" value="50.0000" value_type="float"/>
-                    <efxpt:param name="SWALLOWING_DIV" value="10" value_type="int"/>
+                    <efxpt:param name="SWALLOWING_DIV" value="6" value_type="int"/>
                 </efxpt:gen_param>
             </efxpt:comp_output_clock>
-            <efxpt:comp_output_clock name="clk_command" number="2" out_divider="18" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+            <efxpt:comp_output_clock name="clk_command" number="2" out_divider="12" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
                 <efxpt:gen_pin/>
                 <efxpt:gen_param/>
             </efxpt:comp_output_clock>
-            <efxpt:comp_output_clock name="ddr_clk" number="3" out_divider="5" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+            <efxpt:comp_output_clock name="ddr_clk" number="3" out_divider="3" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
                 <efxpt:gen_pin/>
                 <efxpt:gen_param/>
             </efxpt:comp_output_clock>
-            <efxpt:comp_output_clock name="clk50" number="4" out_divider="72" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
+            <efxpt:comp_output_clock name="clk50" number="4" out_divider="48" is_dyn_phase="false" phase_setting="0" is_inverted="false" conn_type="gclk" clkmux_buf_name="">
                 <efxpt:gen_pin/>
                 <efxpt:gen_param/>
             </efxpt:comp_output_clock>

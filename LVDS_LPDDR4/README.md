@@ -22,6 +22,7 @@ This project implements a digital oscilloscope with LVDS data inputs, LPDDR4 mem
 
 - **clk_command (200 MHz)**: Command processor, USB interface, sample RAM read port
 - **clk50 (50 MHz)**: Slow peripherals (fan PWM, flash clock, PLL reset)
+- **axi0_ACLK (200 MHz)**: DDR AXI interface, memory test timing
 - **regACLK (100 MHz)**: DDR register interface
 - **lvds_clk**: LVDS data sampling
 
@@ -128,25 +129,43 @@ cmd = bytes([0x25, len_lo, len_hi, data0, data1, data2, data3, data4])
 
 ## Test Results
 
-### USB Bandwidth (test_scope_bandwidth.py)
+### DDR Bandwidth (test_bandwidth_accurate.py)
+
+LPDDR4 memory bandwidth measured with hardware cycle counters (1023 MB test, AXI @ 200 MHz):
+
+| Operation | Bandwidth | Notes |
+|-----------|-----------|-------|
+| Write | 77.25 Gb/s (9,657 MB/s) | Hardware-timed |
+| Read | 85.57 Gb/s (10,696 MB/s) | Hardware-timed, verified |
+| Combined (W+R) | 81.20 Gb/s (10,150 MB/s) | Sequential write then read |
+
+Memory test modes:
+- **Mode 0 (Write+Read)**: Full write followed by verified read
+- **Mode 1 (Write-only)**: Write without verification
+- **Mode 2 (Read-only)**: Verify previously written data
+
+Hardware cycle counters eliminate Python/USB overhead for accurate DDR timing.
+
+### USB/Scope Bandwidth (test_scope_bandwidth.py)
 
 Scope RAM readout performance at 200 MHz clk_command:
 
-| Transfer Size | Rate |
-|--------------|------|
-| 200 B | 0.5 MB/s |
-| 1 KB | 2.4 MB/s |
-| 4 KB | 9.4 MB/s |
-| 16 KB | 17.7 MB/s |
-| 64 KB | 51.1 MB/s |
-| 100 KB | 95.4 MB/s |
-| 256 KB | 127.5 MB/s |
-| 512 KB | 165.9 MB/s |
-| 1 MB | 223.4 MB/s |
-| 2 MB | 219.9 MB/s |
-| 4 MB | 226.1 MB/s |
+| Transfer Size | Avg Rate | Peak Rate |
+|--------------|----------|-----------|
+| 200 B | 0.5 MB/s | 0.6 MB/s |
+| 1 KB | 2.2 MB/s | 3.1 MB/s |
+| 4 KB | 8.5 MB/s | 11.4 MB/s |
+| 16 KB | 16.2 MB/s | 21.1 MB/s |
+| 64 KB | 49.8 MB/s | 63.5 MB/s |
+| 100 KB | 82.9 MB/s | 101.6 MB/s |
+| 256 KB | 112.5 MB/s | 125.2 MB/s |
+| 512 KB | 163.9 MB/s | 191.6 MB/s |
+| 1 MB | 190.6 MB/s | 206.3 MB/s |
+| 2 MB | 240.5 MB/s | 245.7 MB/s |
+| 5 MB | 259.0 MB/s | 264.0 MB/s |
+| 15 MB | 280.2 MB/s | 285.9 MB/s |
 
-**Peak: 265 MB/s, Average (large transfers): 226 MB/s**
+**Peak: ~286 MB/s, Large transfers (>2MB): ~280 MB/s**
 
 ### Echo Test (test_echo.py)
 
@@ -154,12 +173,13 @@ All 7 tests pass - verifies command/response integrity at 200 MHz.
 
 ### DDR Memory
 
-DDR registers accessible via AXI-Lite CDC at full speed. Memory test functionality available through register interface.
+DDR registers accessible via AXI-Lite CDC at full speed. Memory test functionality available through register interface with configurable test modes and hardware timing.
 
 ## Test Scripts
 
 | Script | Description |
 |--------|-------------|
+| `test_bandwidth_accurate.py` | DDR bandwidth with hardware cycle counters |
 | `test_echo.py` | Verify echo command (data integrity) |
 | `test_scope_bandwidth.py` | Measure scope readout bandwidth |
 | `test_scope_commands.py` | Test scope command interface |
@@ -257,10 +277,14 @@ Critical clock constraints in `tools_core.pt.sdc`:
 | 0x10 | DATA_L | Test pattern lower 32 bits [WO] |
 | 0x14 | DATA_H | Test pattern upper 32 bits [WO] |
 | 0x18 | LFSR | LFSR enable [WO] |
-| 0x1C | X16 | x16 mode enable [WO] |
+| 0x1C | MODE | bits[0]=x16_en, bits[2:1]=test_mode (0=W+R, 1=W, 2=R) [WO] |
 | 0x20 | ARLEN | AXI read burst length [WO] |
-| 0x24 | SIZE | Test size in bytes [WO] |
+| 0x24 | SIZE | Test size in bytes (max 1023 MB) [WO] |
 | 0x28 | CONFIG | cfg_done [RO], config control [WO] |
+| 0x48 | WRITE_CYC_L | Write phase cycle count [31:0] [RO] |
+| 0x4C | WRITE_CYC_H | Write phase cycle count [63:32] [RO] |
+| 0x50 | READ_CYC_L | Read phase cycle count [31:0] [RO] |
+| 0x54 | READ_CYC_H | Read phase cycle count [63:32] [RO] |
 
 ## Troubleshooting
 

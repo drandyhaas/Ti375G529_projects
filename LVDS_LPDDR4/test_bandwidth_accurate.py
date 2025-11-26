@@ -2,10 +2,8 @@
 """
 Accurate DDR bandwidth test - measures read, write, and combined bandwidth separately
 
-Strategy:
-1. Run small tests (1MB) to measure Python/USB overhead for each mode
-2. Run large tests (512MB) for each mode
-3. Subtract overhead to get true DDR performance
+Uses hardware cycle counters for accurate timing (no Python/USB overhead).
+Also measures Python timing for comparison.
 
 Test modes:
   0 = write + read (default, with verification)
@@ -28,6 +26,25 @@ MODE_NAMES = {
     MODE_READ_ONLY: "Read-only"
 }
 
+# AXI clock frequency in MHz (memory checker runs on axi0_ACLK)
+# Adjust this if your PLL configuration is different
+AXI_CLK_MHZ = 200.0
+
+def read_cycle_counts(usb):
+    """Read hardware cycle counters for write and read phases"""
+    write_cycles_l = usb.reg_read(0x48)  # REG_18
+    write_cycles_h = usb.reg_read(0x4C)  # REG_19
+    read_cycles_l = usb.reg_read(0x50)   # REG_20
+    read_cycles_h = usb.reg_read(0x54)   # REG_21
+
+    write_cycles = (write_cycles_h << 32) | write_cycles_l
+    read_cycles = (read_cycles_h << 32) | read_cycles_l
+    return write_cycles, read_cycles
+
+def cycles_to_seconds(cycles):
+    """Convert cycle count to seconds based on AXI clock frequency"""
+    return cycles / (AXI_CLK_MHZ * 1e6)
+
 def run_test(usb, size_mb, pattern_type='lfsr', test_mode=MODE_WRITE_READ):
     """
     Run a single memory test and measure time
@@ -39,7 +56,7 @@ def run_test(usb, size_mb, pattern_type='lfsr', test_mode=MODE_WRITE_READ):
         test_mode: 0=write+read, 1=write-only, 2=read-only
 
     Returns:
-        (passed, elapsed_time, poll_count)
+        (passed, elapsed_time, write_cycles, read_cycles)
     """
     # Stop any running test
     usb.memtest_stop()
@@ -68,25 +85,23 @@ def run_test(usb, size_mb, pattern_type='lfsr', test_mode=MODE_WRITE_READ):
     usb.reg_write(0x08, 0x03)  # Start test
 
     # Poll for completion with minimal overhead
-    poll_count = 0
     while True:
         status = usb.reg_read(0x04)
         done = status & 0x1
         fail = (status >> 1) & 0x1
-        poll_count += 1
 
         if done:
             elapsed = time.time() - start_time
+            write_cycles, read_cycles = read_cycle_counts(usb)
 
             if fail:
-                dq_fail = usb.reg_read(0x00)
-                return False, elapsed, poll_count
+                return False, elapsed, write_cycles, read_cycles
             else:
-                return True, elapsed, poll_count
+                return True, elapsed, write_cycles, read_cycles
 
         # Safety timeout
         if time.time() - start_time > 120.0:
-            return False, 120.0, poll_count
+            return False, 120.0, 0, 0
 
         time.sleep(0.0001)  # 100us poll interval
 
@@ -95,15 +110,15 @@ def run_bandwidth_test(usb, size_mb, test_mode, num_runs=5):
     Run multiple tests of a given mode and return statistics
 
     Returns:
-        (times, all_passed)
+        (results, all_passed) where results is list of (elapsed, write_cycles, read_cycles)
     """
-    times = []
+    results = []
     for i in range(num_runs):
-        passed, elapsed, polls = run_test(usb, size_mb, pattern_type='lfsr', test_mode=test_mode)
+        passed, elapsed, write_cycles, read_cycles = run_test(usb, size_mb, pattern_type='lfsr', test_mode=test_mode)
         if not passed:
-            return times, False
-        times.append(elapsed)
-    return times, True
+            return results, False
+        results.append((elapsed, write_cycles, read_cycles))
+    return results, True
 
 def calc_bandwidth(size_bytes, elapsed_time):
     """Calculate bandwidth in Gb/s and MB/s"""
@@ -113,28 +128,15 @@ def calc_bandwidth(size_bytes, elapsed_time):
     mbps = size_bytes / elapsed_time / 1e6
     return gbps, mbps
 
-def measure_overhead(usb, test_mode, num_runs=5):
-    """
-    Measure Python/USB overhead using 1MB tests
-
-    Returns:
-        average overhead time in seconds
-    """
-    times, passed = run_bandwidth_test(usb, 1, test_mode, num_runs)
-    if not passed or len(times) == 0:
-        return None
-    return sum(times) / len(times)
-
 def main():
     print("=" * 70)
-    print("DDR Bandwidth Test - Overhead Compensated, Separate Read/Write")
+    print("DDR Bandwidth Test - Hardware Cycle Counter Timing")
     print("=" * 70)
 
     usb = USBDDRControl()
     size_mb = 1023
     size_bytes = size_mb * 1024 * 1024
-    num_runs = 5
-    overhead_runs = 5
+    num_runs = 3
 
     try:
         # Check DDR ready
@@ -144,140 +146,123 @@ def main():
             return 1
 
         print("DDR initialized and ready")
-        print(f"Test size: {size_mb} MB, {num_runs} runs per test\n")
+        print(f"Test size: {size_mb} MB, {num_runs} runs per test")
+        print(f"AXI clock: {AXI_CLK_MHZ} MHz (adjust AXI_CLK_MHZ if needed)\n")
 
         # ============================================================
-        # Step 1: Measure overhead for each mode with 1MB tests
+        # Test 1: Write-only bandwidth
         # ============================================================
         print("=" * 70)
-        print("STEP 1: Measuring Python/USB overhead (1MB tests)")
+        print(f"TEST 1: WRITE-ONLY BANDWIDTH ({size_mb}MB)")
         print("-" * 70)
 
-        # First do a write so read-only has data
-        print("  Preparing: Writing 1MB for read-only overhead test...")
-        passed, _, _ = run_test(usb, 1, test_mode=MODE_WRITE_ONLY)
-        if not passed:
-            print("FAILED - Initial write failed")
-            return 1
-
-        overheads = {}
-        for mode in [MODE_WRITE_ONLY, MODE_READ_ONLY, MODE_WRITE_READ]:
-            overhead = measure_overhead(usb, mode, overhead_runs)
-            if overhead is None:
-                print(f"FAILED - {MODE_NAMES[mode]} overhead measurement failed")
-                return 1
-            overheads[mode] = overhead
-            print(f"  {MODE_NAMES[mode]:12s} overhead: {overhead*1000:.3f} ms")
-
-        # ============================================================
-        # Step 2: Write-only bandwidth
-        # ============================================================
-        print("\n" + "=" * 70)
-        print(f"STEP 2: WRITE-ONLY BANDWIDTH ({size_mb}MB)")
-        print("-" * 70)
-
-        write_times, passed = run_bandwidth_test(usb, size_mb, MODE_WRITE_ONLY, num_runs)
+        write_results, passed = run_bandwidth_test(usb, size_mb, MODE_WRITE_ONLY, num_runs)
         if not passed:
             print("FAILED - Write test error")
             return 1
 
-        for i, t in enumerate(write_times):
-            gbps, mbps = calc_bandwidth(size_bytes, t)
-            print(f"  Run {i+1}: {t:.6f}s - {gbps:.2f} Gb/s ({mbps:.1f} MB/s)")
+        write_cycles_list = []
+        for i, (elapsed, write_cyc, read_cyc) in enumerate(write_results):
+            hw_time = cycles_to_seconds(write_cyc)
+            hw_gbps, hw_mbps = calc_bandwidth(size_bytes, hw_time)
+            sw_gbps, sw_mbps = calc_bandwidth(size_bytes, elapsed)
+            write_cycles_list.append(write_cyc)
+            print(f"  Run {i+1}: HW: {write_cyc:,} cycles = {hw_time*1000:.3f}ms -> {hw_gbps:.2f} Gb/s ({hw_mbps:.1f} MB/s)")
+            print(f"          SW: {elapsed*1000:.3f}ms -> {sw_gbps:.2f} Gb/s ({sw_mbps:.1f} MB/s)")
 
-        avg_write_time = sum(write_times) / len(write_times)
-        min_write_time = min(write_times)
-        compensated_write_time = min_write_time - overheads[MODE_WRITE_ONLY]
-        if compensated_write_time <= 0:
-            compensated_write_time = min_write_time
-
-        write_gbps_raw, write_mbps_raw = calc_bandwidth(size_bytes, avg_write_time)
-        write_gbps_comp, write_mbps_comp = calc_bandwidth(size_bytes, compensated_write_time)
-
-        print(f"\n  Raw average:    {avg_write_time:.6f}s -> {write_gbps_raw:.2f} Gb/s ({write_mbps_raw:.1f} MB/s)")
-        print(f"  Compensated:    {compensated_write_time:.6f}s -> {write_gbps_comp:.2f} Gb/s ({write_mbps_comp:.1f} MB/s)")
+        avg_write_cycles = sum(write_cycles_list) / len(write_cycles_list)
+        avg_write_hw_time = cycles_to_seconds(avg_write_cycles)
+        write_gbps, write_mbps = calc_bandwidth(size_bytes, avg_write_hw_time)
+        print(f"\n  WRITE: {avg_write_cycles:,.0f} cycles = {avg_write_hw_time*1000:.3f}ms")
+        print(f"         {write_gbps:.2f} Gb/s ({write_mbps:.1f} MB/s)")
 
         # ============================================================
-        # Step 3: Read-only bandwidth (data already written above)
+        # Test 2: Read-only bandwidth (data already written above)
         # ============================================================
         print("\n" + "=" * 70)
-        print(f"STEP 3: READ-ONLY BANDWIDTH ({size_mb}MB)")
+        print(f"TEST 2: READ-ONLY BANDWIDTH ({size_mb}MB)")
         print("-" * 70)
 
-        read_times, passed = run_bandwidth_test(usb, size_mb, MODE_READ_ONLY, num_runs)
+        read_results, passed = run_bandwidth_test(usb, size_mb, MODE_READ_ONLY, num_runs)
         if not passed:
             print("FAILED - Read test error (data verification failed)")
             return 1
 
-        for i, t in enumerate(read_times):
-            gbps, mbps = calc_bandwidth(size_bytes, t)
-            print(f"  Run {i+1}: {t:.6f}s - {gbps:.2f} Gb/s ({mbps:.1f} MB/s) - VERIFIED")
+        read_cycles_list = []
+        for i, (elapsed, write_cyc, read_cyc) in enumerate(read_results):
+            hw_time = cycles_to_seconds(read_cyc)
+            hw_gbps, hw_mbps = calc_bandwidth(size_bytes, hw_time)
+            sw_gbps, sw_mbps = calc_bandwidth(size_bytes, elapsed)
+            read_cycles_list.append(read_cyc)
+            print(f"  Run {i+1}: HW: {read_cyc:,} cycles = {hw_time*1000:.3f}ms -> {hw_gbps:.2f} Gb/s ({hw_mbps:.1f} MB/s) - VERIFIED")
+            print(f"          SW: {elapsed*1000:.3f}ms -> {sw_gbps:.2f} Gb/s ({sw_mbps:.1f} MB/s)")
 
-        avg_read_time = sum(read_times) / len(read_times)
-        min_read_time = min(read_times)
-        compensated_read_time = min_read_time - overheads[MODE_READ_ONLY]
-        if compensated_read_time <= 0:
-            compensated_read_time = min_read_time
-
-        read_gbps_raw, read_mbps_raw = calc_bandwidth(size_bytes, avg_read_time)
-        read_gbps_comp, read_mbps_comp = calc_bandwidth(size_bytes, compensated_read_time)
-
-        print(f"\n  Raw average:    {avg_read_time:.6f}s -> {read_gbps_raw:.2f} Gb/s ({read_mbps_raw:.1f} MB/s)")
-        print(f"  Compensated:    {compensated_read_time:.6f}s -> {read_gbps_comp:.2f} Gb/s ({read_mbps_comp:.1f} MB/s)")
+        avg_read_cycles = sum(read_cycles_list) / len(read_cycles_list)
+        avg_read_hw_time = cycles_to_seconds(avg_read_cycles)
+        read_gbps, read_mbps = calc_bandwidth(size_bytes, avg_read_hw_time)
+        print(f"\n  READ: {avg_read_cycles:,.0f} cycles = {avg_read_hw_time*1000:.3f}ms")
+        print(f"        {read_gbps:.2f} Gb/s ({read_mbps:.1f} MB/s)")
 
         # ============================================================
-        # Step 4: Write+Read combined
+        # Test 3: Write+Read combined
         # ============================================================
         print("\n" + "=" * 70)
-        print(f"STEP 4: WRITE+READ COMBINED ({size_mb}MB, with verification)")
+        print(f"TEST 3: WRITE+READ COMBINED ({size_mb}MB, with verification)")
         print("-" * 70)
 
-        combined_times, passed = run_bandwidth_test(usb, size_mb, MODE_WRITE_READ, num_runs)
+        combined_results, passed = run_bandwidth_test(usb, size_mb, MODE_WRITE_READ, num_runs)
         if not passed:
             print("FAILED - Combined test error (data verification failed)")
             return 1
 
-        total_bytes = 2 * size_bytes  # write + read
-        for i, t in enumerate(combined_times):
-            gbps, mbps = calc_bandwidth(total_bytes, t)
-            print(f"  Run {i+1}: {t:.6f}s - {gbps:.2f} Gb/s ({mbps:.1f} MB/s) - VERIFIED")
+        total_bytes = 2 * size_bytes
+        combined_write_cycles = []
+        combined_read_cycles = []
+        for i, (elapsed, write_cyc, read_cyc) in enumerate(combined_results):
+            total_cycles = write_cyc + read_cyc
+            hw_time = cycles_to_seconds(total_cycles)
+            hw_gbps, hw_mbps = calc_bandwidth(total_bytes, hw_time)
+            sw_gbps, sw_mbps = calc_bandwidth(total_bytes, elapsed)
+            combined_write_cycles.append(write_cyc)
+            combined_read_cycles.append(read_cyc)
+            print(f"  Run {i+1}: HW: W={write_cyc:,} + R={read_cyc:,} = {total_cycles:,} cycles")
+            print(f"          {hw_time*1000:.3f}ms -> {hw_gbps:.2f} Gb/s ({hw_mbps:.1f} MB/s) - VERIFIED")
+            print(f"          SW: {elapsed*1000:.3f}ms -> {sw_gbps:.2f} Gb/s ({sw_mbps:.1f} MB/s)")
 
-        avg_combined_time = sum(combined_times) / len(combined_times)
-        min_combined_time = min(combined_times)
-        compensated_combined_time = min_combined_time - overheads[MODE_WRITE_READ]
-        if compensated_combined_time <= 0:
-            compensated_combined_time = min_combined_time
-
-        combined_gbps_raw, combined_mbps_raw = calc_bandwidth(total_bytes, avg_combined_time)
-        combined_gbps_comp, combined_mbps_comp = calc_bandwidth(total_bytes, compensated_combined_time)
-
-        print(f"\n  Raw average:    {avg_combined_time:.6f}s -> {combined_gbps_raw:.2f} Gb/s ({combined_mbps_raw:.1f} MB/s)")
-        print(f"  Compensated:    {compensated_combined_time:.6f}s -> {combined_gbps_comp:.2f} Gb/s ({combined_mbps_comp:.1f} MB/s)")
+        avg_combined_write = sum(combined_write_cycles) / len(combined_write_cycles)
+        avg_combined_read = sum(combined_read_cycles) / len(combined_read_cycles)
+        avg_combined_total = avg_combined_write + avg_combined_read
+        avg_combined_hw_time = cycles_to_seconds(avg_combined_total)
+        combined_gbps, combined_mbps = calc_bandwidth(total_bytes, avg_combined_hw_time)
+        print(f"\n  COMBINED: W={avg_combined_write:,.0f} + R={avg_combined_read:,.0f} = {avg_combined_total:,.0f} cycles")
+        print(f"            {avg_combined_hw_time*1000:.3f}ms -> {combined_gbps:.2f} Gb/s ({combined_mbps:.1f} MB/s)")
 
         # ============================================================
         # Summary
         # ============================================================
         print("\n" + "=" * 70)
-        print("BANDWIDTH SUMMARY (Overhead Compensated)")
+        print("BANDWIDTH SUMMARY (Hardware Timed)")
         print("=" * 70)
         print(f"\n  Test size: {size_mb} MB")
-        print(f"\n                      Raw                  Compensated")
-        print(f"  Write bandwidth:    {write_gbps_raw:5.2f} Gb/s ({write_mbps_raw:6.1f} MB/s)   {write_gbps_comp:5.2f} Gb/s ({write_mbps_comp:6.1f} MB/s)")
-        print(f"  Read bandwidth:     {read_gbps_raw:5.2f} Gb/s ({read_mbps_raw:6.1f} MB/s)   {read_gbps_comp:5.2f} Gb/s ({read_mbps_comp:6.1f} MB/s)")
-        print(f"  Combined (W+R):     {combined_gbps_raw:5.2f} Gb/s ({combined_mbps_raw:6.1f} MB/s)   {combined_gbps_comp:5.2f} Gb/s ({combined_mbps_comp:6.1f} MB/s)")
+        print(f"  AXI clock: {AXI_CLK_MHZ} MHz")
+        print(f"\n  Write bandwidth:    {write_gbps:6.2f} Gb/s  ({write_mbps:7.1f} MB/s)")
+        print(f"  Read bandwidth:     {read_gbps:6.2f} Gb/s  ({read_mbps:7.1f} MB/s)")
+        print(f"  Combined (W+R):     {combined_gbps:6.2f} Gb/s  ({combined_mbps:7.1f} MB/s)")
 
-        # Calculate expected combined from individual (compensated)
-        expected_combined_time = compensated_write_time + compensated_read_time
-        expected_combined_gbps, expected_combined_mbps = calc_bandwidth(total_bytes, expected_combined_time)
-        print(f"\n  Expected combined (write + read times):")
-        print(f"                      {expected_combined_gbps:5.2f} Gb/s ({expected_combined_mbps:6.1f} MB/s)")
+        # Calculate expected combined from individual
+        expected_cycles = avg_write_cycles + avg_read_cycles
+        expected_time = cycles_to_seconds(expected_cycles)
+        expected_gbps, expected_mbps = calc_bandwidth(total_bytes, expected_time)
+        print(f"\n  Expected combined (sum of individual):")
+        print(f"                      {expected_gbps:6.2f} Gb/s  ({expected_mbps:7.1f} MB/s)")
 
-        turnaround_overhead = compensated_combined_time - expected_combined_time
-        if compensated_combined_time > 0:
-            turnaround_pct = turnaround_overhead / compensated_combined_time * 100
+        turnaround_cycles = avg_combined_total - expected_cycles
+        turnaround_time = cycles_to_seconds(turnaround_cycles)
+        if avg_combined_total > 0:
+            turnaround_pct = turnaround_cycles / avg_combined_total * 100
         else:
             turnaround_pct = 0
-        print(f"\n  Write/Read turnaround overhead: {turnaround_overhead*1000:.2f} ms ({turnaround_pct:.1f}%)")
+        print(f"\n  Write/Read turnaround: {turnaround_cycles:,.0f} cycles = {turnaround_time*1000:.3f}ms ({turnaround_pct:.1f}%)")
 
         print("\n" + "=" * 70)
         print("DATA INTEGRITY: All read tests PASSED with 100% verification")

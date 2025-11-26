@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efx:project name="tools_core" description="" last_change="1764164613" sw_version="2025.1.110.5.9" last_run_state="pass" last_run_flow="bitstream" config_result_in_sync="true" design_ood="sync" place_ood="sync" route_ood="sync" xmlns:efx="http://www.efinixinc.com/enf_proj" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/enf_proj enf_proj.xsd">
+<efx:project name="tools_core" description="" last_change="1764200000" sw_version="2025.1.110.5.9" last_run_state="pass" last_run_flow="bitstream" config_result_in_sync="true" design_ood="sync" place_ood="sync" route_ood="sync" xmlns:efx="http://www.efinixinc.com/enf_proj" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/enf_proj enf_proj.xsd">
     <efx:device_info>
         <efx:family name="Titanium"/>
         <efx:device name="Ti375C529"/>
@@ -90,7 +90,7 @@
         <efx:param name="work_dir" value="work_pnr" value_type="e_string"/>
         <efx:param name="verbose" value="off" value_type="e_bool"/>
         <efx:param name="load_delaym" value="on" value_type="e_bool"/>
-        <efx:param name="optimization_level" value="CONGESTION_2" value_type="e_option"/>
+        <efx:param name="optimization_level" value="TIMING_1" value_type="e_option"/>
         <efx:param name="seed" value="1" value_type="e_integer"/>
         <efx:param name="placer_effort_level" value="2" value_type="e_option"/>
         <efx:param name="max_threads" value="6" value_type="e_integer"/>
@@ -100,12 +100,12 @@
     </efx:place_and_route>
     <efx:bitstream_generation tool_name="efx_pgm">
         <efx:param name="mode" value="active" value_type="e_option"/>
-        <efx:param name="width" value="1" value_type="e_option"/>
+        <efx:param name="width" value="4" value_type="e_option"/>
         <efx:param name="enable_roms" value="off" value_type="e_option"/>
         <efx:param name="spi_low_power_mode" value="on" value_type="e_bool"/>
         <efx:param name="io_weak_pullup" value="on" value_type="e_bool"/>
         <efx:param name="oscillator_clock_divider" value="DIV1" value_type="e_option"/>
-        <efx:param name="bitstream_compression" value="off" value_type="e_bool"/>
+        <efx:param name="bitstream_compression" value="on" value_type="e_bool"/>
         <efx:param name="enable_external_master_clock" value="off" value_type="e_bool"/>
         <efx:param name="active_capture_clk_edge" value="negedge" value_type="e_option"/>
         <efx:param name="jtag_usercode" value="0xFFFFFFFF" value_type="e_string"/>

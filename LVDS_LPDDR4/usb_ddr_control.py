@@ -73,6 +73,10 @@ REG_14_TESTER_CNT_H= 0x38  # slaveReg[14] - [RO] tester_loop_cnt[63:32]
 REG_15_TESTER_STAT = 0x3C  # slaveReg[15] - [RO] bit0=tester_loop_done, bit1=tester_error
 REG_16_TESTER_RST  = 0x40  # slaveReg[16] - [WO] bit0=tester_rst
 REG_17_TESTER_PAT  = 0x44  # slaveReg[17] - [WO] tester_pattern[31:0]
+REG_18_WRITE_CYC_L = 0x48  # slaveReg[18] - [RO] write_cycles[31:0]
+REG_19_WRITE_CYC_H = 0x4C  # slaveReg[19] - [RO] write_cycles[63:32]
+REG_20_READ_CYC_L  = 0x50  # slaveReg[20] - [RO] read_cycles[31:0]
+REG_21_READ_CYC_H  = 0x54  # slaveReg[21] - [RO] read_cycles[63:32]
 
 # DDR Controller register bases (from jtag_drv.py, accessed via AXI0 not via axi_lite_slave)
 # NOTE: These registers are NOT accessed through axi_lite_slave!
