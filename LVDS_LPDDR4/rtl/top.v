@@ -46,9 +46,9 @@ input           clk50,
 // SPI interface
 output [7:0]    spitx,
 input  [7:0]    spirx,
-input           spitxready,
+//temporary input           spitxready,
 output          spitxdv,
-input           spirxdv,
+//temporary input           spirxdv,
 output [7:0]    spics,
 output [2:0]    spimisossel,
 output [1:0]    spi_mode,
@@ -179,6 +179,10 @@ input           regBVALID,
 
 output          regARESETn
 );
+
+// temporary until we have actual SPI wired up
+wire spirxdv; assign spirxdv = 1'b1;
+wire spitxready; assign spitxready = 1'b1;
 
 // LVDS reset output
 assign lvds_rx_inst1_RX_RST = 1'b0;
