@@ -62,7 +62,7 @@ REG_3_RESET        = 0x0C  # slaveReg[3]  - [WO] bit0=phy_rstn, bit1=ctrl_rstn, 
 REG_4_DATA_L       = 0x10  # slaveReg[4]  - [WO] memtest_data[31:0]
 REG_5_DATA_H       = 0x14  # slaveReg[5]  - [WO] memtest_data[63:32]
 REG_6_LFSR         = 0x18  # slaveReg[6]  - [WO] bit0=memtest_lfsr_en
-REG_7_X16          = 0x1C  # slaveReg[7]  - [WO] bit0=memtest_x16_en
+REG_7_X16_MODE     = 0x1C  # slaveReg[7]  - [WO] bit0=memtest_x16_en, bits[2:1]=memtest_mode (0=write+read, 1=write-only, 2=read-only)
 REG_8_ARLEN        = 0x20  # slaveReg[8]  - [WO] reg_axi_arlen[7:0]
 REG_9_SIZE         = 0x24  # slaveReg[9]  - [WO] memtest_size
 REG_10_CONFIG      = 0x28  # slaveReg[10] - [RW] bit0=config_rst, bit1=config_sel, bit2=config_start, bit3=config_done[RO]

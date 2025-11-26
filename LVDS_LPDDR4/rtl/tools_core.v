@@ -176,6 +176,7 @@ wire [63:0]	w_memtest_data;
 wire [31:0]	w_memtest_size;
 wire       	w_memtest_lfsr_en;
 wire x16_en;
+wire [1:0] w_memtest_mode;
 wire [31:0] dq_fail;
 wire [7:0]  reg_axi_arlen;
 
@@ -227,7 +228,8 @@ memory_checker_lfsr checker0(
     .lfsr_en            (w_memtest_lfsr_en),
     .x16_en             (x16_en),
     .check_mask         (32'hFFFFFFFF),
-    .test_size          (w_memtest_size)
+    .test_size          (w_memtest_size),
+    .test_mode          (w_memtest_mode)
 );
 
 wire w_loop_done;
@@ -502,6 +504,7 @@ axi_lite_slave axilite_inst
     .axi1_rstn      (),              // Not used - axi1_ARESETn removed (axi1 interface removed)
     .reg_axi_arlen  (reg_axi_arlen),
     .memtest_size   (w_memtest_size),
+    .memtest_mode   (w_memtest_mode),
 	.dq_fail        (dq_fail),
     .config_rst     (),              // Not used - cfg_reset driven by hardware
     .config_sel     (),              // Not used - cfg_sel driven by hardware

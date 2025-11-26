@@ -56,7 +56,8 @@ output reg done,
 input lfsr_en,
 input x16_en,
 output [31:0]dq_fail_expression,
-input [31:0]test_size
+input [31:0]test_size,
+input [1:0] test_mode  // 0=write+read, 1=write-only, 2=read-only
 
 );
 wire [511:0] mask;
@@ -125,16 +126,20 @@ always @(posedge axi_clk or negedge rstn) begin
 end
 reg awready_f;
 
-always @(states or start_sync[1] or write_cnt or rburst_done or write_done or read_done or bvalid_done or awready or arready or wready) begin
-	case(states) 
-	IDLE 	   : if (start_sync[1]) 			nstates = WRITE_ADDR;
-	             else							nstates = IDLE;
+// test_mode: 0=write+read, 1=write-only, 2=read-only
+always @(states or start_sync[1] or write_cnt or rburst_done or write_done or read_done or bvalid_done or awready or arready or wready or test_mode) begin
+	case(states)
+	IDLE 	   : if (start_sync[1])
+	               nstates = (test_mode == 2'b10) ? READ_ADDR : WRITE_ADDR;  // read-only skips write
+	             else
+	               nstates = IDLE;
 	WRITE_ADDR : 								nstates = PRE_WRITE;
 	PRE_WRITE  : if (wready)			        nstates = WRITE;
 		     else								nstates = PRE_WRITE;
 	WRITE	   : if ((awready_f | awready) & write_cnt == 9'd0)		nstates = POST_WRITE;
 		     else		 			nstates = WRITE;
-	POST_WRITE : if (write_done & bvalid_done) 		nstates = READ_ADDR;
+	POST_WRITE : if (write_done & bvalid_done)
+	               nstates = (test_mode == 2'b01) ? DONE : READ_ADDR;  // write-only skips read
 		     else if (bvalid_done)			nstates = WRITE_ADDR;
 		     else					nstates = POST_WRITE;
 	READ_ADDR  : if (arready) 				nstates = PRE_READ;

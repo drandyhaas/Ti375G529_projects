@@ -62,6 +62,7 @@ module axi_lite_slave #(
 
     output[7:0]  reg_axi_arlen,
     output[31:0] memtest_size,
+    output[1:0]  memtest_mode,
 
 	output config_rst,
 	output config_sel,
@@ -132,7 +133,8 @@ wire[31:0] memtest_data1;
 assign memtest_data0		= slaveReg[4];		//REG4
 assign memtest_data1		= slaveReg[5];		//REG5
 assign memtest_lfsr_en		= slaveReg[6][0];		//REG6
-assign memtest_x16_en		= slaveReg[7][0];		//REG7
+assign memtest_x16_en		= slaveReg[7][0];		//REG7 bit0
+assign memtest_mode		    = slaveReg[7][2:1];		//REG7 bits[2:1]: 0=write+read, 1=write-only, 2=read-only
 assign reg_axi_arlen        = slaveReg[8][7:0];  		//REG8
 assign memtest_size		    = slaveReg[9];		//REG9
 
