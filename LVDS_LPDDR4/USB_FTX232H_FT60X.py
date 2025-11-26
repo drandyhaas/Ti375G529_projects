@@ -2,9 +2,9 @@
 # Python3
 
 
-import sys
+import sys, time, ctypes
 
-
+import ftd3xx.defines
 
 
 def open_ft_usb_device(device_type, device_name):
@@ -104,13 +104,11 @@ class USB_FTX232H_FT60X_sync245mode():
                 
                 self.device_type = device_type
                 self.device_name = device_name
+                desc = usb.getDeviceDescriptor()
+                serial_num = desc.iSerialNumber
+                self.serial = serial_num
                 self._usb = usb
-                self._recv_timeout = 2000
-                self._send_timeout = 2000
-                
-                self.set_recv_timeout(self._recv_timeout)
-                self.set_send_timeout(self._send_timeout)
-                
+
                 if device_type == 'FT60X' :
                     if usb.getDeviceDescriptor().bcdUSB < 0x300:
                         print('Warning: Device is NOT connected using USB3.0 cable or port!')
@@ -118,7 +116,13 @@ class USB_FTX232H_FT60X_sync245mode():
                 else:
                     self._chunk = 65536
                     usb.setUSBParameters(self._chunk*4, self._chunk*4)
-                
+
+                self._recv_timeout = 2000
+                self._send_timeout = 2000
+                # self.show_device()
+                self.set_recv_timeout(self._recv_timeout)
+                self.set_send_timeout(self._send_timeout)
+
                 break
         
         else:
@@ -137,7 +141,43 @@ class USB_FTX232H_FT60X_sync245mode():
         self._usb.close()
         self._usb = None
     
-    
+
+    def show_device(self):
+        dev = self._usb
+        #print(f"Device opened. Description: {dev.getDeviceDescriptor().Description.decode()}")
+
+        # 2. Get Configuration Descriptor to find number of interfaces
+        # (FT601 245 FIFO mode usually has 1 interface, but we check to be safe)
+        conf_desc = dev.getConfigurationDescriptor()
+        print(f"Number of Interfaces: {conf_desc.bNumInterfaces}")
+
+        # 3. Iterate through Interfaces and Pipes
+        for i in range(conf_desc.bNumInterfaces):
+            # getInterfaceDescriptor returns a tuple/struct with bNumEndpoints
+            if_desc = dev.getInterfaceDescriptor(i)
+            num_endpoints = if_desc.bNumEndpoints
+
+            print(f"\nInterface {i} has {num_endpoints} endpoints (pipes):")
+
+            for p in range(num_endpoints):
+                # getPipeInformation(InterfaceIndex, PipeIndex)
+                pipe_info = dev.getPipeInformation(i, p)
+
+                # pipe_info is an FT_PIPE_INFORMATION structure
+                pipe_id = pipe_info.PipeId
+                pipe_type = pipe_info.PipeType
+
+                # Decode Pipe Type (2 = Bulk, 3 = Interrupt)
+                type_str = "Unknown"
+                if pipe_type == ftd3xx.defines.FT_PIPE_TYPE_BULK:
+                    type_str = "BULK"
+                elif pipe_type == ftd3xx.defines.FT_PIPE_TYPE_INTERRUPT:
+                    type_str = "INTERRUPT"
+
+                # Determine Direction based on ID (0x80 bit)
+                direction = "IN (Read)" if (pipe_id & 0x80) else "OUT (Write)"
+
+                print(f"  - Pipe Index {p}: ID {hex(pipe_id)} [{direction}] Type: {type_str}")
     
     
     def set_recv_timeout(self, timeout):
@@ -151,7 +191,34 @@ class USB_FTX232H_FT60X_sync245mode():
         
         self._recv_timeout = timeout
         if self.device_type == 'FT60X' :
-            self._usb.setPipeTimeout(0x82, self._recv_timeout)
+            status = self._usb.setPipeTimeout(0x82, self._recv_timeout)
+            if status is not None and status != ftd3xx.defines.FT_OK:
+                print(f"Error setting recv timeout: {status}")
+            else:
+                #print(f"Timeout recv set successfully (Wrapper returned {status})")
+
+                test_timeout = False
+                if test_timeout:
+                    print(f"Attempting read (should wait {self._recv_timeout} ms)...")
+                    start_time = time.time()
+
+                    # 2. Read (Requesting data when FIFO is likely empty)
+                    # This should NOT hang forever. It should return 0 bytes after ~1000ms.
+                    #buffer = ctypes.create_string_buffer(1024)
+                    rx_data = self.recv(1024) #self._usb.readPipe(0x82, buffer, 1024)
+
+                    end_time = time.time()
+                    elapsed = end_time - start_time
+
+                    print(f"Read returned {rx_data}")
+                    print(f"Time elapsed: {elapsed:.4f} seconds")
+
+                    if self._recv_timeout-10 < elapsed*1000 < self._recv_timeout+10:
+                        print("SUCCESS: Timeout is working correctly.")
+                    elif elapsed < 0.1:
+                        print("WARNING: Returned immediately (Timeout might be 0/Infinity or data was present).")
+                    else:
+                        print(f"WARNING: Did not respect the {self._recv_timeout} ms timeout.")
         else:
             self._usb.setTimeouts(self._recv_timeout, self._send_timeout)
     
@@ -169,7 +236,11 @@ class USB_FTX232H_FT60X_sync245mode():
         
         self._send_timeout = timeout
         if self.device_type == 'FT60X' :
-            self._usb.setPipeTimeout(0x02, self._send_timeout)
+            status = self._usb.setPipeTimeout(0x02, self._send_timeout)
+            if status is not None and status != ftd3xx.defines.FT_OK:
+                print(f"Error setting send timeout: {status}")
+            #else:
+            #    print(f"Timeout send set successfully (Wrapper returned {status})")
         else:
             self._usb.setTimeouts(self._recv_timeout, self._send_timeout)
     
@@ -234,17 +305,23 @@ class USB_FTX232H_FT60X_sync245mode():
             while si < recv_len :
                 ei = si + self._chunk
                 ei = min(ei, recv_len)
-                
+
+                #print(f"reading {ei-si} bytes")
                 rxlen_once = self._usb.readPipe(0x82, chunk, ei-si)      # try to read (ei-si) bytes
                 
                 si += rxlen_once
+                #print(rxlen_once)
                 
                 if rxlen_once > 0 :
                     zero_count = 0
                     data += chunk[:rxlen_once]
-                else :                                                   # no any byte received
+                else :                                                   # no byte received
                     zero_count += 1
-                    if zero_count >= 2 :
+                    #print("zero",zero_count)
+                    if zero_count >= 1 :
+                        # clean up the mess and return what we had so far
+                        self._usb.abortPipe(0x82)
+                        self._usb.flushPipe(0x82)
                         break
         
         else:

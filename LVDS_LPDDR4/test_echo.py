@@ -11,7 +11,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
-from usb_utils import recv_with_timeout
 import time
 
 # New command code (consolidated into command_processor)
@@ -49,7 +48,7 @@ def test_echo(data_bytes, description=""):
     time.sleep(0.1)
 
     # Receive echoed data with timeout wrapper
-    rxdata = recv_with_timeout(usb, length)
+    rxdata = usb.recv(length)
     print(f"RX: {rxdata.hex()} ({len(rxdata)} bytes)")
 
     if len(rxdata) != length:

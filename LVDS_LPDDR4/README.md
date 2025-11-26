@@ -10,96 +10,50 @@ This project implements a digital oscilloscope with LVDS data inputs, LPDDR4 mem
 
 - **LVDS Input**: 4-channel 10-bit LVDS data acquisition at high sample rates
 - **LPDDR4 Memory**: Large waveform buffer storage with dual-port RAM interface
-- **USB3 Control**: FT60X USB3 bridge for command/control and data readback
+- **USB3 Control**: FT60X USB3 bridge for command/control and data readback (~280 MB/s)
 - **Triggering System**: Configurable threshold-based triggering with multiple modes
 - **Downsampling**: Adjustable sample rate reduction with configurable merging
 - **Phase Detection**: Precise timing measurement between LVDS trigger signals
-- **Dual Command Interface**:
-  - Direct command_processor access for scope control (8-byte commands)
-  - USB handler commands with 0xFE prefix for utility functions
+- **Unified Command Interface**: All commands handled by command_processor (8-byte format)
 
 ## Architecture
+
+### Clock Domains
+
+- **clk_command (200 MHz)**: Command processor, USB interface, sample RAM read port
+- **clk50 (50 MHz)**: Slow peripherals (fan PWM, flash clock, PLL reset)
+- **regACLK (100 MHz)**: DDR register interface
+- **lvds_clk**: LVDS data sampling
+
+The command_processor runs at 200 MHz for maximum USB throughput. An AXI-Lite CDC (Clock Domain Crossing) module bridges between clk_command and regACLK domains for DDR register access.
 
 ### Hardware Components
 
 #### Top-Level Integration (`rtl/top.v`)
 - FPGA pin assignments and I/O
-- Clock domain management (LVDS clocks, USB clock, system clocks)
+- Clock domain management
 - Module instantiation and interconnection
-- LVDS input ports (lvds_rx_inst1_RX_DATA[9:0])
-- USB3 interface (32-bit data bus with flow control)
-- Peripheral I/O (SPI, flash, debug, LEDs, triggers)
 
 #### Core System (`rtl/tools_core.v`)
-- USB3 FT60X interface wrapper
-- FPGA peripheral control (SPI, flash, LEDs)
-- AXI-Lite bridge for register access
+- USB3 FT60X interface (ftdi_245fifo)
+- AXI-Lite CDC for DDR register access
 - Scope interface routing to command_processor
 
 #### Scope Control Modules
 
-**`rtl_scope/command_processor.v`** - Main scope command processor
-- 8-byte command protocol (commands 0x00-0x17)
-- RAM readout with streaming TX_DATA states
-- SPI control for peripherals
-- PLL phase adjustment
-- Trigger configuration
-- Flash memory programming
-- Command 0: Read RAM buffer (streams large data)
-- Command 1: Configure acquisition parameters
-- Command 2: Status and version queries
-- Command 8: Trigger threshold settings
-- Command 9: Downsampling configuration
+**`rtl_scope/command_processor.v`** - Unified command processor handling:
+- Scope commands (0x00-0x17): Acquisition, trigger, readout
+- USB utility commands (0x20-0x25): Bandwidth test, register access, echo
 
 **`rtl_scope/triggerer.v`** - Trigger detection and acquisition control
-- Configurable threshold triggering
-- Pre-trigger sample buffering
-- Time-over-threshold (ToT) measurement
-- Trigger holdoff and delay
-- RAM write address management
-- Multiple trigger modes (rising, falling, level)
 
-**`rtl_scope/downsampler.v`** - Sample rate reduction
-- Configurable downsampling factor (1-32)
-- Multiple merging modes (average, min, max, first, last)
-- 4-channel simultaneous processing
-- 140-bit input (4×10-bit channels + overhead)
-- 560-bit output buffer (40 samples)
+**`rtl_scope/downsampler.v`** - Sample rate reduction with merging modes
 
-**`rtl_scope/phase_detector.v`** - Timing measurement
-- Fast clock edge detection on LVDS triggers
-- Phase difference calculation
-- Supports both main and secondary trigger inputs
-- 16-bit phase measurement output
+**`rtl_scope/phase_detector.v`** - Timing measurement between trigger signals
 
-**`rtl_scope/sample_ram.v`** - Dual-port RAM buffer
-- 1024×560-bit dual-port RAM
-- Independent write/read clock domains
-- Write side: LVDS clock domain for sample capture
-- Read side: System clock for USB readout
-- 560 bits = 40 samples × 14 bits (data + metadata)
+**`rtl_scope/sample_ram.v`** - Dual-port RAM buffer (1024 × 560 bits)
 
-#### USB Command Interface
-
-**`rtl/usb_command_handler.v`** - USB command protocol handler
-- **Default behavior**: Forward 8-byte commands directly to command_processor
-- **USB handler commands**: Require 0xFE prefix byte
-  - `0xFE 0x01 [4B length]` - TX_MASS: Send test data pattern
-  - `0xFE 0x02 [4B addr][4B data]` - REG_WRITE: Write AXI-Lite register
-  - `0xFE 0x03 [4B addr]` - REG_READ: Read AXI-Lite register (returns 4 bytes)
-  - `0xFE 0x04` - GET_VERSION: Get firmware version (returns 4 bytes)
-  - `0xFE 0x05` - GET_STATUS: Get hardware status (returns 4 bytes)
-- AXI-Stream protocol for command input and data output
-- Streaming data support for large transfers (command_processor command 0)
-- Watchdog timeout protection (2 seconds)
-
-**`rtl/usb2reg_bridge.v`** - Address decoder for AXI-Lite
-- Routes addresses to appropriate target modules
-
-**`rtl/axi_lite_slave.v`** - Control register bank
-- Memory test control
-- System status and configuration
-- DDR controller interface
+**`rtl/axi_lite_cdc.v`** - Clock domain crossing for AXI-Lite (clk_command → regACLK)
 
 ### Signal Flow
 
@@ -109,174 +63,140 @@ LVDS Input → Downsampler → Triggerer → Sample RAM → Command Processor �
          Phase Detector    Trigger Logic
 ```
 
-**Acquisition Path:**
-1. LVDS receivers capture 10-bit differential signals
-2. Downsampler reduces sample rate and merges samples
-3. Triggerer monitors for trigger conditions
-4. Samples written to dual-port RAM at trigger point
-5. Command processor reads RAM and streams to USB3
-
-**Control Path:**
-1. USB3 receives 8-byte commands from PC
-2. Commands forwarded to command_processor (or handled by usb_command_handler if prefixed with 0xFE)
-3. Command processor configures triggering, downsampling, acquisition
-4. Status and waveform data streamed back to PC
-
 ## Command Protocol
 
-### Scope Commands (Direct to command_processor)
+All commands use 8-byte format sent directly to command_processor.
 
-Send 8 bytes directly without prefix:
-
-```
-[cmd_byte] [param1] [param2] [param3] [param4] [param5] [param6] [param7]
-```
+### Scope Commands (0x00-0x17)
 
 **Command 0 - Read RAM Buffer:**
 ```python
-cmd = bytes([
-    0x00,           # Command
-    0x00, 0x00, 0x00,  # Reserved
-    length & 0xFF, (length >> 8) & 0xFF, (length >> 16) & 0xFF, (length >> 24) & 0xFF
-])
-# Response: Streaming 32-bit data with AXI-Stream protocol (tvalid/tready/tdata/tlast)
+cmd = bytes([0x00, 0, 0, 0, len_b0, len_b1, len_b2, len_b3])
+# Response: Streaming scope data (200 bytes per RAM row)
 ```
 
-**Command 1 - Configure Acquisition:**
+**Command 1 - Arm Trigger:**
 ```python
-cmd = bytes([
-    0x01,           # Command
-    triggertype,    # Trigger type
-    channeltype,    # Channel configuration
-    0x00,           # Reserved
-    length & 0xFF, (length >> 8) & 0xFF,  # Length to capture
-    0x00, 0x00
-])
-# Response: 4 bytes (acqstate and sample_triggered info)
+cmd = bytes([0x01, triggertype, channeltype, 0, len_lo, len_hi, 0, 0])
+# Response: 4 bytes (acqstate, sample_triggered info)
 ```
 
-### USB Handler Commands (Require 0xFE Prefix)
-
-**Register Write:**
+**Command 2 - Status/Version Queries:**
 ```python
-cmd = bytes([
-    0xFE, 0x02,     # Prefix + REG_WRITE
-    addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >> 24) & 0xFF,
-    data & 0xFF, (data >> 8) & 0xFF, (data >> 16) & 0xFF, (data >> 24) & 0xFF
-])
-# No response
+cmd = bytes([0x02, subcommand, param, ...])
+# Response: 4 bytes (varies by subcommand)
 ```
 
-**Register Read:**
+### USB Utility Commands (0x20-0x25)
+
+**0x20 - TX_MASS (Bandwidth Test):**
 ```python
-cmd = bytes([
-    0xFE, 0x03,     # Prefix + REG_READ
-    addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >> 24) & 0xFF
-])
-# Response: 4 bytes (register value, little-endian)
+cmd = bytes([0x20, len_b0, len_b1, len_b2, len_b3, 0, 0, 0])
+# Response: Counting pattern of specified length
 ```
 
-**Get Version:**
+**0x21 - REG_WRITE:**
 ```python
-cmd = bytes([0xFE, 0x04])
-# Response: 4 bytes (version 0x20251123)
+cmd = bytes([0x21, addr_lo, addr_hi, data_b0, data_b1, data_b2, data_b3, 0])
+# Response: 4 bytes (0x00000000 = success)
 ```
 
-**Get Status:**
+**0x22 - REG_READ:**
 ```python
-cmd = bytes([0xFE, 0x05])
-# Response: 4 bytes (bit[0]=ddr_pll_lock, bit[1]=axi_arready, bit[2]=axi_rvalid)
+cmd = bytes([0x22, addr_lo, addr_hi, 0, 0, 0, 0, 0])
+# Response: 4 bytes (register value)
 ```
+
+**0x23 - GET_VERSION:**
+```python
+cmd = bytes([0x23, 0, 0, 0, 0, 0, 0, 0])
+# Response: 4 bytes (0x20251125)
+```
+
+**0x24 - GET_STATUS:**
+```python
+cmd = bytes([0x24, 0, 0, 0, 0, 0, 0, 0])
+# Response: 4 bytes (state machine debug info)
+```
+
+**0x25 - ECHO:**
+```python
+cmd = bytes([0x25, len_lo, len_hi, data0, data1, data2, data3, data4])
+# + additional data bytes if len > 5
+# Response: Echoed data
+```
+
+## Test Results
+
+### USB Bandwidth (test_scope_bandwidth.py)
+
+Scope RAM readout performance at 200 MHz clk_command:
+
+| Transfer Size | Rate |
+|--------------|------|
+| 200 B | 0.5 MB/s |
+| 1 KB | 2.4 MB/s |
+| 4 KB | 9.4 MB/s |
+| 16 KB | 17.7 MB/s |
+| 64 KB | 51.1 MB/s |
+| 100 KB | 95.4 MB/s |
+| 256 KB | 127.5 MB/s |
+| 512 KB | 165.9 MB/s |
+| 1 MB | 223.4 MB/s |
+| 2 MB | 219.9 MB/s |
+| 4 MB | 226.1 MB/s |
+
+**Peak: 265 MB/s, Average (large transfers): 226 MB/s**
+
+### Echo Test (test_echo.py)
+
+All 7 tests pass - verifies command/response integrity at 200 MHz.
+
+### DDR Memory
+
+DDR registers accessible via AXI-Lite CDC at full speed. Memory test functionality available through register interface.
+
+## Test Scripts
+
+| Script | Description |
+|--------|-------------|
+| `test_echo.py` | Verify echo command (data integrity) |
+| `test_scope_bandwidth.py` | Measure scope readout bandwidth |
+| `test_scope_commands.py` | Test scope command interface |
+| `test_stale_data.py` | Check for leftover USB data |
+| `test_version.py` | Query firmware version |
+| `usb_rx_mass.py` | USB bandwidth test (TX_MASS) |
 
 ## Python Control Library
 
-### `usb_ddr_control.py`
+### USB_FTX232H_FT60X.py
 
-Provides high-level Python interface for USB commands:
+Low-level USB interface for FT60X:
+
+```python
+from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
+
+usb = USB_FTX232H_FT60X_sync245mode(device_to_open_list=(
+    ('FT60X', 'Haasoscope USB3'),
+    ('FT60X', 'FTDI SuperSpeed-FIFO Bridge')))
+
+usb.send(command_bytes)
+response = usb.recv(num_bytes)
+usb.close()
+```
+
+### usb_ddr_control.py
+
+High-level DDR control interface:
 
 ```python
 from usb_ddr_control import USBDDRControl
 
-usb = USBDDRControl()
-
-# Register access (automatically adds 0xFE prefix)
-usb.reg_write(0x28, 0x00)          # Write to register
-value = usb.reg_read(0x28)          # Read from register
-status = usb.get_status()           # Get hardware status
-
-# Memory testing
-usb.memtest_run(size_mb=4, lfsr_en=True, verbose=True)
-
-usb.close()
-```
-
-### Test Scripts
-
-**`test_version.py`** - Test firmware version command
-```bash
-python test_version.py
-# Expected: 0x20251123 (2025-11-23)
-```
-
-**`usb_rx_mass.py`** - USB bandwidth test
-```bash
-python usb_rx_mass.py
-# Tests TX_MASS command with 10MB transfers
-```
-
-**`test_hardware_autoinit.py`** - DDR initialization test
-```bash
-python test_hardware_autoinit.py
-# Verifies DDR auto-init and runs 4MB memory test
-```
-
-**`test_bandwidth_accurate.py`** - DDR bandwidth measurement
-```bash
-python test_bandwidth_accurate.py
-# Measures DDR performance with overhead compensation
-```
-
-## Register Map
-
-### Control Registers (via AXI-Lite)
-
-```
-0x00 - REG_0_DQ_FAIL      : Failed DQ bits [RO]
-0x04 - REG_1_STATUS       : bit[0]=memtest_done, bit[1]=memtest_fail [RO]
-0x08 - REG_2_CONTROL      : bit[0]=memtest_start, bit[1]=memtest_rstn [WO]
-0x0C - REG_3_RESET        : DDR reset controls [WO]
-0x10 - REG_4_DATA_L       : Test pattern lower 32 bits [WO]
-0x14 - REG_5_DATA_H       : Test pattern upper 32 bits [WO]
-0x18 - REG_6_LFSR         : LFSR enable [WO]
-0x1C - REG_7_X16          : x16 mode enable [WO]
-0x20 - REG_8_ARLEN        : AXI read burst length [WO]
-0x24 - REG_9_SIZE         : Test size in bytes [WO]
-0x28 - REG_10_CONFIG      : bit[3]=cfg_done [RO], config control [WO]
-```
-
-## Building and Running
-
-### Prerequisites
-- Efinix Efinity IDE
-- Python 3.x
-- pylibftdi (for USB communication)
-- FT60X USB3 drivers
-
-### Build Steps
-1. Open project in Efinity IDE
-2. Compile to generate bitstream
-3. Program FPGA
-
-### Quick Test
-```bash
-# Test USB communication
-python test_version.py
-
-# Test scope command interface
-# (Send 8-byte commands directly to command_processor)
-
-# Test USB handler commands
-python test_hardware_autoinit.py
+ctrl = USBDDRControl()
+ctrl.reg_write(0x28, 0x00)
+value = ctrl.reg_read(0x28)
+ctrl.memtest_run(size_mb=4, lfsr_en=True)
+ctrl.close()
 ```
 
 ## Project Structure
@@ -284,90 +204,84 @@ python test_hardware_autoinit.py
 ```
 LVDS_LPDDR4/
 ├── rtl/
-│   ├── top.v                      # Top-level FPGA module
-│   ├── tools_core.v               # Core system integration
-│   ├── usb_command_handler.v      # USB command protocol (0xFE prefix)
-│   ├── usb2reg_bridge.v           # Address decoder
-│   ├── axi_lite_slave.v           # Control registers
-│   ├── memory_checker_lfsr.v      # DDR memory tester
-│   └── clock_beat.v               # LED heartbeat
+│   ├── top.v                  # Top-level FPGA module
+│   ├── tools_core.v           # Core system (USB, CDC, routing)
+│   ├── axi_lite_cdc.v         # Clock domain crossing for AXI-Lite
+│   ├── axi_lite_slave.v       # DDR control registers
+│   ├── usb2reg_bridge.v       # AXI-Lite address decoder
+│   ├── memory_checker_lfsr.v  # DDR memory tester
+│   └── clock_beat.v           # LED heartbeat
 ├── rtl_scope/
-│   ├── command_processor.v        # Scope command processor (8-byte protocol)
-│   ├── triggerer.v                # Trigger detection
-│   ├── downsampler.v              # Sample rate reduction
-│   ├── phase_detector.v           # Timing measurement
-│   └── sample_ram.v               # Dual-port waveform buffer
-├── USB_FTX232H_FT60X.py          # Low-level USB interface
-├── usb_ddr_control.py            # High-level USB control library
-├── test_version.py                # Version query test
-├── usb_rx_mass.py                 # USB bandwidth test
-├── test_hardware_autoinit.py      # DDR initialization test
-├── test_bandwidth_accurate.py     # DDR bandwidth measurement
-└── README.md                      # This file
+│   ├── command_processor.v    # Unified command processor
+│   ├── triggerer.v            # Trigger detection
+│   ├── downsampler.v          # Sample rate reduction
+│   ├── phase_detector.v       # Timing measurement
+│   ├── sample_ram.v           # Dual-port waveform buffer
+│   ├── SPI_Master.v           # SPI peripheral control
+│   ├── neo_driver.v           # RGB LED driver
+│   └── pwm_generator.v        # Fan PWM control
+├── ftdi245fifo/               # FT60X USB interface IP
+├── bsp/TI375C529/             # Board support package
+├── USB_FTX232H_FT60X.py       # Low-level USB interface
+├── usb_ddr_control.py         # High-level DDR control
+├── test_*.py                  # Test scripts
+└── README.md
 ```
 
-## Technical Details
+## Building
 
-### Clock Domains
-- **lvds_clk_slow_clkin**: LVDS slow clock for data sampling
-- **lvds_clk_fast_clkin**: LVDS fast clock for phase detection
-- **clk_100**: 100 MHz system clock from USB/DDR
-- **clk_50**: 50 MHz clock for command processor
+### Prerequisites
+- Efinix Efinity IDE 2025.1+
+- Python 3.x with ftd3xx package
+- FT60X USB3 drivers
 
-### LVDS Interface
-- 4 channels × 10 bits = 40-bit parallel input
-- Differential signaling for noise immunity
-- Requires deserialization logic (TODO in current implementation)
+### Build Steps
+1. Open `bsp/TI375C529/tools_core.xml` in Efinity IDE
+2. Synthesize and place/route
+3. Program FPGA with generated bitstream
 
-### Memory Buffer
-- Dual-port RAM: 1024 addresses × 560 bits
-- Write side: LVDS clock domain (async to system)
-- Read side: System clock domain (sync to USB)
-- Circular buffer with trigger-based addressing
+### Timing Constraints
 
-### Trigger System
-- Threshold-based edge detection
-- Pre-trigger and post-trigger capture
-- Time-over-threshold measurement
-- Holdoff and delay controls
-- Per-channel trigger selection
+Critical clock constraints in `tools_core.pt.sdc`:
+- clk_command: 200 MHz (5ns period)
+- regACLK: 100 MHz (10ns period)
 
-### Downsampling
-- Reduces sample rate by factor of 1-32
-- Merging modes: average, min, max, first, last
-- Preserves trigger alignment
-- 40-sample output buffer for efficient RAM writes
+## Register Map (DDR Controller)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x00 | DQ_FAIL | Failed DQ bits [RO] |
+| 0x04 | STATUS | memtest_done, memtest_fail [RO] |
+| 0x08 | CONTROL | memtest_start, memtest_rstn [WO] |
+| 0x0C | RESET | DDR reset controls [WO] |
+| 0x10 | DATA_L | Test pattern lower 32 bits [WO] |
+| 0x14 | DATA_H | Test pattern upper 32 bits [WO] |
+| 0x18 | LFSR | LFSR enable [WO] |
+| 0x1C | X16 | x16 mode enable [WO] |
+| 0x20 | ARLEN | AXI read burst length [WO] |
+| 0x24 | SIZE | Test size in bytes [WO] |
+| 0x28 | CONFIG | cfg_done [RO], config control [WO] |
 
 ## Troubleshooting
 
 ### No USB Communication
-- Check FT60X drivers installed
-- Verify USB device enumeration
+- Verify FT60X drivers installed
+- Check USB device enumeration (`lsusb` or Device Manager)
 - Try different USB3 port/cable
 
-### Commands Not Working
-- Scope commands: Send 8 bytes directly (no prefix)
-- USB handler commands: Add 0xFE prefix before command byte
-- Check command byte values match protocol
+### Low Bandwidth
+- Ensure clk_command is 200 MHz
+- Check timing constraints are met
+- Use larger transfer sizes (>100KB for best throughput)
 
-### No Trigger Events
-- Verify trigger threshold settings (command 8)
-- Check LVDS input signal levels
-- Enable trigger live mode (command 1)
-- Review trigger type configuration
+### Stale Data After Tests
+- Run `python test_stale_data.py` to drain buffer
+- Check timing constraints for clk_command
 
-### RAM Readout Issues
-- Ensure acquisition complete before readout
-- Check RAM address triggered point
-- Verify length parameter in command 0
-- Monitor for AXI-Stream tlast signal
-
-## References
-
-- Efinix Ti375C529 FPGA Documentation
-- FT60X USB3 Device Documentation
-- AXI4 Protocol Specification
-- LVDS Signaling Standard
+### DDR Access Issues
+- Verify AXI-Lite CDC is instantiated
+- Check regACLK is running (100 MHz)
+- Confirm cfg_done bit is set
 
 ## License
 

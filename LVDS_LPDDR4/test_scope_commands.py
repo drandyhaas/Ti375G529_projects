@@ -9,7 +9,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from USB_FTX232H_FT60X import USB_FTX232H_FT60X_sync245mode
-from usb_utils import recv_with_timeout
 import time
 
 print("Opening USB device...")
@@ -39,7 +38,7 @@ def send_scope_command(cmd_bytes, description="", expected_response_len=4):
     usb.send(bytes(cmd))
     time.sleep(0.1)
 
-    rxdata = recv_with_timeout(usb, expected_response_len)
+    rxdata = usb.recv(expected_response_len)
 
     if len(rxdata) > 0:
         print(f"RX: {rxdata.hex()} ({len(rxdata)} bytes)")
