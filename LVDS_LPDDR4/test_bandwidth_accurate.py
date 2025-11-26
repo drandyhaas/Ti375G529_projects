@@ -131,7 +131,7 @@ def main():
     print("=" * 70)
 
     usb = USBDDRControl()
-    size_mb = 512
+    size_mb = 1023
     size_bytes = size_mb * 1024 * 1024
     num_runs = 5
     overhead_runs = 5
@@ -173,7 +173,7 @@ def main():
         # Step 2: Write-only bandwidth
         # ============================================================
         print("\n" + "=" * 70)
-        print("STEP 2: WRITE-ONLY BANDWIDTH (512MB)")
+        print(f"STEP 2: WRITE-ONLY BANDWIDTH ({size_mb}MB)")
         print("-" * 70)
 
         write_times, passed = run_bandwidth_test(usb, size_mb, MODE_WRITE_ONLY, num_runs)
@@ -201,7 +201,7 @@ def main():
         # Step 3: Read-only bandwidth (data already written above)
         # ============================================================
         print("\n" + "=" * 70)
-        print("STEP 3: READ-ONLY BANDWIDTH (512MB)")
+        print(f"STEP 3: READ-ONLY BANDWIDTH ({size_mb}MB)")
         print("-" * 70)
 
         read_times, passed = run_bandwidth_test(usb, size_mb, MODE_READ_ONLY, num_runs)
@@ -229,7 +229,7 @@ def main():
         # Step 4: Write+Read combined
         # ============================================================
         print("\n" + "=" * 70)
-        print("STEP 4: WRITE+READ COMBINED (512MB, with verification)")
+        print(f"STEP 4: WRITE+READ COMBINED ({size_mb}MB, with verification)")
         print("-" * 70)
 
         combined_times, passed = run_bandwidth_test(usb, size_mb, MODE_WRITE_READ, num_runs)
