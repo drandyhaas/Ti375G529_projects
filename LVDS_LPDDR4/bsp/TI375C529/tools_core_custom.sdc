@@ -57,3 +57,29 @@ set_clock_groups -exclusive \
 
 # For debugging timing issues: Uncomment to see detailed timing reports
 # set_max_delay 20 -from [get_clocks {axi0_ACLK}] -to [all_outputs]
+
+# ============================================================================
+# False Path Constraints for Asynchronous Clock Domain Crossings
+# ============================================================================
+
+# Sample RAM address crossings (dual-port RAM with separate clocks)
+# Write address is in lvds_clk_slow domain, read port is in clk_command domain
+# Read address is in clk_command domain, write port is in lvds_clk_slow domain
+# These are safe because:
+# - Write address changes only when writing (lvds_clk_slow domain)
+# - Read address changes only when reading (clk_command domain)
+# - RAM handles the async crossing internally
+set_false_path -from [get_clocks lvds_clk_slow] -to [get_clocks clk_command]
+set_false_path -from [get_clocks clk_command] -to [get_clocks lvds_clk_slow]
+
+# Trigger lines to phase detector (lvds_clk_slow → lvds_clk_fast)
+# lvdsout_trig and lvdsout_trig_b are generated in lvds_clk_slow domain
+# and sampled by phase_detector in lvds_clk_fast domain
+# The phase detector is designed to handle this async input
+set_false_path -from [get_clocks lvds_clk_slow] -to [get_clocks lvds_clk_fast]
+
+# Phase detector output to command processor (lvds_clk_fast → clk_command)
+# phase_diff signals use 2-FF synchronizer in command_processor.v:
+#   phase_diff_sync1 <= phase_diff;     // 1st FF
+#   phase_diff_sync <= phase_diff_sync1; // 2nd FF
+set_false_path -from [get_clocks lvds_clk_fast] -to [get_clocks clk_command]

@@ -5,7 +5,7 @@
 
 # Efinity Interface Designer SDC
 # Version: 2025.1.110.5.9
-# Date: 2025-11-25 14:29
+# Date: 2025-11-26 18:29
 
 # Copyright (C) 2013 - 2025 Efinix Inc. All rights reserved.
 
@@ -16,7 +16,7 @@
 # PLL Constraints
 #################
 create_clock -period 10.000 -name regACLK [get_ports {regACLK}]
-create_clock -period 5.556 -name axi0_ACLK [get_ports {axi0_ACLK}]
+create_clock -period 5.000 -name axi0_ACLK [get_ports {axi0_ACLK}]
 create_clock -period 5.000 -name clk_command [get_ports {clk_command}]
 create_clock -period 20.000 -name clk50 [get_ports {clk50}]
 create_clock -waveform {0.333 1.000} -period 1.333 -name lvds_clk_fast [get_ports {lvds_clk_fast}]

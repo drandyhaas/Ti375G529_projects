@@ -102,6 +102,12 @@ reg [8:0] write_cnt, nxt_cnt, read_cnt;
 reg [511:0] rdata_store;
 reg [127:0] r_lfsr_1P, r_lfsr_2P, r_lfsr_buffer;
 reg wburst_done, rburst_done, write_done, read_done;
+
+// Pipeline registers for rdata to meet timing at 180+ MHz
+// This adds one cycle latency but breaks the critical path from input to comparison
+reg [511:0] rdata_reg;
+reg rvalid_reg;
+reg rlast_reg;
 wire w_fb_0P;
 assign  w_fb_0P                 = r_lfsr_1P[98] ^~ r_lfsr_1P[100] ^~ r_lfsr_1P[125] ^~ r_lfsr_1P[127];  //XNOR max length tap LSFR 128 
 reg r_lfsr_en;
@@ -121,6 +127,19 @@ always @(posedge axi_clk or negedge rstn) begin
 	end else begin
 		start_sync[0] <= start;
 		start_sync[1] <= start_sync[0];
+	end
+end
+
+// Pipeline register for rdata input - breaks critical timing path
+always @(posedge axi_clk or negedge rstn) begin
+	if (!rstn) begin
+		rdata_reg <= 512'b0;
+		rvalid_reg <= 1'b0;
+		rlast_reg <= 1'b0;
+	end else begin
+		rdata_reg <= rdata;
+		rvalid_reg <= rvalid;
+		rlast_reg <= rlast;
 	end
 end
 
@@ -423,7 +442,7 @@ always @(posedge axi_clk or negedge rstn) begin
 		if (states == READ_COMPARE) begin
 			rready <= 1'b1;
 			if (read_cnt != 9'd0) begin
-			if (rvalid == 1'b1) begin
+			if (rvalid_reg == 1'b1) begin  // Use pipelined rvalid
             	
 				if(r_lfsr_en)
 					rdata_store <= {4{r_lfsr_1P}} & mask;
@@ -433,18 +452,18 @@ always @(posedge axi_clk or negedge rstn) begin
 				r_lfsr_1P <= {r_lfsr_1P[126:0], w_fb_0P};
 				read_cnt <= read_cnt - 1'b1;
 
-				if ((rdata  & mask)  !== rdata_store) 
+				if ((rdata_reg  & mask)  !== rdata_store)  // Use pipelined rdata
 				begin
-					rdata_obs <= rdata;
-                    rdata_exp <= rdata ^ rdata_store;
+					rdata_obs <= rdata_reg;  // Use pipelined rdata
+                    rdata_exp <= rdata_reg ^ rdata_store;  // Use pipelined rdata
 					fail <= 1'b1;
 					`ifdef EFX_SIM
-					$display("ERROR!! Read mismatch : read = 0x%x, expected = 0x%x",rdata,rdata_store);
-					`endif 
-				end else 
+					$display("ERROR!! Read mismatch : read = 0x%x, expected = 0x%x",rdata_reg,rdata_store);
+					`endif
+				end else
 				begin
 					`ifdef EFX_SIM
-					$display("Read match: read = 0x%x, expected = 0x%x",rdata,rdata_store);
+					$display("Read match: read = 0x%x, expected = 0x%x",rdata_reg,rdata_store);
 					`endif
 				end
 
@@ -499,15 +518,15 @@ always @(posedge axi_clk or negedge rstn) begin
 			end
 			end
 			if (read_cnt == 9'd0) begin
-	                        if ((rvalid == 1'b1) && (rlast == 1'b1)) begin
-                                       if ((rdata & mask) !== rdata_store ) begin
+	                        if ((rvalid_reg == 1'b1) && (rlast_reg == 1'b1)) begin  // Use pipelined rvalid/rlast
+                                       if ((rdata_reg & mask) !== rdata_store ) begin  // Use pipelined rdata
                                                 fail <= 1'b1;
                                                 `ifdef EFX_SIM
-                                                $display("ERROR!! Read mismatch : read = 0x%x, expected = 0x%x",rdata,rdata_store);
+                                                $display("ERROR!! Read mismatch : read = 0x%x, expected = 0x%x",rdata_reg,rdata_store);
                                                 `endif
                                         end else begin
                                                 `ifdef EFX_SIM
-                                                $display("Read match: read = 0x%x, expected = 0x%x",rdata,rdata_store);
+                                                $display("Read match: read = 0x%x, expected = 0x%x",rdata_reg,rdata_store);
                                                 `endif
                                         end
 
