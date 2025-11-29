@@ -268,6 +268,12 @@ All LVDS signals use differential pairs with 10-bit deserialization (half-rate m
 | lvdsin_trig_b  | GPIOB_PN_30  | D5/E5      | input     | LVDS trigger input B                     |
 | lvdsin_spare   | GPIOB_PN_31  | G6/H6      | input     | LVDS spare input                         |
 
+#### Single-Ended Trigger Input (Bank 4A - Bottom, 3.3V LVCMOS)
+
+| Signal         | Pin          | Ball   | Direction | Description                              |
+|----------------|--------------|--------|-----------|------------------------------------------|
+| exttrigin      | GPIOB_P_34   | F5     | input     | External trigger input                   |
+
 #### LVDS Outputs (Bank 2C - Top)
 
 | Signal         | Pin          | Ball (P/N) | Direction | Description                              |
@@ -276,6 +282,12 @@ All LVDS signals use differential pairs with 10-bit deserialization (half-rate m
 | lvdsout_trig   | GPIOT_PN_29  | F19/E19    | output    | LVDS trigger output                      |
 | lvdsout_trig_b | GPIOT_PN_30  | D21/D20    | output    | LVDS trigger output B                    |
 | lvdsout_spare  | GPIOT_PN_31  | H19/H18    | output    | LVDS spare output                        |
+
+#### Single-Ended Auxiliary Output (Bank 2C - Top, 3.3V LVCMOS)
+
+| Signal         | Pin          | Ball   | Direction | Description                              |
+|----------------|--------------|--------|-----------|------------------------------------------|
+| auxout         | GPIOT_P_34   | G19    | output    | Auxiliary output                         |
 
 ## DDR4 Memory Interface
 
@@ -303,13 +315,6 @@ Control signals:
 - `ddr_pll_rstn` - PLL reset (active low)
 - `ddr_pll_lock` - PLL lock status output
 
-## Other Trigger Signals (Unassigned)
-
-| Signal        | Direction | Description                |
-|---------------|-----------|----------------------------|
-| exttrigin     | input     | External trigger input     |
-| auxout        | output    | Auxiliary output           |
-
 ## Summary
 
 | Interface           | Total Pins | IO Bank(s)      | IO Standard  |
@@ -324,5 +329,6 @@ Control signals:
 | LVDS Data           | 52 pairs   | GPIO Banks T, B | LVDS         |
 | LVDS Clocks         | 4 pairs    | GPIO Banks T, B | LVDS         |
 | LVDS Clock/Trigger  | 8 pairs    | Bank 2C, 4A     | LVDS         |
+| Ext Trigger/Aux     | 2          | Bank 2C, 4A     | 3.3V LVCMOS  |
 | DDR4                | Hard block | DDR_0           | -            |
 | PLL                 | Hard block | PLL_TL2         | -            |
