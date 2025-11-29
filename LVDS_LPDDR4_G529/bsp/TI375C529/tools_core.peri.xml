@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efxpt:design_db name="tools_core" device_def="Ti90G529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sat Nov 29 03:51:32 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+<efxpt:design_db name="tools_core" device_def="Ti90G529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sat Nov 29 10:43:06 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
     <efxpt:device_info>
         <efxpt:iobank_info>
             <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
@@ -1783,7 +1783,7 @@
                 </efxpt:gen_pin>
             </efxpt:adv_lrx_info>
         </efxpt:lvds>
-        <efxpt:lvds name="lvdsout_clk" lvds_def="GPIOT_PN_28" ops_type="tx">
+        <efxpt:lvds name="lvdsout_clk" lvds_def="GPIOT_PN_29" ops_type="tx">
             <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_clk_TX_RST" out_bname="lvdsout_clk_TX_DATA" oe_name="lvdsout_clk_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
                 <efxpt:gen_pin>
                     <efxpt:pin name="lvdsout_clk_TX_DATA" type_name="OUT" is_bus="true"/>
@@ -1805,7 +1805,7 @@
                 </efxpt:gen_pin>
             </efxpt:adv_ltx_info>
         </efxpt:lvds>
-        <efxpt:lvds name="lvdsout_trig" lvds_def="GPIOT_PN_29" ops_type="tx">
+        <efxpt:lvds name="lvdsout_trig" lvds_def="GPIOT_PN_32" ops_type="tx">
             <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_trig_TX_RST" out_bname="lvdsout_trig_TX_DATA" oe_name="lvdsout_trig_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
                 <efxpt:gen_pin>
                     <efxpt:pin name="lvdsout_trig_TX_DATA" type_name="OUT" is_bus="true"/>
