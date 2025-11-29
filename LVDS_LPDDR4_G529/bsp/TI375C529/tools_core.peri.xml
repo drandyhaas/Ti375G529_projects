@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<efxpt:design_db name="tools_core" device_def="Ti90G529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sat Nov 29 10:43:06 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
+<efxpt:design_db name="tools_core" device_def="Ti90G529" version="2025.1.110.5.9" db_version="20252006" last_change_date="Sat Nov 29 11:14:38 2025" xmlns:efxpt="http://www.efinixinc.com/peri_design_db" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.efinixinc.com/peri_design_db peri_design_db.xsd ">
     <efxpt:device_info>
         <efxpt:iobank_info>
             <efxpt:iobank name="2A" iostd="1.8 V LVCMOS" is_dyn_voltage="false" mode_sel_name="2A_MODE_SEL"/>
@@ -1744,7 +1744,7 @@
             </efxpt:adv_lrx_info>
         </efxpt:lvds>
         <efxpt:lvds name="lvdsin_trig" lvds_def="GPIOB_PN_29" ops_type="rx">
-            <efxpt:adv_lrx_info pll_instance="" fast_clock_name="" slow_clock_name="" in_bname="lvdsin_trig" reset_name="lvdsin_trig_RX_RST" conn_type="normal" clkmux_buf_name="" delay="0" delay_mode="static" is_fifo="false" is_half_rate="false" is_serial="false" serial_width="1" is_voc_driver="false" termination="on" is_slvs="false">
+            <efxpt:adv_lrx_info pll_instance="" fast_clock_name="" slow_clock_name="" in_bname="lvdsin_trig" reset_name="lvdsin_trig_RX_RST" conn_type="normal" clkmux_buf_name="" delay="0" delay_mode="static" is_fifo="false" is_half_rate="true" is_serial="false" serial_width="1" is_voc_driver="false" termination="on" is_slvs="false">
                 <efxpt:gen_pin>
                     <efxpt:pin name="lvdsin_trig" type_name="IN" is_bus="false"/>
                     <efxpt:pin name="lvdsin_trig_RX_FIFO_EMPTY" type_name="FIFO_EMPTY" is_bus="false"/>
@@ -1784,9 +1784,9 @@
             </efxpt:adv_lrx_info>
         </efxpt:lvds>
         <efxpt:lvds name="lvdsout_clk" lvds_def="GPIOT_PN_29" ops_type="tx">
-            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_clk_TX_RST" out_bname="lvdsout_clk_TX_DATA" oe_name="lvdsout_clk_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
+            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_clk_TX_RST" out_bname="lvdsout_clk" oe_name="lvdsout_clk_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
                 <efxpt:gen_pin>
-                    <efxpt:pin name="lvdsout_clk_TX_DATA" type_name="OUT" is_bus="true"/>
+                    <efxpt:pin name="lvdsout_clk" type_name="OUT" is_bus="true"/>
                     <efxpt:pin name="lvdsout_clk_TX_OE" type_name="OE" is_bus="false"/>
                     <efxpt:pin name="lvdsout_clk_TX_RST" type_name="OUTRST" is_bus="false"/>
                     <efxpt:pin name="" type_name="OUTFASTCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
@@ -1795,9 +1795,9 @@
             </efxpt:adv_ltx_info>
         </efxpt:lvds>
         <efxpt:lvds name="lvdsout_spare" lvds_def="GPIOT_PN_31" ops_type="tx">
-            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_spare_TX_RST" out_bname="lvdsout_spare_TX_DATA" oe_name="lvdsout_spare_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
+            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_spare_TX_RST" out_bname="lvdsout_spare" oe_name="lvdsout_spare_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
                 <efxpt:gen_pin>
-                    <efxpt:pin name="lvdsout_spare_TX_DATA" type_name="OUT" is_bus="true"/>
+                    <efxpt:pin name="lvdsout_spare" type_name="OUT" is_bus="true"/>
                     <efxpt:pin name="lvdsout_spare_TX_OE" type_name="OE" is_bus="false"/>
                     <efxpt:pin name="lvdsout_spare_TX_RST" type_name="OUTRST" is_bus="false"/>
                     <efxpt:pin name="" type_name="OUTFASTCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
@@ -1806,9 +1806,9 @@
             </efxpt:adv_ltx_info>
         </efxpt:lvds>
         <efxpt:lvds name="lvdsout_trig" lvds_def="GPIOT_PN_32" ops_type="tx">
-            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_trig_TX_RST" out_bname="lvdsout_trig_TX_DATA" oe_name="lvdsout_trig_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
+            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_trig_TX_RST" out_bname="lvdsout_trig" oe_name="lvdsout_trig_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
                 <efxpt:gen_pin>
-                    <efxpt:pin name="lvdsout_trig_TX_DATA" type_name="OUT" is_bus="true"/>
+                    <efxpt:pin name="lvdsout_trig" type_name="OUT" is_bus="true"/>
                     <efxpt:pin name="lvdsout_trig_TX_OE" type_name="OE" is_bus="false"/>
                     <efxpt:pin name="lvdsout_trig_TX_RST" type_name="OUTRST" is_bus="false"/>
                     <efxpt:pin name="" type_name="OUTFASTCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
@@ -1817,9 +1817,9 @@
             </efxpt:adv_ltx_info>
         </efxpt:lvds>
         <efxpt:lvds name="lvdsout_trig_b" lvds_def="GPIOT_PN_30" ops_type="tx">
-            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_trig_b_TX_RST" out_bname="lvdsout_trig_b_TX_DATA" oe_name="lvdsout_trig_b_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
+            <efxpt:adv_ltx_info pll_instance="" fast_clock_name="" slow_clock_name="" reset_name="lvdsout_trig_b_TX_RST" out_bname="lvdsout_trig_b" oe_name="lvdsout_trig_b_TX_OE" delay="0" is_half_rate="false" is_serial="false" serial_width="8" mode="out" diff_type="lvds" vod="typical" pre_emphasis="medium low">
                 <efxpt:gen_pin>
-                    <efxpt:pin name="lvdsout_trig_b_TX_DATA" type_name="OUT" is_bus="true"/>
+                    <efxpt:pin name="lvdsout_trig_b" type_name="OUT" is_bus="true"/>
                     <efxpt:pin name="lvdsout_trig_b_TX_OE" type_name="OE" is_bus="false"/>
                     <efxpt:pin name="lvdsout_trig_b_TX_RST" type_name="OUTRST" is_bus="false"/>
                     <efxpt:pin name="" type_name="OUTFASTCLK" is_bus="false" is_clk="true" is_clk_invert="false"/>
