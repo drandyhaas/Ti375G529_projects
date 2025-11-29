@@ -68,6 +68,7 @@ module command_processor (
    output reg        lvdsout_spare=0,
    input wire        clk50, // needed while doing pllreset
    output reg        clk_over_4, // clock output for flash and RGB LEDs
+   output wire       fanon, // fan PWM output
 
    // for flash firmware updating
    output reg [23:0] flash_addr,
@@ -196,7 +197,6 @@ reg [9:0]   ram_preoffset = 0;
 integer     overrange_counter[4];
 reg [15:0]  probecompcounter = 0;
 reg [3:0]   flashstate=0, flashbusycounter=0;
-reg         fanon = 0; 
 reg [7:0]   fanpwm = 0; 
 reg [31:0]  o_tdatatemp = 0;
 reg         clkstrprob = 0;

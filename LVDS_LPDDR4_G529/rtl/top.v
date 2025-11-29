@@ -1,11 +1,121 @@
 
 module top (
 
-// LVDS
-input  [9:0]    lvds_rx_inst1_RX_DATA,
+// LVDS clocks
 input           lvds_clk_slow,
 input           lvds_clk_fast,
-output          lvds_rx_inst1_RX_RST,
+
+// LVDS RX Group 1 (13 channels)
+input  [9:0]    lvds_rx1_1_RX_DATA,
+input  [9:0]    lvds_rx1_2_RX_DATA,
+input  [9:0]    lvds_rx1_3_RX_DATA,
+input  [9:0]    lvds_rx1_4_RX_DATA,
+input  [9:0]    lvds_rx1_5_RX_DATA,
+input  [9:0]    lvds_rx1_6_RX_DATA,
+input  [9:0]    lvds_rx1_7_RX_DATA,
+input  [9:0]    lvds_rx1_8_RX_DATA,
+input  [9:0]    lvds_rx1_9_RX_DATA,
+input  [9:0]    lvds_rx1_10_RX_DATA,
+input  [9:0]    lvds_rx1_11_RX_DATA,
+input  [9:0]    lvds_rx1_12_RX_DATA,
+input  [9:0]    lvds_rx1_13_RX_DATA,
+output          lvds_rx1_1_RX_RST,
+output          lvds_rx1_2_RX_RST,
+output          lvds_rx1_3_RX_RST,
+output          lvds_rx1_4_RX_RST,
+output          lvds_rx1_5_RX_RST,
+output          lvds_rx1_6_RX_RST,
+output          lvds_rx1_7_RX_RST,
+output          lvds_rx1_8_RX_RST,
+output          lvds_rx1_9_RX_RST,
+output          lvds_rx1_10_RX_RST,
+output          lvds_rx1_11_RX_RST,
+output          lvds_rx1_12_RX_RST,
+output          lvds_rx1_13_RX_RST,
+
+// LVDS RX Group 2 (13 channels)
+input  [9:0]    lvds_rx2_1_RX_DATA,
+input  [9:0]    lvds_rx2_2_RX_DATA,
+input  [9:0]    lvds_rx2_3_RX_DATA,
+input  [9:0]    lvds_rx2_4_RX_DATA,
+input  [9:0]    lvds_rx2_5_RX_DATA,
+input  [9:0]    lvds_rx2_6_RX_DATA,
+input  [9:0]    lvds_rx2_7_RX_DATA,
+input  [9:0]    lvds_rx2_8_RX_DATA,
+input  [9:0]    lvds_rx2_9_RX_DATA,
+input  [9:0]    lvds_rx2_10_RX_DATA,
+input  [9:0]    lvds_rx2_11_RX_DATA,
+input  [9:0]    lvds_rx2_12_RX_DATA,
+input  [9:0]    lvds_rx2_13_RX_DATA,
+output          lvds_rx2_1_RX_RST,
+output          lvds_rx2_2_RX_RST,
+output          lvds_rx2_3_RX_RST,
+output          lvds_rx2_4_RX_RST,
+output          lvds_rx2_5_RX_RST,
+output          lvds_rx2_6_RX_RST,
+output          lvds_rx2_7_RX_RST,
+output          lvds_rx2_8_RX_RST,
+output          lvds_rx2_9_RX_RST,
+output          lvds_rx2_10_RX_RST,
+output          lvds_rx2_11_RX_RST,
+output          lvds_rx2_12_RX_RST,
+output          lvds_rx2_13_RX_RST,
+
+// LVDS RX Group 3 (13 channels)
+input  [9:0]    lvds_rx3_1_RX_DATA,
+input  [9:0]    lvds_rx3_2_RX_DATA,
+input  [9:0]    lvds_rx3_3_RX_DATA,
+input  [9:0]    lvds_rx3_4_RX_DATA,
+input  [9:0]    lvds_rx3_5_RX_DATA,
+input  [9:0]    lvds_rx3_6_RX_DATA,
+input  [9:0]    lvds_rx3_7_RX_DATA,
+input  [9:0]    lvds_rx3_8_RX_DATA,
+input  [9:0]    lvds_rx3_9_RX_DATA,
+input  [9:0]    lvds_rx3_10_RX_DATA,
+input  [9:0]    lvds_rx3_11_RX_DATA,
+input  [9:0]    lvds_rx3_12_RX_DATA,
+input  [9:0]    lvds_rx3_13_RX_DATA,
+output          lvds_rx3_1_RX_RST,
+output          lvds_rx3_2_RX_RST,
+output          lvds_rx3_3_RX_RST,
+output          lvds_rx3_4_RX_RST,
+output          lvds_rx3_5_RX_RST,
+output          lvds_rx3_6_RX_RST,
+output          lvds_rx3_7_RX_RST,
+output          lvds_rx3_8_RX_RST,
+output          lvds_rx3_9_RX_RST,
+output          lvds_rx3_10_RX_RST,
+output          lvds_rx3_11_RX_RST,
+output          lvds_rx3_12_RX_RST,
+output          lvds_rx3_13_RX_RST,
+
+// LVDS RX Group 4 (13 channels)
+input  [9:0]    lvds_rx4_1_RX_DATA,
+input  [9:0]    lvds_rx4_2_RX_DATA,
+input  [9:0]    lvds_rx4_3_RX_DATA,
+input  [9:0]    lvds_rx4_4_RX_DATA,
+input  [9:0]    lvds_rx4_5_RX_DATA,
+input  [9:0]    lvds_rx4_6_RX_DATA,
+input  [9:0]    lvds_rx4_7_RX_DATA,
+input  [9:0]    lvds_rx4_8_RX_DATA,
+input  [9:0]    lvds_rx4_9_RX_DATA,
+input  [9:0]    lvds_rx4_10_RX_DATA,
+input  [9:0]    lvds_rx4_11_RX_DATA,
+input  [9:0]    lvds_rx4_12_RX_DATA,
+input  [9:0]    lvds_rx4_13_RX_DATA,
+output          lvds_rx4_1_RX_RST,
+output          lvds_rx4_2_RX_RST,
+output          lvds_rx4_3_RX_RST,
+output          lvds_rx4_4_RX_RST,
+output          lvds_rx4_5_RX_RST,
+output          lvds_rx4_6_RX_RST,
+output          lvds_rx4_7_RX_RST,
+output          lvds_rx4_8_RX_RST,
+output          lvds_rx4_9_RX_RST,
+output          lvds_rx4_10_RX_RST,
+output          lvds_rx4_11_RX_RST,
+output          lvds_rx4_12_RX_RST,
+output          lvds_rx4_13_RX_RST,
 
 // LVDS Trigger signals for board-to-board communication
 input           lvdsin_trig,
@@ -43,16 +153,11 @@ input           clk_command,
 // 50 MHz clock for slow peripherals (fan PWM, clk_over_4, PLL reset)
 input           clk50,
 
-// SPI interface
-output [7:0]    spitx,
-input  [7:0]    spirx,
-//temporary input           spitxready,
-output          spitxdv,
-//temporary input           spirxdv,
+// SPI interface - physical pins
+output          spi_clk,
+output          spi_mosi,
+input           spi_miso,
 output [7:0]    spics,
-output [2:0]    spimisossel,
-output [1:0]    spi_mode,
-output          spireset_L,
 
 // Clock control
 output          pllreset,
@@ -83,10 +188,11 @@ input  [7:0]    boardin,
 output [7:0]    boardout,
 input  [3:0]    lockinfo,
 
-// RGB LED control
-output [23:0]   neo_color0,
-output [23:0]   neo_color1,
-output          send_color,
+// RGB LED (NeoPixel) control
+output          neo_led,
+
+// Fan PWM output
+output          fan_out,
 
 // Reload flash signal
 output          reloadflash,
@@ -180,12 +286,69 @@ input           regBVALID,
 output          regARESETn
 );
 
-// temporary until we have actual SPI wired up
-wire spirxdv; assign spirxdv = 1'b1;
-wire spitxready; assign spitxready = 1'b1;
+// Internal SPI signals between command_processor and SPI_Master
+wire [7:0] spitx;           // TX byte from command_processor to SPI_Master
+wire spitxdv;               // TX data valid from command_processor
+wire spitxready;            // TX ready from SPI_Master to command_processor
+wire [7:0] spirx;           // RX byte from SPI_Master to command_processor
+wire spirxdv;               // RX data valid from SPI_Master
+wire [2:0] spimisossel;     // MISO select from command_processor (unused with single MISO)
+wire [1:0] spi_mode;        // SPI mode from command_processor
+wire spireset_L;            // SPI reset (active low) from command_processor
 
-// LVDS reset output
-assign lvds_rx_inst1_RX_RST = 1'b0;
+// LVDS reset outputs (active high, directly driving 0 means no reset)
+assign lvds_rx1_1_RX_RST = 1'b0;
+assign lvds_rx1_2_RX_RST = 1'b0;
+assign lvds_rx1_3_RX_RST = 1'b0;
+assign lvds_rx1_4_RX_RST = 1'b0;
+assign lvds_rx1_5_RX_RST = 1'b0;
+assign lvds_rx1_6_RX_RST = 1'b0;
+assign lvds_rx1_7_RX_RST = 1'b0;
+assign lvds_rx1_8_RX_RST = 1'b0;
+assign lvds_rx1_9_RX_RST = 1'b0;
+assign lvds_rx1_10_RX_RST = 1'b0;
+assign lvds_rx1_11_RX_RST = 1'b0;
+assign lvds_rx1_12_RX_RST = 1'b0;
+assign lvds_rx1_13_RX_RST = 1'b0;
+assign lvds_rx2_1_RX_RST = 1'b0;
+assign lvds_rx2_2_RX_RST = 1'b0;
+assign lvds_rx2_3_RX_RST = 1'b0;
+assign lvds_rx2_4_RX_RST = 1'b0;
+assign lvds_rx2_5_RX_RST = 1'b0;
+assign lvds_rx2_6_RX_RST = 1'b0;
+assign lvds_rx2_7_RX_RST = 1'b0;
+assign lvds_rx2_8_RX_RST = 1'b0;
+assign lvds_rx2_9_RX_RST = 1'b0;
+assign lvds_rx2_10_RX_RST = 1'b0;
+assign lvds_rx2_11_RX_RST = 1'b0;
+assign lvds_rx2_12_RX_RST = 1'b0;
+assign lvds_rx2_13_RX_RST = 1'b0;
+assign lvds_rx3_1_RX_RST = 1'b0;
+assign lvds_rx3_2_RX_RST = 1'b0;
+assign lvds_rx3_3_RX_RST = 1'b0;
+assign lvds_rx3_4_RX_RST = 1'b0;
+assign lvds_rx3_5_RX_RST = 1'b0;
+assign lvds_rx3_6_RX_RST = 1'b0;
+assign lvds_rx3_7_RX_RST = 1'b0;
+assign lvds_rx3_8_RX_RST = 1'b0;
+assign lvds_rx3_9_RX_RST = 1'b0;
+assign lvds_rx3_10_RX_RST = 1'b0;
+assign lvds_rx3_11_RX_RST = 1'b0;
+assign lvds_rx3_12_RX_RST = 1'b0;
+assign lvds_rx3_13_RX_RST = 1'b0;
+assign lvds_rx4_1_RX_RST = 1'b0;
+assign lvds_rx4_2_RX_RST = 1'b0;
+assign lvds_rx4_3_RX_RST = 1'b0;
+assign lvds_rx4_4_RX_RST = 1'b0;
+assign lvds_rx4_5_RX_RST = 1'b0;
+assign lvds_rx4_6_RX_RST = 1'b0;
+assign lvds_rx4_7_RX_RST = 1'b0;
+assign lvds_rx4_8_RX_RST = 1'b0;
+assign lvds_rx4_9_RX_RST = 1'b0;
+assign lvds_rx4_10_RX_RST = 1'b0;
+assign lvds_rx4_11_RX_RST = 1'b0;
+assign lvds_rx4_12_RX_RST = 1'b0;
+assign lvds_rx4_13_RX_RST = 1'b0;
 
 // Reset signals (tied to not-reset for now)
 wire rstn;
@@ -242,10 +405,9 @@ wire [559:0] ram_rd_data;
 wire [15:0] phase_diff;
 wire [15:0] phase_diff_b;
 
-// Neo color array to individual signals
+// Neo color array and send signal from command_processor
 wire [23:0] neo_color [2];
-assign neo_color0 = neo_color[0];
-assign neo_color1 = neo_color[1];
+wire send_color;
 
 // USB data stream wires between tools_core and command_processor
 // (usb_command_handler has been removed, command_processor connects directly to USB)
@@ -270,20 +432,41 @@ wire [31:0] cmd_axi_rdata;
 wire [1:0] cmd_axi_rresp;
 wire cmd_axi_rvalid, cmd_axi_rready;
 
-// Buffer registers for LVDS data deserialization (14 cycles × 10 bits = 140 bits)
-// According to the downsampler comments, each lvdsbits input represents deserialized data
-// where each of the 10 bits in lvds_rx_inst1_RX_DATA represents one of 4 channels
+// Buffer registers for LVDS data deserialization
+// Each group has 13 channels of 10-bit deserialized data = 130 bits per group
+// Pad to 140 bits (14 × 10) for downsampler compatibility
 reg [139:0] lvds1bits, lvds2bits, lvds3bits, lvds4bits;
 
-// Simple assignment: replicate the 10-bit LVDS data across all four channels
-// TODO: Verify the correct mapping between lvds_rx_inst1_RX_DATA bits and the four channels
+// Concatenate all 13 channels per group into lvdsbits (130 bits, padded to 140)
 always @(posedge lvds_clk_slow) begin
-   // Direct assignment - each bit of lvds_rx_inst1_RX_DATA feeds all four channels
-   // This is a placeholder and may need adjustment based on actual LVDS protocol
-   lvds1bits <= {14{lvds_rx_inst1_RX_DATA}};
-   lvds2bits <= {14{0}};
-   lvds3bits <= {14{lvds_rx_inst1_RX_DATA}};
-   lvds4bits <= {14{1}};
+   // Group 1: channels 1-13 (130 bits) + 10 bits padding
+   lvds1bits <= {10'b0,
+                 lvds_rx1_13_RX_DATA, lvds_rx1_12_RX_DATA, lvds_rx1_11_RX_DATA,
+                 lvds_rx1_10_RX_DATA, lvds_rx1_9_RX_DATA, lvds_rx1_8_RX_DATA,
+                 lvds_rx1_7_RX_DATA, lvds_rx1_6_RX_DATA, lvds_rx1_5_RX_DATA,
+                 lvds_rx1_4_RX_DATA, lvds_rx1_3_RX_DATA, lvds_rx1_2_RX_DATA,
+                 lvds_rx1_1_RX_DATA};
+   // Group 2: channels 1-13 (130 bits) + 10 bits padding
+   lvds2bits <= {10'b0,
+                 lvds_rx2_13_RX_DATA, lvds_rx2_12_RX_DATA, lvds_rx2_11_RX_DATA,
+                 lvds_rx2_10_RX_DATA, lvds_rx2_9_RX_DATA, lvds_rx2_8_RX_DATA,
+                 lvds_rx2_7_RX_DATA, lvds_rx2_6_RX_DATA, lvds_rx2_5_RX_DATA,
+                 lvds_rx2_4_RX_DATA, lvds_rx2_3_RX_DATA, lvds_rx2_2_RX_DATA,
+                 lvds_rx2_1_RX_DATA};
+   // Group 3: channels 1-13 (130 bits) + 10 bits padding
+   lvds3bits <= {10'b0,
+                 lvds_rx3_13_RX_DATA, lvds_rx3_12_RX_DATA, lvds_rx3_11_RX_DATA,
+                 lvds_rx3_10_RX_DATA, lvds_rx3_9_RX_DATA, lvds_rx3_8_RX_DATA,
+                 lvds_rx3_7_RX_DATA, lvds_rx3_6_RX_DATA, lvds_rx3_5_RX_DATA,
+                 lvds_rx3_4_RX_DATA, lvds_rx3_3_RX_DATA, lvds_rx3_2_RX_DATA,
+                 lvds_rx3_1_RX_DATA};
+   // Group 4: channels 1-13 (130 bits) + 10 bits padding
+   lvds4bits <= {10'b0,
+                 lvds_rx4_13_RX_DATA, lvds_rx4_12_RX_DATA, lvds_rx4_11_RX_DATA,
+                 lvds_rx4_10_RX_DATA, lvds_rx4_9_RX_DATA, lvds_rx4_8_RX_DATA,
+                 lvds_rx4_7_RX_DATA, lvds_rx4_6_RX_DATA, lvds_rx4_5_RX_DATA,
+                 lvds_rx4_4_RX_DATA, lvds_rx4_3_RX_DATA, lvds_rx4_2_RX_DATA,
+                 lvds_rx4_1_RX_DATA};
 end
 
 // Dual-port RAM for storing LVDS samples
@@ -327,6 +510,33 @@ phase_detector phase_det_bwd (
    .start(lvdsout_trig_b),
    .stop(lvdsin_trig),
    .phase_diff(phase_diff_b)
+);
+
+// SPI Master instantiation
+// CLKS_PER_HALF_BIT=8 with clk_command=100MHz gives SPI clock of ~6.25MHz
+SPI_Master #(
+   .CLKS_PER_HALF_BIT(8)
+) spi_master_inst (
+   .i_Rst_L(spireset_L),
+   .i_Clk(clk_command),
+   .i_TX_Byte(spitx),
+   .i_TX_DV(spitxdv),
+   .o_TX_Ready(spitxready),
+   .o_RX_DV(spirxdv),
+   .o_RX_Byte(spirx),
+   .o_SPI_Clk(spi_clk),
+   .i_SPI_MISO(spi_miso),
+   .o_SPI_MOSI(spi_mosi),
+   .spimode(spi_mode)
+);
+
+// NeoPixel LED driver instantiation
+// Uses clk_over_4 (12.5 MHz from command_processor) to generate WS2812B timing
+neo_driver neo_driver_inst (
+   .clk_over_4(clk_over_4),
+   .neo_color(neo_color),
+   .send_color(send_color),
+   .led(neo_led)
 );
 
 // Triggerer instantiation
@@ -443,6 +653,7 @@ command_processor cmd_proc_inst (
    .lvdsout_spare(lvdsout_spare),
    .clk50(clk50),  // 50 MHz for fan PWM, clk_over_4, PLL reset
    .clk_over_4(clk_over_4),
+   .fanon(fan_out),
 
    // Flash interface
    .flash_addr(flash_addr),
