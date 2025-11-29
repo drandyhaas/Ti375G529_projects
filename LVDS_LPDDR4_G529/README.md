@@ -20,13 +20,137 @@ This project implements a digital oscilloscope with LVDS data inputs, LPDDR4 mem
 
 ### Clock Domains
 
-- **clk_command (200 MHz)**: Command processor, USB interface, sample RAM read port
-- **clk50 (50 MHz)**: Slow peripherals (fan PWM, flash clock, PLL reset)
-- **axi0_ACLK (200 MHz)**: DDR AXI interface, memory test timing
-- **regACLK (100 MHz)**: DDR register interface
-- **lvds_clk**: LVDS data sampling
+- **clk_command**: Command processor, USB interface, sample RAM read port
+- **axi0_ACLK**: DDR AXI interface, memory test timing
+- **regACLK**: DDR register interface
+- **lvds_clk_slow_clkinX**: LVDS data processing (X = 1,2,3,4 per group)
+- **lvds_clk_fast_clkinX**: LVDS deserializer (X = 1,2,3,4 per group)
+- **ftdi_clk**: USB FT60X interface (directly from FTDI chip)
 
-The command_processor runs at 200 MHz for maximum USB throughput. An AXI-Lite CDC (Clock Domain Crossing) module bridges between clk_command and regACLK domains for DDR register access.
+The command_processor runs at clk_command for maximum USB throughput. An AXI-Lite CDC (Clock Domain Crossing) module bridges between clk_command and regACLK domains for DDR register access.
+
+### PLL Architecture
+
+The design uses 7 PLLs for clock generation:
+
+```
+                                    ┌─────────────────────────────────────────┐
+                                    │           LVDS CLOCK INPUTS             │
+                                    └─────────────────────────────────────────┘
+                                                       │
+         ┌─────────────────┬─────────────────┬─────────┴───────┬─────────────────┐
+         ▼                 ▼                 ▼                 ▼
+  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+  │ LVDS clkin1 │   │ LVDS clkin2 │   │ LVDS clkin3 │   │ LVDS clkin4 │
+  │   750 MHz   │   │   750 MHz   │   │   750 MHz   │   │   750 MHz   │
+  └──────┬──────┘   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘
+         ▼                 ▼                 ▼                 ▼
+  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+  │  PLL_TL1    │   │  PLL_TL0    │   │  PLL_BL0    │   │  PLL_BL1    │
+  │ pll_lvds_   │   │ pll_lvds_   │   │ pll_lvds_   │   │ pll_lvds_   │
+  │ top_clkin1  │   │ top_clkin2  │   │ bottom_     │   │ bottom_     │
+  │             │   │             │   │ clkin3      │   │ clkin4      │
+  └──────┬──────┘   └──────┬──────┘   └──────┬──────┘   └──────┬──────┘
+         │                 │                 │                 │
+    ┌────┴────┐       ┌────┴────┐       ┌────┴────┐       ┌────┴────┐
+    ▼         ▼       ▼         ▼       ▼         ▼       ▼         ▼
+ 750MHz    150MHz  750MHz    150MHz  750MHz    150MHz  750MHz    150MHz
+  fast      slow    fast      slow    fast      slow    fast      slow
+    │         │       │         │       │         │       │         │
+    ▼         ▼       ▼         ▼       ▼         ▼       ▼         ▼
+  ┌───────────────────────────────────────────────────────────────────┐
+  │                    LVDS RX Groups 1-4 (52 channels)               │
+  └───────────────────────────────────────────────────────────────────┘
+
+
+  ┌─────────────┐   ┌─────────────┐              ┌─────────────┐
+  │  ddr_pllin  │   │ main_pllin  │              │  ext_clkin  │
+  │   100 MHz   │   │   100 MHz   │              │   50 MHz    │
+  │  (GPIOL_32) │   │             │              │ (GPIOR_P_00)│
+  └──────┬──────┘   └──────┬──────┘              └──────┬──────┘
+         ▼                 │                            ▼
+  ┌─────────────┐          │                     ┌─────────────┐
+  │  PLL_TL2    │          │                     │  PLL_BR0    │
+  │  pll_ddr    │          │                     │  pll_ext    │
+  └──────┬──────┘          │                     └──────┬──────┘
+         │                 │                            │
+    ┌────┼────────────┐    │                            ▼
+    ▼    ▼            ▼    │                     ┌─────────────┐
+ regACLK axi0_ACLK  ddr_clk│                     │ext_clkin_100│
+    │    │                 │                     └──────┬──────┘
+    │    │                 │                            │
+    │    ▼                 │                            │
+    │  ┌─────────────────────────────────────────────┐  │
+    │  │              PLL_BL2 - pll_main             │  │
+    │  │         (dynamic 4-input clock select)      │  │
+    │  │                                             │  │
+    └──┼──► CLKSEL=10: regACLK                       │  │
+       │                                             │◄─┘
+       │    CLKSEL=01: main_pllin ◄──────────────────┼──┘
+       │    CLKSEL=00: lvdsin_clk ◄── (from LVDS RX) │
+       │    CLKSEL=11: ext_clkin_100                 │
+       └──────────────────┬──────────────────────────┘
+                          │
+                     ┌────┼────────────┐
+                     ▼    ▼            ▼
+                 clk_cmd adc_clkout  clk50
+```
+
+### PLL Details
+
+| PLL Name | Location | Input | Outputs | Description |
+|----------|----------|-------|---------|-------------|
+| pll_lvds_top_clkin1 | PLL_TL1 | 750 MHz LVDS | 750 MHz fast, 150 MHz slow | LVDS Group 1 clocks |
+| pll_lvds_top_clkin2 | PLL_TL0 | 750 MHz LVDS | 750 MHz fast, 150 MHz slow | LVDS Group 2 clocks |
+| pll_lvds_bottom_clkin3 | PLL_BL0 | 750 MHz LVDS | 750 MHz fast, 150 MHz slow | LVDS Group 3 clocks |
+| pll_lvds_bottom_clkin4 | PLL_BL1 | 750 MHz LVDS | 750 MHz fast, 150 MHz slow | LVDS Group 4 clocks |
+| pll_ddr | PLL_TL2 | 100 MHz (ddr_pllin) | regACLK, axi0_ACLK, ddr_clk | DDR memory clocks |
+| pll_main | PLL_BL2 | Dynamic select | clk_command, adc_clkout, clk50 | System clocks |
+| pll_ext | PLL_BR0 | 50 MHz (ext_clkin) | ext_clkin_100 | External clock processing |
+
+### Dynamic Clock Selection (pll_main)
+
+The main PLL supports runtime clock source switching via `pll_main_CLKSEL[1:0]`:
+
+| CLKSEL | Source | Description |
+|--------|--------|-------------|
+| 00 | lvdsin_clk | LVDS clock input (from external source) |
+| 01 | main_pllin | Direct PLL reference input |
+| 10 | regACLK | From pll_ddr (DDR-synchronized) |
+| 11 | ext_clkin_100 | From pll_ext (external clock doubled) |
+
+Control signals:
+- `pll_main_CLKSEL[1:0]` - Clock source select (controlled from command_processor)
+- `pll_main_LOCKED` - PLL lock status output
+- `ddr_pll_rstn` - PLL reset (active low)
+
+### Clock Flow Summary
+
+```
+External Inputs:
+  - 4x LVDS clock pairs (750 MHz) → LVDS PLLs → fast/slow clocks per group
+  - ddr_pllin (100 MHz) → pll_ddr → DDR clocks + regACLK
+  - main_pllin (100 MHz) → direct to pll_main (CLKSEL=01)
+  - ext_clkin (50 MHz) → pll_ext → ext_clkin_100
+  - lvdsin_clk → direct to pll_main (CLKSEL=00)
+  - ftdi_clk (100 MHz) → direct to USB interface (no PLL)
+
+pll_main Input Selection (CLKSEL[1:0]):
+  - 00: lvdsin_clk - LVDS-synchronized operation
+  - 01: main_pllin - direct external reference
+  - 10: regACLK - DDR-synchronized (from pll_ddr)
+  - 11: ext_clkin_100 - from pll_ext
+
+Clock Domains:
+  LVDS:  lvds_clk_fast_clkinX (750 MHz) - deserializer
+         lvds_clk_slow_clkinX (150 MHz) - data processing, sample_ram write
+  DDR:   ddr_clk - DDR PHY interface
+         axi0_ACLK - AXI memory interface
+         regACLK - DDR register access
+  Main:  clk_command - command processor, USB TX/RX, sample_ram read
+         clk50 - slow peripherals (fan, NeoPixel, flash)
+  USB:   ftdi_clk (100 MHz) - FT60X FIFO interface
+```
 
 ### Hardware Components
 

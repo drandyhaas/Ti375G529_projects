@@ -8,7 +8,7 @@ This document describes the pin assignments for the LVDS_LPDDR4_G529 project on 
 
 | Signal         | Pin        | Ball | Direction |
 |----------------|------------|------|-----------|
-| ftdi_data[0]   | GPIOR_P_00 | C5   | inout     |
+| ftdi_data[0]   | GPIOR_72   | F9   | inout     |
 | ftdi_data[1]   | GPIOR_P_01 | A5   | inout     |
 | ftdi_data[2]   | GPIOR_P_02 | E6   | inout     |
 | ftdi_data[3]   | GPIOR_P_03 | B7   | inout     |
@@ -65,6 +65,12 @@ This document describes the pin assignments for the LVDS_LPDDR4_G529 project on 
 | ftdi_wakeupn | GPIOR_68 | F7   | output    | Wake up (active low)     |
 | ftdi_gpio0   | GPIOR_69 | H8   | output    | GPIO 0                   |
 | ftdi_gpio1   | GPIOR_70 | G7   | output    | GPIO 1                   |
+
+### External Clock Input (1.8V LVCMOS)
+
+| Signal       | Pin        | Ball | Direction | Description                              |
+|--------------|------------|------|-----------|------------------------------------------|
+| ext_clkin    | GPIOR_P_00 | C5   | input     | External clock input (PLL reference)     |
 
 ## GPIO Bank L - LEDs, SPI, NeoPixel and Fan Control (3.3V LVCMOS)
 
@@ -267,22 +273,22 @@ All LVDS signals use differential pairs with 10-bit deserialization (half-rate m
 | lvdsin_trig_b  | GPIOB_PN_30  | D5/E5      | input     | LVDS trigger input B                     |
 | lvdsin_spare   | GPIOB_PN_31  | G6/H6      | input     | LVDS spare input                         |
 
-#### Single-Ended Trigger Input (Bank 4A - Bottom, 3.3V LVCMOS)
+#### Single-Ended Trigger Inputs (Bank B, 1.8V LVCMOS)
 
 | Signal         | Pin          | Ball   | Direction | Description                              |
 |----------------|--------------|--------|-----------|------------------------------------------|
 | exttrigin      | GPIOB_P_34   | F5     | input     | External trigger input                   |
 
-#### LVDS Outputs (Bank 2C - Top)
+#### LVDS Outputs (Bank T)
 
 | Signal         | Pin          | Ball (P/N) | Direction | Description                              |
 |----------------|--------------|------------|-----------|------------------------------------------|
-| lvdsout_clk    | GPIOT_PN_28  | J18/J17    | output    | LVDS clock output (driven by lvds_clk_slow_clkin1) |
-| lvdsout_trig   | GPIOT_PN_29  | F19/E19    | output    | LVDS trigger output                      |
+| lvdsout_clk    | GPIOT_PN_29  | F19/E19    | output    | LVDS clock output (driven by lvds_clk_slow_clkin1) |
 | lvdsout_trig_b | GPIOT_PN_30  | D21/D20    | output    | LVDS trigger output B                    |
 | lvdsout_spare  | GPIOT_PN_31  | H19/H18    | output    | LVDS spare output                        |
+| lvdsout_trig   | GPIOT_PN_32  | J18/J17    | output    | LVDS trigger output                      |
 
-#### Single-Ended Auxiliary Output (Bank 2C - Top, 3.3V LVCMOS)
+#### Single-Ended Auxiliary Output (Bank T, 3.3V LVCMOS)
 
 | Signal         | Pin          | Ball   | Direction | Description                              |
 |----------------|--------------|--------|-----------|------------------------------------------|
@@ -304,21 +310,104 @@ DDR pins are automatically assigned by the Efinix DDR hard block and are not use
 
 ## PLL Configuration
 
-### Main PLL (PLL_TL2)
+The design uses 7 PLLs for clock generation:
 
-| Output    | Divider | Description           |
-|-----------|---------|------------------------|
-| ddr_clk   | 3       | DDR clock output       |
+### PLL Overview
+
+| PLL Name              | Location | Reference      | VCO (MHz) | Description                           |
+|-----------------------|----------|----------------|-----------|---------------------------------------|
+| pll_lvds_top_clkin1   | PLL_TL1  | 750 MHz ext    | 750       | LVDS Group 1 clocks                   |
+| pll_lvds_top_clkin2   | PLL_TL0  | 750 MHz ext    | 750       | LVDS Group 2 clocks                   |
+| pll_main              | PLL_BL2  | 100 MHz (dyn)  | 100       | Main system clocks (dynamic select)   |
+| pll_lvds_bottom_clkin3| PLL_BL0  | 750 MHz ext    | 750       | LVDS Group 3 clocks                   |
+| pll_lvds_bottom_clkin4| PLL_BL1  | 750 MHz ext    | 750       | LVDS Group 4 clocks                   |
+| pll_ddr               | PLL_TL2  | 100 MHz ext    | 50        | DDR memory clocks                     |
+| pll_ext               | PLL_BR0  | 50 MHz ext     | 25        | External clock processing             |
+
+### LVDS PLLs (pll_lvds_top_clkin1, pll_lvds_top_clkin2, pll_lvds_bottom_clkin3, pll_lvds_bottom_clkin4)
+
+All LVDS PLLs use the same configuration with 750 MHz input from their respective LVDS clock inputs:
+
+| Output                    | Divider | Frequency | Description                      |
+|---------------------------|---------|-----------|----------------------------------|
+| lvds_clk_fast_clkinX      | 4       | 750 MHz   | Fast clock for LVDS deserializer |
+| lvds_clk_slow_clkinX      | 20      | 150 MHz   | Slow clock for LVDS data         |
+
+Where X = 1, 2, 3, or 4 corresponding to each LVDS group.
+
+### Main PLL (pll_main) - PLL_BL2
+
+Dynamic clock select PLL with two reference clock sources:
+- **Primary (CLKSEL=0)**: regACLK (100 MHz from pll_ddr)
+- **Secondary (CLKSEL=1-3)**: ext_clkin_100 (100 MHz from pll_ext)
 
 Control signals:
+- `pll_main_CLKSEL[1:0]` - Clock select (00=regACLK, others=ext_clkin_100)
 - `ddr_pll_rstn` - PLL reset (active low)
+- `pll_main_LOCKED` - PLL lock status output
+
+| Output      | Divider | Frequency | Description                     |
+|-------------|---------|-----------|----------------------------------|
+| clk_command | 13      | 7.69 MHz  | Command processor clock          |
+| adc_clkout  | 52      | 1.92 MHz  | ADC clock output                 |
+| clk50       | 52      | 1.92 MHz  | 50 MHz derived clock             |
+
+### DDR PLL (pll_ddr) - PLL_TL2
+
+Reference: 100 MHz external (from ddr_pllin via GPIOL_32)
+
+Control signals:
 - `ddr_pll_lock` - PLL lock status output
+
+| Output     | Divider | Frequency | Description                      |
+|------------|---------|-----------|----------------------------------|
+| regACLK    | 24      | 4.17 MHz  | Register/control clock           |
+| axi0_ACLK  | 12      | 8.33 MHz  | AXI bus clock                    |
+| ddr_clk    | 3       | 33.3 MHz  | DDR interface clock              |
+
+### External Clock PLL (pll_ext) - PLL_BR0
+
+Reference: 50 MHz external (from ext_clkin via GPIOR_P_00)
+
+Control signals:
+- `pll_ext_LOCKED` - PLL lock status output
+
+| Output         | Divider | Frequency | Description                      |
+|----------------|---------|-----------|----------------------------------|
+| pll_ext_feedback| 54     | 0.46 MHz  | Internal feedback                |
+| ext_clkin_100  | 27      | 0.93 MHz  | Alternate reference for pll_main |
+
+## Available Pins
+
+The following GPIO pins are currently unassigned and available for use:
+
+### GPIO Bank L (3.3V LVCMOS)
+
+| Pin        | Ball | Notes                                    |
+|------------|------|------------------------------------------|
+| GPIOL_20   | -    | Previously used for led2 (now removed)   |
+| GPIOL_21   | -    | Available                                |
+| GPIOL_24   | -    | Available                                |
+| GPIOL_25   | -    | Available                                |
+| GPIOL_36   | -    | Available                                |
+| GPIOL_39+  | -    | Higher numbered pins may be available    |
+
+### GPIO Bank R (1.8V LVCMOS)
+
+| Pin        | Ball | Notes                                    |
+|------------|------|------------------------------------------|
+| GPIOR_62   | -    | Available                                |
+| GPIOR_64   | -    | Available                                |
+| GPIOR_67   | -    | Available                                |
+
+Note: Many GPIOR pins are used for FTDI interface, debug output, and board I/O. Check peri.xml for the complete list of assigned pins before using any pin.
 
 ## Summary
 
 | Interface           | Total Pins | IO Bank(s)      | IO Standard  |
 |---------------------|------------|-----------------|--------------|
 | FTDI USB3           | 45         | GPIO Bank R     | 1.8V LVCMOS  |
+| External Clock In   | 1          | GPIO Bank R     | 1.8V LVCMOS  |
 | LEDs                | 4          | GPIO Bank L     | 3.3V LVCMOS  |
 | SPI                 | 11         | GPIO Bank L     | 3.3V LVCMOS  |
 | NeoPixel + Fan      | 2          | GPIO Bank L     | 3.3V LVCMOS  |
@@ -327,7 +416,7 @@ Control signals:
 | Overrange + Lock    | 8          | GPIO Bank R     | 1.8V LVCMOS  |
 | LVDS Data           | 52 pairs   | GPIO Banks T, B | LVDS         |
 | LVDS Clocks         | 4 pairs    | GPIO Banks T, B | LVDS         |
-| LVDS Clock/Trigger  | 8 pairs    | Bank 2C, 4A     | LVDS         |
-| Ext Trigger/Aux     | 2          | Bank 2C, 4A     | 3.3V LVCMOS  |
+| LVDS Clock/Trigger  | 8 pairs    | Banks T, B      | LVDS         |
+| Ext Trigger/Aux     | 2          | Banks T, B      | 1.8V/3.3V    |
 | DDR4                | Hard block | DDR_0           | -            |
-| PLL                 | Hard block | PLL_TL2         | -            |
+| PLLs                | 7          | Various         | -            |

@@ -63,7 +63,7 @@ module command_processor (
    input wire  [7:0] boardin,
    output reg  [7:0] boardout=0,
    output reg        spireset_L=1'b1,
-   output reg        clkswitch=0, // to switch between external clock and internal oscillator
+   output reg [1:0]  pll_main_CLKSEL=0, // PLL clock source select
    input wire        lvdsin_spare,
    output reg        lvdsout_spare=0,
    input wire        clk50, // needed while doing pllreset
@@ -119,7 +119,7 @@ module command_processor (
 integer version = 32, version_minor = 1; // firmware versions
 
 // these first 10 debugout's go to LEDs on the board
-assign debugout[0] = clkswitch;
+assign debugout[0] = pll_main_CLKSEL[0];
 assign debugout[1] = clkout_ena;
 assign debugout[2] = send_color;
 assign debugout[3] = lvdsin_spare;
@@ -323,7 +323,7 @@ always @ (posedge clk) begin
          4: o_tdata <= {16'd0,triggerphase_sync[7:0],downsamplemergingcounter_triggered_sync};
          5: begin
             lvdsout_spare <= rx_data[2][0]; // used for telling order of devices
-            o_tdata <= {8'd0, 7'd0,lvdsin_spare, 4'd0,lockinfo, 7'd0,~clkswitch};
+            o_tdata <= {8'd0, 7'd0,lvdsin_spare, 4'd0,lockinfo, 6'd0,pll_main_CLKSEL};
          end
          6: begin // old on/off fan control
             if (rx_data[2][0]) fanpwm <= 8'hff;
@@ -474,9 +474,9 @@ always @ (posedge clk) begin
          state <= PLLCLOCK;
       end
 
-      7 : begin // try to switch clocks
-         clkswitch <= ~clkswitch;
-         o_tdata <= {8'd0,8'd0,4'd0,lockinfo,7'd0,~clkswitch};
+      7 : begin // set PLL clock select
+         pll_main_CLKSEL <= rx_data[2][1:0];
+         o_tdata <= {8'd0,8'd0,4'd0,lockinfo,6'd0,rx_data[2][1:0]};
          `SEND_STD_USB_RESPONSE
       end
 

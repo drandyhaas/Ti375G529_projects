@@ -7,8 +7,7 @@ input           lvds_clk_fast_clkin1,
 
 // LVDS clock input (for PLL reference) and output
 input           lvdsin_clk,             // LVDS clock input, can be used as PLL reference
-output          lvdsout_clk,            // LVDS clock output, directly driven by lvds_clk_slow_clkin1
-output          lvdsout_clk_TX_OE,      // LVDS TX output enable
+output          lvdsout_clk_TX_OE,      // LVDS TX output enable (directly drives lvds_clk_slow_clkin1 to pin)
 output          lvdsout_trig_TX_OE,     // LVDS TX output enable
 output          lvdsout_trig_b_TX_OE,   // LVDS TX output enable
 output          lvdsout_spare_TX_OE,    // LVDS TX output enable
@@ -323,7 +322,7 @@ input           spi_miso,
 output [7:0]    spics,
 
 // Clock control
-output          clkswitch,
+output [1:0]    pll_main_CLKSEL,
 
 // Board I/O
 output [11:0]   debugout,
@@ -950,7 +949,7 @@ command_processor cmd_proc_inst (
    .overrange(overrange),
    .boardin(boardin),
    .boardout(boardout),
-   .clkswitch(clkswitch),
+   .pll_main_CLKSEL(pll_main_CLKSEL),
    .lvdsin_spare(lvdsin_spare),
    .lvdsout_spare(lvdsout_spare),
    .clk50(clk50),  // 50 MHz for fan PWM, clk_over_4, PLL reset
@@ -1138,9 +1137,8 @@ tools_core core0(
 .cmd_axi_rready(cmd_axi_rready)
 );
 
-// LVDS clock output - drive with lvds_clk_slow_clkin1 to provide a reference clock output
-assign lvdsout_clk = lvds_clk_slow_clkin1;
 // lvdsout_clk_TX_OE is driven by command_processor via clkout_ena
+// The LVDS TX primitive in peri.xml drives lvds_clk_slow_clkin1 directly to the pin (mode="clkout")
 
 // LVDS trigger TX control signals - always enabled
 assign lvdsout_trig_TX_OE = 1'b1;
