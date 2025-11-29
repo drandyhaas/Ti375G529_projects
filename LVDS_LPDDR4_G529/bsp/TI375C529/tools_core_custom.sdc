@@ -63,23 +63,23 @@ set_clock_groups -exclusive \
 # ============================================================================
 
 # Sample RAM address crossings (dual-port RAM with separate clocks)
-# Write address is in lvds_clk_slow domain, read port is in clk_command domain
-# Read address is in clk_command domain, write port is in lvds_clk_slow domain
+# Write address is in lvds_clk_slow_clkin1 domain, read port is in clk_command domain
+# Read address is in clk_command domain, write port is in lvds_clk_slow_clkin1 domain
 # These are safe because:
-# - Write address changes only when writing (lvds_clk_slow domain)
+# - Write address changes only when writing (lvds_clk_slow_clkin1 domain)
 # - Read address changes only when reading (clk_command domain)
 # - RAM handles the async crossing internally
-set_false_path -from [get_clocks lvds_clk_slow] -to [get_clocks clk_command]
-set_false_path -from [get_clocks clk_command] -to [get_clocks lvds_clk_slow]
+set_false_path -from [get_clocks lvds_clk_slow_clkin1] -to [get_clocks clk_command]
+set_false_path -from [get_clocks clk_command] -to [get_clocks lvds_clk_slow_clkin1]
 
-# Trigger lines to phase detector (lvds_clk_slow → lvds_clk_fast)
-# lvdsout_trig and lvdsout_trig_b are generated in lvds_clk_slow domain
-# and sampled by phase_detector in lvds_clk_fast domain
+# Trigger lines to phase detector (lvds_clk_slow_clkin1 → lvds_clk_fast_clkin1)
+# lvdsout_trig and lvdsout_trig_b are generated in lvds_clk_slow_clkin1 domain
+# and sampled by phase_detector in lvds_clk_fast_clkin1 domain
 # The phase detector is designed to handle this async input
-set_false_path -from [get_clocks lvds_clk_slow] -to [get_clocks lvds_clk_fast]
+set_false_path -from [get_clocks lvds_clk_slow_clkin1] -to [get_clocks lvds_clk_fast_clkin1]
 
-# Phase detector output to command processor (lvds_clk_fast → clk_command)
+# Phase detector output to command processor (lvds_clk_fast_clkin1 → clk_command)
 # phase_diff signals use 2-FF synchronizer in command_processor.v:
 #   phase_diff_sync1 <= phase_diff;     // 1st FF
 #   phase_diff_sync <= phase_diff_sync1; // 2nd FF
-set_false_path -from [get_clocks lvds_clk_fast] -to [get_clocks clk_command]
+set_false_path -from [get_clocks lvds_clk_fast_clkin1] -to [get_clocks clk_command]

@@ -269,14 +269,14 @@ Critical clock constraints in `tools_core.pt.sdc` and `tools_core_custom.sdc`:
 | axi0_ACLK | 200 MHz | +0.276 ns | DDR AXI interface |
 | clk_command | 200 MHz | +0.644 ns | USB/command processor |
 | regACLK | 100 MHz | +5.777 ns | DDR register interface |
-| lvds_clk_fast | 750 MHz | +0.535 ns | LVDS high-speed sampling |
-| lvds_clk_slow | 150 MHz | +0.972 ns | LVDS data processing |
+| lvds_clk_fast_clkin1 | 750 MHz | +0.535 ns | LVDS high-speed sampling |
+| lvds_clk_slow_clkin1 | 150 MHz | +0.972 ns | LVDS data processing |
 | ftdi_clk | 100 MHz | +5.610 ns | USB FT60X interface |
 
 **Clock Domain Crossings (CDC):**
-- `lvds_clk_slow ↔ clk_command`: False-pathed (sample_ram uses dual-port RAM)
-- `lvds_clk_slow → lvds_clk_fast`: False-pathed (phase detector input)
-- `lvds_clk_fast → clk_command`: False-pathed (2-FF synchronizer on phase_diff)
+- `lvds_clk_slow_clkin1 ↔ clk_command`: False-pathed (sample_ram uses dual-port RAM)
+- `lvds_clk_slow_clkin1 → lvds_clk_fast_clkin1`: False-pathed (phase detector input)
+- `lvds_clk_fast_clkin1 → clk_command`: False-pathed (2-FF synchronizer on phase_diff)
 - `clk_command ↔ regACLK`: Handshake-based CDC in axi_lite_cdc.v
 
 ## Register Map (DDR Controller)

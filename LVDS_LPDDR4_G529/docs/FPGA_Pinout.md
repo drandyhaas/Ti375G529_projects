@@ -278,7 +278,7 @@ All LVDS signals use differential pairs with 10-bit deserialization (half-rate m
 
 | Signal         | Pin          | Ball (P/N) | Direction | Description                              |
 |----------------|--------------|------------|-----------|------------------------------------------|
-| lvdsout_clk    | GPIOT_PN_28  | J18/J17    | output    | LVDS clock output (driven by lvds_clk_slow) |
+| lvdsout_clk    | GPIOT_PN_28  | J18/J17    | output    | LVDS clock output (driven by lvds_clk_slow_clkin1) |
 | lvdsout_trig   | GPIOT_PN_29  | F19/E19    | output    | LVDS trigger output                      |
 | lvdsout_trig_b | GPIOT_PN_30  | D21/D20    | output    | LVDS trigger output B                    |
 | lvdsout_spare  | GPIOT_PN_31  | H19/H18    | output    | LVDS spare output                        |

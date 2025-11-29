@@ -2,12 +2,12 @@
 module top (
 
 // LVDS clocks
-input           lvds_clk_slow,
-input           lvds_clk_fast,
+input           lvds_clk_slow_clkin1,
+input           lvds_clk_fast_clkin1,
 
 // LVDS clock input (for PLL reference) and output
 input           lvdsin_clk,             // LVDS clock input, can be used as PLL reference
-output          lvdsout_clk,            // LVDS clock output, directly driven by lvds_clk_slow
+output          lvdsout_clk,            // LVDS clock output, directly driven by lvds_clk_slow_clkin1
 output          lvdsout_clk_TX_OE,      // LVDS TX output enable
 output          lvdsout_clk_TX_RST,     // LVDS TX reset
 output          lvdsout_trig_TX_OE,     // LVDS TX output enable
@@ -438,7 +438,7 @@ wire cmd_axi_rvalid, cmd_axi_rready;
 reg [139:0] lvds1bits, lvds2bits, lvds3bits, lvds4bits;
 
 // Concatenate all 13 channels per group into lvdsbits (130 bits, padded to 140)
-always @(posedge lvds_clk_slow) begin
+always @(posedge lvds_clk_slow_clkin1) begin
    // Group 1: channels 1-13 (130 bits) + 10 bits padding
    lvds1bits <= {10'b0,
                  lvds_rx1_13_RX_DATA, lvds_rx1_12_RX_DATA, lvds_rx1_11_RX_DATA,
@@ -471,7 +471,7 @@ end
 
 // Dual-port RAM for storing LVDS samples
 sample_ram sample_ram_inst (
-   .clk_wr(lvds_clk_slow),
+   .clk_wr(lvds_clk_slow_clkin1),
    .wr_en(ram_wr),
    .wr_addr(ram_wr_address),
    .wr_data(lvdsbitsout),
@@ -482,7 +482,7 @@ sample_ram sample_ram_inst (
 
 // Downsampler instantiation
 downsampler downsampler_inst (
-   .clklvds(lvds_clk_slow),
+   .clklvds(lvds_clk_slow_clkin1),
    .lvds1bits(lvds1bits),
    .lvds2bits(lvds2bits),
    .lvds3bits(lvds3bits),
@@ -498,7 +498,7 @@ downsampler downsampler_inst (
 
 // Phase detector for forward trigger path
 phase_detector phase_det_fwd (
-   .clk_fast(lvds_clk_fast),
+   .clk_fast(lvds_clk_fast_clkin1),
    .start(lvdsout_trig),
    .stop(lvdsin_trig_b),
    .phase_diff(phase_diff)
@@ -506,7 +506,7 @@ phase_detector phase_det_fwd (
 
 // Phase detector for backward trigger path
 phase_detector phase_det_bwd (
-   .clk_fast(lvds_clk_fast),
+   .clk_fast(lvds_clk_fast_clkin1),
    .start(lvdsout_trig_b),
    .stop(lvdsin_trig),
    .phase_diff(phase_diff_b)
@@ -541,7 +541,7 @@ neo_driver neo_driver_inst (
 
 // Triggerer instantiation
 triggerer triggerer_inst (
-   .clklvds(lvds_clk_slow),
+   .clklvds(lvds_clk_slow_clkin1),
    .rstn(rstn),
    .ram_wr(ram_wr),
    .ram_wr_address(ram_wr_address),
@@ -837,8 +837,8 @@ tools_core core0(
 .cmd_axi_rready(cmd_axi_rready)
 );
 
-// LVDS clock output - drive with lvds_clk_slow to provide a reference clock output
-assign lvdsout_clk = lvds_clk_slow;
+// LVDS clock output - drive with lvds_clk_slow_clkin1 to provide a reference clock output
+assign lvdsout_clk = lvds_clk_slow_clkin1;
 assign lvdsout_clk_TX_OE = 1'b1;     // Always enable output
 assign lvdsout_clk_TX_RST = 1'b0;    // Not in reset
 
