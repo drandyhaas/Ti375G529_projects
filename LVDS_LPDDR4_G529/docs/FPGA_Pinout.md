@@ -66,37 +66,45 @@ This document describes the pin assignments for the LVDS_LPDDR4_G529 project on 
 | ftdi_gpio0   | GPIOR_69 | output    | GPIO 0                   |
 | ftdi_gpio1   | GPIOR_70 | output    | GPIO 1                   |
 
-## GPIO Bank R - LEDs (1.8V LVCMOS)
+## GPIO Bank L - LEDs, SPI, NeoPixel and Fan Control (3.3V LVCMOS)
 
-| Signal  | Pin        | Direction | Description    |
-|---------|------------|-----------|----------------|
-| LED[0]  | GPIOR_71   | output    | User LED 0     |
-| LED[1]  | GPIOR_72   | output    | User LED 1     |
-| LED[2]  | GPIOR_N_00 | output    | User LED 2     |
-| LED[3]  | GPIOR_N_01 | output    | User LED 3     |
+### LEDs
 
-## GPIO Bank R - SPI Interface (1.8V LVCMOS)
+| Signal  | Pin       | Direction | Description    |
+|---------|-----------|-----------|----------------|
+| LED[0]  | GPIOL_07  | output    | User LED 0     |
+| LED[1]  | GPIOL_08  | output    | User LED 1     |
+| LED[2]  | GPIOL_09  | output    | User LED 2     |
+| LED[3]  | GPIOL_10  | output    | User LED 3     |
 
-| Signal    | Pin        | Direction | Description              |
-|-----------|------------|-----------|--------------------------|
-| spi_clk   | GPIOR_P_09 | output    | SPI clock                |
-| spi_mosi  | GPIOR_P_10 | output    | SPI master out, slave in |
-| spi_miso  | GPIOR_P_11 | input     | SPI master in, slave out |
-| spics[0]  | GPIOR_P_12 | output    | SPI chip select 0        |
-| spics[1]  | GPIOR_P_13 | output    | SPI chip select 1        |
-| spics[2]  | GPIOR_P_14 | output    | SPI chip select 2        |
-| spics[3]  | GPIOR_P_15 | output    | SPI chip select 3        |
-| spics[4]  | GPIOR_N_09 | output    | SPI chip select 4        |
-| spics[5]  | GPIOR_N_10 | output    | SPI chip select 5        |
-| spics[6]  | GPIOR_N_11 | output    | SPI chip select 6        |
-| spics[7]  | GPIOR_N_12 | output    | SPI chip select 7        |
+### SPI Interface
 
-## GPIO Bank R - NeoPixel and Fan Control (1.8V LVCMOS)
+| Signal    | Pin       | Direction | Description              |
+|-----------|-----------|-----------|--------------------------|
+| spi_clk   | GPIOL_26  | output    | SPI clock                |
+| spi_mosi  | GPIOL_27  | output    | SPI master out, slave in |
+| spi_miso  | GPIOL_28  | input     | SPI master in, slave out |
+| spics[0]  | GPIOL_29  | output    | SPI chip select 0        |
+| spics[1]  | GPIOL_30  | output    | SPI chip select 1        |
+| spics[2]  | GPIOL_31  | output    | SPI chip select 2        |
+| spics[3]  | GPIOL_33  | output    | SPI chip select 3        |
+| spics[4]  | GPIOL_34  | output    | SPI chip select 4        |
+| spics[5]  | GPIOL_35  | output    | SPI chip select 5        |
+| spics[6]  | GPIOL_37  | output    | SPI chip select 6        |
+| spics[7]  | GPIOL_38  | output    | SPI chip select 7        |
 
-| Signal   | Pin        | Direction | Description                    |
-|----------|------------|-----------|--------------------------------|
-| neo_led  | GPIOR_N_02 | output    | WS2812B NeoPixel data output   |
-| fan_out  | GPIOR_N_03 | output    | PWM output for fan control     |
+### NeoPixel and Fan Control
+
+| Signal   | Pin       | Direction | Description                    |
+|----------|-----------|-----------|--------------------------------|
+| neo_led  | GPIOL_22  | output    | WS2812B NeoPixel data output   |
+| fan_out  | GPIOL_23  | output    | PWM output for fan control     |
+
+### DDR PLL Reference Clock
+
+| Signal    | Pin       | Direction | Description                |
+|-----------|-----------|-----------|----------------------------|
+| ddr_pllin | GPIOL_32  | input     | DDR PLL reference clock    |
 
 ## GPIO Bank R - Debug Output (1.8V LVCMOS)
 
@@ -107,9 +115,9 @@ This document describes the pin assignments for the LVDS_LPDDR4_G529 project on 
 | debugout[2]  | GPIOR_N_06 | output    | Debug bit 2    |
 | debugout[3]  | GPIOR_N_07 | output    | Debug bit 3    |
 | debugout[4]  | GPIOR_N_08 | output    | Debug bit 4    |
-| debugout[5]  | GPIOR_N_13 | output    | Debug bit 5    |
-| debugout[6]  | GPIOR_N_14 | output    | Debug bit 6    |
-| debugout[7]  | GPIOR_N_15 | output    | Debug bit 7    |
+| debugout[5]  | GPIOR_N_00 | output    | Debug bit 5    |
+| debugout[6]  | GPIOR_N_01 | output    | Debug bit 6    |
+| debugout[7]  | GPIOR_N_02 | output    | Debug bit 7    |
 | debugout[8]  | GPIOR_N_16 | output    | Debug bit 8    |
 | debugout[9]  | GPIOR_N_17 | output    | Debug bit 9    |
 | debugout[10] | GPIOR_N_18 | output    | Debug bit 10   |
@@ -138,10 +146,10 @@ This document describes the pin assignments for the LVDS_LPDDR4_G529 project on 
 | boardin[1]  | GPIOR_N_29 | input     | Board input bit 1 |
 | boardin[2]  | GPIOR_N_30 | input     | Board input bit 2 |
 | boardin[3]  | GPIOR_N_31 | input     | Board input bit 3 |
-| boardin[4]  | GPIOR_N_32 | input     | Board input bit 4 |
-| boardin[5]  | GPIOR_N_33 | input     | Board input bit 5 |
-| boardin[6]  | GPIOR_N_34 | input     | Board input bit 6 |
-| boardin[7]  | GPIOR_N_35 | input     | Board input bit 7 |
+| boardin[4]  | GPIOR_N_03 | input     | Board input bit 4 |
+| boardin[5]  | GPIOR_N_44 | input     | Board input bit 5 |
+| boardin[6]  | GPIOR_N_45 | input     | Board input bit 6 |
+| boardin[7]  | GPIOR_71   | input     | Board input bit 7 |
 
 ### Overrange and Lock Status Inputs
 
@@ -155,12 +163,6 @@ This document describes the pin assignments for the LVDS_LPDDR4_G529 project on 
 | lockinfo[1]  | GPIOR_N_41 | input     | PLL lock status bit 1   |
 | lockinfo[2]  | GPIOR_N_42 | input     | PLL lock status bit 2   |
 | lockinfo[3]  | GPIOR_N_43 | input     | PLL lock status bit 3   |
-
-## GPIO Bank L - DDR PLL Reference Clock
-
-| Signal    | Pin      | Direction | IO Standard  | Description           |
-|-----------|----------|-----------|--------------|------------------------|
-| ddr_pllin | GPIOL_32 | input     | 3.3V LVCMOS  | DDR PLL reference clock|
 
 ## LVDS Interface - GPIO Bank T (Top)
 
@@ -318,21 +320,6 @@ These signals are defined in `top.v` but require pin assignments in `tools_core.
 | clkout_ena         | 1     | output    | Clock output enable        |
 | clk_over_4         | 1     | output    | Clock divided by 4 (12.5MHz)|
 
-### External Flash Interface
-
-| Signal           | Width | Direction | Description                |
-|------------------|-------|-----------|----------------------------|
-| flash_addr       | 24    | output    | Flash address              |
-| flash_bulk_erase | 1     | output    | Bulk erase control         |
-| flash_datain     | 8     | output    | Data to flash              |
-| flash_rden       | 1     | output    | Read enable                |
-| flash_read       | 1     | output    | Read strobe                |
-| flash_write      | 1     | output    | Write strobe               |
-| flash_reset      | 1     | output    | Flash reset                |
-| flash_busy       | 1     | input     | Flash busy status          |
-| flash_data_valid | 1     | input     | Data valid flag            |
-| flash_dataout    | 8     | input     | Data from flash            |
-
 ### Debug and Board Interface
 
 | Signal    | Width | Direction | Description                |
@@ -366,16 +353,16 @@ The AXI4 interface connects to the LPDDR4 controller with:
 
 ## Summary
 
-| Interface           | Total Pins | IO Bank(s)      |
-|---------------------|------------|-----------------|
-| FTDI USB3           | 45         | GPIO Bank R     |
-| LEDs                | 4          | GPIO Bank R     |
-| SPI                 | 11         | GPIO Bank R     |
-| NeoPixel + Fan      | 2          | GPIO Bank R     |
-| Debug Output        | 12         | GPIO Bank R     |
-| Board I/O           | 16         | GPIO Bank R     |
-| Overrange + Lock    | 8          | GPIO Bank R     |
-| LVDS Data           | 52 pairs   | GPIO Banks T, B |
-| LVDS Clocks         | 4 pairs    | GPIO Banks T, B |
-| DDR4                | Hard block | DDR_0           |
-| PLL                 | Hard block | PLL_TL2         |
+| Interface           | Total Pins | IO Bank(s)      | IO Standard  |
+|---------------------|------------|-----------------|--------------|
+| FTDI USB3           | 45         | GPIO Bank R     | 1.8V LVCMOS  |
+| LEDs                | 4          | GPIO Bank L     | 3.3V LVCMOS  |
+| SPI                 | 11         | GPIO Bank L     | 3.3V LVCMOS  |
+| NeoPixel + Fan      | 2          | GPIO Bank L     | 3.3V LVCMOS  |
+| Debug Output        | 12         | GPIO Bank R     | 1.8V LVCMOS  |
+| Board I/O           | 16         | GPIO Bank R     | 1.8V LVCMOS  |
+| Overrange + Lock    | 8          | GPIO Bank R     | 1.8V LVCMOS  |
+| LVDS Data           | 52 pairs   | GPIO Banks T, B | LVDS         |
+| LVDS Clocks         | 4 pairs    | GPIO Banks T, B | LVDS         |
+| DDR4                | Hard block | DDR_0           | -            |
+| PLL                 | Hard block | PLL_TL2         | -            |

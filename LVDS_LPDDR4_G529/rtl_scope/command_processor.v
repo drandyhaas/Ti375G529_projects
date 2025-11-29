@@ -67,21 +67,9 @@ module command_processor (
    input wire        lvdsin_spare,
    output reg        lvdsout_spare=0,
    input wire        clk50, // needed while doing pllreset
-   output reg        clk_over_4, // clock output for flash and RGB LEDs
+   output reg        clk_over_4, // clock output for RGB LEDs
    output wire       fanon, // fan PWM output
 
-   // for flash firmware updating
-   output reg [23:0] flash_addr,
-   output reg        flash_bulk_erase,
-   output reg [7:0]  flash_datain,
-   output reg        flash_rden,
-   output reg        flash_read,
-   output reg        flash_write,
-   output reg        flash_reset,
-   input             flash_busy,
-   input             flash_data_valid,
-   input [7:0]       flash_dataout,
-   
    // to turn control LVDS clk off
    output reg clkout_ena=1,
    
@@ -142,7 +130,7 @@ assign debugout[7] = lockinfo[3]; //clkbad1
 assign debugout[8] = boardin[0]; // extra inputs on PCB, mirrored to LEDs for now
 assign debugout[9] = boardin[1];
 
-assign debugout[10]= flash_busy; // doesn't actually go to a pin or LED anymore, it's used for auxout
+assign debugout[10]= 1'b0; // unused
 assign debugout[11]= fanon; // the cooling fan (could be PWM'ed for finer control)
 // boardin[2] is 12Vconnected
 // boardin[3] is PG12V
@@ -196,7 +184,6 @@ reg [7:0]   scanclk_cycles = 0;
 reg [9:0]   ram_preoffset = 0;
 integer     overrange_counter[4];
 reg [15:0]  probecompcounter = 0;
-reg [3:0]   flashstate=0, flashbusycounter=0;
 reg [7:0]   fanpwm = 0; 
 reg [31:0]  o_tdatatemp = 0;
 reg         clkstrprob = 0;
@@ -565,123 +552,9 @@ always @ (posedge clk) begin
                `SEND_STD_USB_RESPONSE
             end
             // ...
-            13: o_tdata <= {31'd0, flash_busy}; // actually using this one
             default: o_tdata <= 123_456_789;
          endcase
          `SEND_STD_USB_RESPONSE
-      end
-
-      15 : begin // read from flash
-         case (flashstate)
-         0 : begin
-            if (!flash_busy) begin
-               flash_addr <= {rx_data[1],rx_data[2],rx_data[3]};
-               if (flashbusycounter==8) begin // wait for flash to not be busy, then start (need extra 2 clk_over_4 cycles according to note in datasheet)
-                  flashbusycounter<=0;
-                  flash_rden <= 1'b1;
-                  flash_read <= 1'b1;
-                  flashstate <= 4'd1;
-               end
-               else flashbusycounter <= flashbusycounter+4'd1;
-            end
-         end
-         1 : begin
-            if (flash_busy) begin // once busy, read has started
-               if (flashbusycounter==4) begin // wait for addr to register
-                  flashbusycounter<=0;
-                  flash_rden <= 1'b0;
-                  flash_read <= 1'b0;
-                  flashstate <= 4'd2;
-               end
-               else flashbusycounter <= flashbusycounter+4'd1;
-            end
-         end
-         2 : begin
-            if (flash_data_valid) begin // once we got data, we're done
-               flashstate <= 4'd0;
-               o_tdata <= {8'd0, 8'd0, 8'd0, flash_dataout};
-               `SEND_STD_USB_RESPONSE
-            end
-         end
-         default : flashstate <= 4'd0;
-         endcase
-      end
-
-      16 : begin // write to flash
-         case (flashstate)
-         0 : begin
-            if (!flash_busy) begin
-               flash_addr <= {rx_data[1],rx_data[2],rx_data[3]};
-               flash_datain <= rx_data[4];
-               if (flashbusycounter==8) begin // wait for flash to not be busy, then start (need extra 2 clk_over_4 cycles according to note in datasheet)
-                  flashbusycounter<=0;
-                  flashstate <= 4'd1;
-               end
-               else flashbusycounter <= flashbusycounter+4'd1;
-            end
-         end
-         1 : begin
-            if (flashbusycounter==4) begin // wait for data and addr to register
-               flashbusycounter<=0;
-               if (rx_data[5]==100 && rx_data[6]==101 && rx_data[7]==102) begin
-                  flash_write <= 1'b1;
-                  flashstate <= 4'd2;
-               end
-               else flashstate <= 4'd3;
-            end
-            else flashbusycounter <= flashbusycounter+4'd1;
-         end
-         2 : begin
-            if (flash_busy) begin // once busy
-               if (flashbusycounter==4) begin // wait for write to start
-                  flashbusycounter<=0;
-                  flash_write <= 1'b0;
-                  flashstate <= 4'd3;
-               end
-               else flashbusycounter <= flashbusycounter+4'd1;
-            end
-         end
-         3 : begin // we'll return immediately, future operations will wait for busy to be deasserted
-            flashstate <= 4'd0;
-            o_tdata <= {8'd0, 8'd0, 8'd0, 8'd200};
-            `SEND_STD_USB_RESPONSE
-         end
-         default : flashstate <= 4'd0;
-         endcase
-      end
-
-      17 : begin // erase flash
-         case (flashstate)
-         0 : begin
-            if (!flash_busy) begin
-               if (flashbusycounter==12) begin // wait for flash to not be busy, then start (need extra 2 clk_over_4 cycles according to note in datasheet)
-                  flashbusycounter<=0;
-                  if (rx_data[5]==100 && rx_data[6]==101 && rx_data[7]==102) begin
-                     flash_bulk_erase <= 1'b1;
-                     flashstate <= 4'd1;
-                  end
-                  else flashstate <= 4'd2;
-               end
-               else flashbusycounter <= flashbusycounter+4'd1;
-            end
-         end
-         1 : begin
-            if (flash_busy) begin // once busy, erase has started
-               if (flashbusycounter==12) begin // wait for erase to start
-                  flashbusycounter<=0;
-                  flash_bulk_erase <= 1'b0;
-                  flashstate <= 4'd2;
-               end
-               else flashbusycounter <= flashbusycounter+4'd1;
-            end
-         end
-         2 : begin // we'll return immediately, future operations will wait for busy to be deasserted
-            flashstate <= 4'd0;
-            o_tdata <= {8'd0, 8'd0, 8'd0, 8'd222};
-            `SEND_STD_USB_RESPONSE
-         end
-         default : flashstate <= 4'd0;
-         endcase
       end
 
       // ============================================
@@ -1060,7 +933,6 @@ always @ (posedge clk50) begin
    endcase
 end
 
-assign flash_reset = ~rstn; // active high flash controller reset signal
 assign i_tready = (state == RX) || (state == ECHO_RX); // Ready in RX state and ECHO_RX state
 assign o_tkeep  = (length>=4) ? 4'b1111 : (length==3) ? 4'b0111 :(length==2) ? 4'b0011 : (length==1) ? 4'b0001 : /*length==0*/ 4'b0000;
 assign o_tlast  = (length>4) ? 1'b0 : 1'b1;  // Changed from >= to > so tlast=1 when 4 or fewer bytes remain

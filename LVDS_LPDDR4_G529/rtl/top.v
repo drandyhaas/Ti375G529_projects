@@ -169,18 +169,6 @@ output          clkswitch,
 output          clkout_ena,
 output          clk_over_4,
 
-// Flash interface
-output [23:0]   flash_addr,
-output          flash_bulk_erase,
-output [7:0]    flash_datain,
-output          flash_rden,
-output          flash_read,
-output          flash_write,
-output          flash_reset,
-input           flash_busy,
-input           flash_data_valid,
-input  [7:0]    flash_dataout,
-
 // Board I/O
 output [11:0]   debugout,
 input  [3:0]    overrange,
@@ -654,18 +642,6 @@ command_processor cmd_proc_inst (
    .clk50(clk50),  // 50 MHz for fan PWM, clk_over_4, PLL reset
    .clk_over_4(clk_over_4),
    .fanon(fan_out),
-
-   // Flash interface
-   .flash_addr(flash_addr),
-   .flash_bulk_erase(flash_bulk_erase),
-   .flash_datain(flash_datain),
-   .flash_rden(flash_rden),
-   .flash_read(flash_read),
-   .flash_write(flash_write),
-   .flash_reset(flash_reset),
-   .flash_busy(flash_busy),
-   .flash_data_valid(flash_data_valid),
-   .flash_dataout(flash_dataout),
 
    .clkout_ena(clkout_ena),
 
