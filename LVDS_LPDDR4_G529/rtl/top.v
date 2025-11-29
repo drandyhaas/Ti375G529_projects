@@ -5,6 +5,18 @@ module top (
 input           lvds_clk_slow,
 input           lvds_clk_fast,
 
+// LVDS clock input (for PLL reference) and output
+input           lvdsin_clk,             // LVDS clock input, can be used as PLL reference
+output          lvdsout_clk,            // LVDS clock output, directly driven by lvds_clk_slow
+output          lvdsout_clk_TX_OE,      // LVDS TX output enable
+output          lvdsout_clk_TX_RST,     // LVDS TX reset
+output          lvdsout_trig_TX_OE,     // LVDS TX output enable
+output          lvdsout_trig_TX_RST,    // LVDS TX reset
+output          lvdsout_trig_b_TX_OE,   // LVDS TX output enable
+output          lvdsout_trig_b_TX_RST,  // LVDS TX reset
+output          lvdsout_spare_TX_OE,    // LVDS TX output enable
+output          lvdsout_spare_TX_RST,   // LVDS TX reset
+
 // LVDS RX Group 1 (13 channels)
 input  [9:0]    lvds_rx1_1_RX_DATA,
 input  [9:0]    lvds_rx1_2_RX_DATA,
@@ -824,5 +836,18 @@ tools_core core0(
 .cmd_axi_rvalid(cmd_axi_rvalid),
 .cmd_axi_rready(cmd_axi_rready)
 );
+
+// LVDS clock output - drive with lvds_clk_slow to provide a reference clock output
+assign lvdsout_clk = lvds_clk_slow;
+assign lvdsout_clk_TX_OE = 1'b1;     // Always enable output
+assign lvdsout_clk_TX_RST = 1'b0;    // Not in reset
+
+// LVDS trigger TX control signals - always enabled
+assign lvdsout_trig_TX_OE = 1'b1;
+assign lvdsout_trig_TX_RST = 1'b0;
+assign lvdsout_trig_b_TX_OE = 1'b1;
+assign lvdsout_trig_b_TX_RST = 1'b0;
+assign lvdsout_spare_TX_OE = 1'b1;
+assign lvdsout_spare_TX_RST = 1'b0;
 
 endmodule
