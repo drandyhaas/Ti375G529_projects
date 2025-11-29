@@ -10,10 +10,21 @@
 create_clock -period 10.000 [get_ports {ftdi_clk}]
 
 # Clock Domain Crossing Constraints
-set_clock_groups -exclusive \
+# All clocks are asynchronous to each other:
+# - axi0_ACLK: DDR controller AXI interface
+# - regACLK: DDR register interface (CDC via axi_lite_cdc with 2-FF synchronizers)
+# - clk_command: USB/command processor (CDC via axi_lite_cdc and async FIFOs)
+# - clk50: General purpose 50MHz clock
+# - ftdi_clk: External USB FT60X clock (async FIFOs handle CDC)
+# - lvds_clk_slow_clkin1/lvds_clk_fast_clkin1: LVDS clocks from PLL
+set_clock_groups -asynchronous \
     -group {axi0_ACLK} \
-    -group {regACLK clk_command clk50} \
-    -group {ftdi_clk}
+    -group {regACLK} \
+    -group {clk_command} \
+    -group {clk50} \
+    -group {ftdi_clk} \
+    -group {lvds_clk_slow_clkin1} \
+    -group {lvds_clk_fast_clkin1}
 
 # Override Auto-Generated I/O Delay Constraints
 # The auto-generated BSP file uses fixed delay values (2.310/2.625 ns) that were
@@ -59,27 +70,12 @@ set_clock_groups -exclusive \
 # set_max_delay 20 -from [get_clocks {axi0_ACLK}] -to [all_outputs]
 
 # ============================================================================
-# False Path Constraints for Asynchronous Clock Domain Crossings
+# Notes on Clock Domain Crossings
 # ============================================================================
-
-# Sample RAM address crossings (dual-port RAM with separate clocks)
-# Write address is in lvds_clk_slow_clkin1 domain, read port is in clk_command domain
-# Read address is in clk_command domain, write port is in lvds_clk_slow_clkin1 domain
-# These are safe because:
-# - Write address changes only when writing (lvds_clk_slow_clkin1 domain)
-# - Read address changes only when reading (clk_command domain)
-# - RAM handles the async crossing internally
-set_false_path -from [get_clocks lvds_clk_slow_clkin1] -to [get_clocks clk_command]
-set_false_path -from [get_clocks clk_command] -to [get_clocks lvds_clk_slow_clkin1]
-
-# Trigger lines to phase detector (lvds_clk_slow_clkin1 → lvds_clk_fast_clkin1)
-# lvdsout_trig and lvdsout_trig_b are generated in lvds_clk_slow_clkin1 domain
-# and sampled by phase_detector in lvds_clk_fast_clkin1 domain
-# The phase detector is designed to handle this async input
-set_false_path -from [get_clocks lvds_clk_slow_clkin1] -to [get_clocks lvds_clk_fast_clkin1]
-
-# Phase detector output to command processor (lvds_clk_fast_clkin1 → clk_command)
-# phase_diff signals use 2-FF synchronizer in command_processor.v:
-#   phase_diff_sync1 <= phase_diff;     // 1st FF
-#   phase_diff_sync <= phase_diff_sync1; // 2nd FF
-set_false_path -from [get_clocks lvds_clk_fast_clkin1] -to [get_clocks clk_command]
+# All CDC paths are handled by the set_clock_groups -asynchronous constraint above.
+# The design uses proper CDC mechanisms:
+# - clk_command ↔ regACLK: axi_lite_cdc module with 2-FF synchronizers
+# - clk_command ↔ ftdi_clk: Async FIFOs in ftdi_245_sync_fifo
+# - clk_command ↔ lvds_clk_slow_clkin1: Dual-port RAM (sample_ram)
+# - lvds_clk_fast_clkin1 → clk_command: 2-FF synchronizer on phase_diff
+# - lvds_clk_slow_clkin1 → lvds_clk_fast_clkin1: Phase detector designed for async input

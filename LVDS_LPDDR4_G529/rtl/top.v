@@ -9,13 +9,9 @@ input           lvds_clk_fast_clkin1,
 input           lvdsin_clk,             // LVDS clock input, can be used as PLL reference
 output          lvdsout_clk,            // LVDS clock output, directly driven by lvds_clk_slow_clkin1
 output          lvdsout_clk_TX_OE,      // LVDS TX output enable
-output          lvdsout_clk_TX_RST,     // LVDS TX reset
 output          lvdsout_trig_TX_OE,     // LVDS TX output enable
-output          lvdsout_trig_TX_RST,    // LVDS TX reset
 output          lvdsout_trig_b_TX_OE,   // LVDS TX output enable
-output          lvdsout_trig_b_TX_RST,  // LVDS TX reset
 output          lvdsout_spare_TX_OE,    // LVDS TX output enable
-output          lvdsout_spare_TX_RST,   // LVDS TX reset
 
 // LVDS RX Group 1 (13 channels)
 input  [9:0]    lvds_rx1_1_RX_DATA,
@@ -44,6 +40,45 @@ output          lvds_rx1_10_RX_RST,
 output          lvds_rx1_11_RX_RST,
 output          lvds_rx1_12_RX_RST,
 output          lvds_rx1_13_RX_RST,
+output          lvds_rx1_1_RX_DLY_RST,
+output          lvds_rx1_2_RX_DLY_RST,
+output          lvds_rx1_3_RX_DLY_RST,
+output          lvds_rx1_4_RX_DLY_RST,
+output          lvds_rx1_5_RX_DLY_RST,
+output          lvds_rx1_6_RX_DLY_RST,
+output          lvds_rx1_7_RX_DLY_RST,
+output          lvds_rx1_8_RX_DLY_RST,
+output          lvds_rx1_9_RX_DLY_RST,
+output          lvds_rx1_10_RX_DLY_RST,
+output          lvds_rx1_11_RX_DLY_RST,
+output          lvds_rx1_12_RX_DLY_RST,
+output          lvds_rx1_13_RX_DLY_RST,
+output          lvds_rx1_1_RX_DLY_INC,
+output          lvds_rx1_2_RX_DLY_INC,
+output          lvds_rx1_3_RX_DLY_INC,
+output          lvds_rx1_4_RX_DLY_INC,
+output          lvds_rx1_5_RX_DLY_INC,
+output          lvds_rx1_6_RX_DLY_INC,
+output          lvds_rx1_7_RX_DLY_INC,
+output          lvds_rx1_8_RX_DLY_INC,
+output          lvds_rx1_9_RX_DLY_INC,
+output          lvds_rx1_10_RX_DLY_INC,
+output          lvds_rx1_11_RX_DLY_INC,
+output          lvds_rx1_12_RX_DLY_INC,
+output          lvds_rx1_13_RX_DLY_INC,
+output          lvds_rx1_1_RX_DLY_ENA,
+output          lvds_rx1_2_RX_DLY_ENA,
+output          lvds_rx1_3_RX_DLY_ENA,
+output          lvds_rx1_4_RX_DLY_ENA,
+output          lvds_rx1_5_RX_DLY_ENA,
+output          lvds_rx1_6_RX_DLY_ENA,
+output          lvds_rx1_7_RX_DLY_ENA,
+output          lvds_rx1_8_RX_DLY_ENA,
+output          lvds_rx1_9_RX_DLY_ENA,
+output          lvds_rx1_10_RX_DLY_ENA,
+output          lvds_rx1_11_RX_DLY_ENA,
+output          lvds_rx1_12_RX_DLY_ENA,
+output          lvds_rx1_13_RX_DLY_ENA,
 
 // LVDS RX Group 2 (13 channels)
 input  [9:0]    lvds_rx2_1_RX_DATA,
@@ -72,6 +107,45 @@ output          lvds_rx2_10_RX_RST,
 output          lvds_rx2_11_RX_RST,
 output          lvds_rx2_12_RX_RST,
 output          lvds_rx2_13_RX_RST,
+output          lvds_rx2_1_RX_DLY_RST,
+output          lvds_rx2_2_RX_DLY_RST,
+output          lvds_rx2_3_RX_DLY_RST,
+output          lvds_rx2_4_RX_DLY_RST,
+output          lvds_rx2_5_RX_DLY_RST,
+output          lvds_rx2_6_RX_DLY_RST,
+output          lvds_rx2_7_RX_DLY_RST,
+output          lvds_rx2_8_RX_DLY_RST,
+output          lvds_rx2_9_RX_DLY_RST,
+output          lvds_rx2_10_RX_DLY_RST,
+output          lvds_rx2_11_RX_DLY_RST,
+output          lvds_rx2_12_RX_DLY_RST,
+output          lvds_rx2_13_RX_DLY_RST,
+output          lvds_rx2_1_RX_DLY_INC,
+output          lvds_rx2_2_RX_DLY_INC,
+output          lvds_rx2_3_RX_DLY_INC,
+output          lvds_rx2_4_RX_DLY_INC,
+output          lvds_rx2_5_RX_DLY_INC,
+output          lvds_rx2_6_RX_DLY_INC,
+output          lvds_rx2_7_RX_DLY_INC,
+output          lvds_rx2_8_RX_DLY_INC,
+output          lvds_rx2_9_RX_DLY_INC,
+output          lvds_rx2_10_RX_DLY_INC,
+output          lvds_rx2_11_RX_DLY_INC,
+output          lvds_rx2_12_RX_DLY_INC,
+output          lvds_rx2_13_RX_DLY_INC,
+output          lvds_rx2_1_RX_DLY_ENA,
+output          lvds_rx2_2_RX_DLY_ENA,
+output          lvds_rx2_3_RX_DLY_ENA,
+output          lvds_rx2_4_RX_DLY_ENA,
+output          lvds_rx2_5_RX_DLY_ENA,
+output          lvds_rx2_6_RX_DLY_ENA,
+output          lvds_rx2_7_RX_DLY_ENA,
+output          lvds_rx2_8_RX_DLY_ENA,
+output          lvds_rx2_9_RX_DLY_ENA,
+output          lvds_rx2_10_RX_DLY_ENA,
+output          lvds_rx2_11_RX_DLY_ENA,
+output          lvds_rx2_12_RX_DLY_ENA,
+output          lvds_rx2_13_RX_DLY_ENA,
 
 // LVDS RX Group 3 (13 channels)
 input  [9:0]    lvds_rx3_1_RX_DATA,
@@ -100,6 +174,45 @@ output          lvds_rx3_10_RX_RST,
 output          lvds_rx3_11_RX_RST,
 output          lvds_rx3_12_RX_RST,
 output          lvds_rx3_13_RX_RST,
+output          lvds_rx3_1_RX_DLY_RST,
+output          lvds_rx3_2_RX_DLY_RST,
+output          lvds_rx3_3_RX_DLY_RST,
+output          lvds_rx3_4_RX_DLY_RST,
+output          lvds_rx3_5_RX_DLY_RST,
+output          lvds_rx3_6_RX_DLY_RST,
+output          lvds_rx3_7_RX_DLY_RST,
+output          lvds_rx3_8_RX_DLY_RST,
+output          lvds_rx3_9_RX_DLY_RST,
+output          lvds_rx3_10_RX_DLY_RST,
+output          lvds_rx3_11_RX_DLY_RST,
+output          lvds_rx3_12_RX_DLY_RST,
+output          lvds_rx3_13_RX_DLY_RST,
+output          lvds_rx3_1_RX_DLY_INC,
+output          lvds_rx3_2_RX_DLY_INC,
+output          lvds_rx3_3_RX_DLY_INC,
+output          lvds_rx3_4_RX_DLY_INC,
+output          lvds_rx3_5_RX_DLY_INC,
+output          lvds_rx3_6_RX_DLY_INC,
+output          lvds_rx3_7_RX_DLY_INC,
+output          lvds_rx3_8_RX_DLY_INC,
+output          lvds_rx3_9_RX_DLY_INC,
+output          lvds_rx3_10_RX_DLY_INC,
+output          lvds_rx3_11_RX_DLY_INC,
+output          lvds_rx3_12_RX_DLY_INC,
+output          lvds_rx3_13_RX_DLY_INC,
+output          lvds_rx3_1_RX_DLY_ENA,
+output          lvds_rx3_2_RX_DLY_ENA,
+output          lvds_rx3_3_RX_DLY_ENA,
+output          lvds_rx3_4_RX_DLY_ENA,
+output          lvds_rx3_5_RX_DLY_ENA,
+output          lvds_rx3_6_RX_DLY_ENA,
+output          lvds_rx3_7_RX_DLY_ENA,
+output          lvds_rx3_8_RX_DLY_ENA,
+output          lvds_rx3_9_RX_DLY_ENA,
+output          lvds_rx3_10_RX_DLY_ENA,
+output          lvds_rx3_11_RX_DLY_ENA,
+output          lvds_rx3_12_RX_DLY_ENA,
+output          lvds_rx3_13_RX_DLY_ENA,
 
 // LVDS RX Group 4 (13 channels)
 input  [9:0]    lvds_rx4_1_RX_DATA,
@@ -128,6 +241,45 @@ output          lvds_rx4_10_RX_RST,
 output          lvds_rx4_11_RX_RST,
 output          lvds_rx4_12_RX_RST,
 output          lvds_rx4_13_RX_RST,
+output          lvds_rx4_1_RX_DLY_RST,
+output          lvds_rx4_2_RX_DLY_RST,
+output          lvds_rx4_3_RX_DLY_RST,
+output          lvds_rx4_4_RX_DLY_RST,
+output          lvds_rx4_5_RX_DLY_RST,
+output          lvds_rx4_6_RX_DLY_RST,
+output          lvds_rx4_7_RX_DLY_RST,
+output          lvds_rx4_8_RX_DLY_RST,
+output          lvds_rx4_9_RX_DLY_RST,
+output          lvds_rx4_10_RX_DLY_RST,
+output          lvds_rx4_11_RX_DLY_RST,
+output          lvds_rx4_12_RX_DLY_RST,
+output          lvds_rx4_13_RX_DLY_RST,
+output          lvds_rx4_1_RX_DLY_INC,
+output          lvds_rx4_2_RX_DLY_INC,
+output          lvds_rx4_3_RX_DLY_INC,
+output          lvds_rx4_4_RX_DLY_INC,
+output          lvds_rx4_5_RX_DLY_INC,
+output          lvds_rx4_6_RX_DLY_INC,
+output          lvds_rx4_7_RX_DLY_INC,
+output          lvds_rx4_8_RX_DLY_INC,
+output          lvds_rx4_9_RX_DLY_INC,
+output          lvds_rx4_10_RX_DLY_INC,
+output          lvds_rx4_11_RX_DLY_INC,
+output          lvds_rx4_12_RX_DLY_INC,
+output          lvds_rx4_13_RX_DLY_INC,
+output          lvds_rx4_1_RX_DLY_ENA,
+output          lvds_rx4_2_RX_DLY_ENA,
+output          lvds_rx4_3_RX_DLY_ENA,
+output          lvds_rx4_4_RX_DLY_ENA,
+output          lvds_rx4_5_RX_DLY_ENA,
+output          lvds_rx4_6_RX_DLY_ENA,
+output          lvds_rx4_7_RX_DLY_ENA,
+output          lvds_rx4_8_RX_DLY_ENA,
+output          lvds_rx4_9_RX_DLY_ENA,
+output          lvds_rx4_10_RX_DLY_ENA,
+output          lvds_rx4_11_RX_DLY_ENA,
+output          lvds_rx4_12_RX_DLY_ENA,
+output          lvds_rx4_13_RX_DLY_ENA,
 
 // LVDS Trigger signals for board-to-board communication
 input           lvdsin_trig,
@@ -143,7 +295,6 @@ output          auxout,
 
 // LEDs
 output [3:0]    LED,
-output          led2,  // LED2 controlled by triggerer
 
 // USB3 FT601 Interface
 input           ftdi_clk,
@@ -172,14 +323,7 @@ input           spi_miso,
 output [7:0]    spics,
 
 // Clock control
-output          pllreset,
-output [2:0]    phasecounterselect,
-output          phaseupdown,
-output [3:0]    phasestep,
-output          scanclk,
 output          clkswitch,
-output          clkout_ena,
-output          clk_over_4,
 
 // Board I/O
 output [11:0]   debugout,
@@ -194,8 +338,6 @@ output          neo_led,
 // Fan PWM output
 output          fan_out,
 
-// Reload flash signal
-output          reloadflash,
 
 // DDR Interface
 input           axi0_ACLK,
@@ -350,6 +492,168 @@ assign lvds_rx4_11_RX_RST = 1'b0;
 assign lvds_rx4_12_RX_RST = 1'b0;
 assign lvds_rx4_13_RX_RST = 1'b0;
 
+// LVDS RX delay control outputs (active high, directly driving 0 means disabled)
+// Group 1 delay controls
+assign lvds_rx1_1_RX_DLY_RST = 1'b0;
+assign lvds_rx1_2_RX_DLY_RST = 1'b0;
+assign lvds_rx1_3_RX_DLY_RST = 1'b0;
+assign lvds_rx1_4_RX_DLY_RST = 1'b0;
+assign lvds_rx1_5_RX_DLY_RST = 1'b0;
+assign lvds_rx1_6_RX_DLY_RST = 1'b0;
+assign lvds_rx1_7_RX_DLY_RST = 1'b0;
+assign lvds_rx1_8_RX_DLY_RST = 1'b0;
+assign lvds_rx1_9_RX_DLY_RST = 1'b0;
+assign lvds_rx1_10_RX_DLY_RST = 1'b0;
+assign lvds_rx1_11_RX_DLY_RST = 1'b0;
+assign lvds_rx1_12_RX_DLY_RST = 1'b0;
+assign lvds_rx1_13_RX_DLY_RST = 1'b0;
+assign lvds_rx1_1_RX_DLY_INC = 1'b0;
+assign lvds_rx1_2_RX_DLY_INC = 1'b0;
+assign lvds_rx1_3_RX_DLY_INC = 1'b0;
+assign lvds_rx1_4_RX_DLY_INC = 1'b0;
+assign lvds_rx1_5_RX_DLY_INC = 1'b0;
+assign lvds_rx1_6_RX_DLY_INC = 1'b0;
+assign lvds_rx1_7_RX_DLY_INC = 1'b0;
+assign lvds_rx1_8_RX_DLY_INC = 1'b0;
+assign lvds_rx1_9_RX_DLY_INC = 1'b0;
+assign lvds_rx1_10_RX_DLY_INC = 1'b0;
+assign lvds_rx1_11_RX_DLY_INC = 1'b0;
+assign lvds_rx1_12_RX_DLY_INC = 1'b0;
+assign lvds_rx1_13_RX_DLY_INC = 1'b0;
+assign lvds_rx1_1_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_2_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_3_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_4_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_5_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_6_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_7_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_8_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_9_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_10_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_11_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_12_RX_DLY_ENA = 1'b0;
+assign lvds_rx1_13_RX_DLY_ENA = 1'b0;
+// Group 2 delay controls
+assign lvds_rx2_1_RX_DLY_RST = 1'b0;
+assign lvds_rx2_2_RX_DLY_RST = 1'b0;
+assign lvds_rx2_3_RX_DLY_RST = 1'b0;
+assign lvds_rx2_4_RX_DLY_RST = 1'b0;
+assign lvds_rx2_5_RX_DLY_RST = 1'b0;
+assign lvds_rx2_6_RX_DLY_RST = 1'b0;
+assign lvds_rx2_7_RX_DLY_RST = 1'b0;
+assign lvds_rx2_8_RX_DLY_RST = 1'b0;
+assign lvds_rx2_9_RX_DLY_RST = 1'b0;
+assign lvds_rx2_10_RX_DLY_RST = 1'b0;
+assign lvds_rx2_11_RX_DLY_RST = 1'b0;
+assign lvds_rx2_12_RX_DLY_RST = 1'b0;
+assign lvds_rx2_13_RX_DLY_RST = 1'b0;
+assign lvds_rx2_1_RX_DLY_INC = 1'b0;
+assign lvds_rx2_2_RX_DLY_INC = 1'b0;
+assign lvds_rx2_3_RX_DLY_INC = 1'b0;
+assign lvds_rx2_4_RX_DLY_INC = 1'b0;
+assign lvds_rx2_5_RX_DLY_INC = 1'b0;
+assign lvds_rx2_6_RX_DLY_INC = 1'b0;
+assign lvds_rx2_7_RX_DLY_INC = 1'b0;
+assign lvds_rx2_8_RX_DLY_INC = 1'b0;
+assign lvds_rx2_9_RX_DLY_INC = 1'b0;
+assign lvds_rx2_10_RX_DLY_INC = 1'b0;
+assign lvds_rx2_11_RX_DLY_INC = 1'b0;
+assign lvds_rx2_12_RX_DLY_INC = 1'b0;
+assign lvds_rx2_13_RX_DLY_INC = 1'b0;
+assign lvds_rx2_1_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_2_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_3_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_4_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_5_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_6_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_7_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_8_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_9_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_10_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_11_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_12_RX_DLY_ENA = 1'b0;
+assign lvds_rx2_13_RX_DLY_ENA = 1'b0;
+// Group 3 delay controls
+assign lvds_rx3_1_RX_DLY_RST = 1'b0;
+assign lvds_rx3_2_RX_DLY_RST = 1'b0;
+assign lvds_rx3_3_RX_DLY_RST = 1'b0;
+assign lvds_rx3_4_RX_DLY_RST = 1'b0;
+assign lvds_rx3_5_RX_DLY_RST = 1'b0;
+assign lvds_rx3_6_RX_DLY_RST = 1'b0;
+assign lvds_rx3_7_RX_DLY_RST = 1'b0;
+assign lvds_rx3_8_RX_DLY_RST = 1'b0;
+assign lvds_rx3_9_RX_DLY_RST = 1'b0;
+assign lvds_rx3_10_RX_DLY_RST = 1'b0;
+assign lvds_rx3_11_RX_DLY_RST = 1'b0;
+assign lvds_rx3_12_RX_DLY_RST = 1'b0;
+assign lvds_rx3_13_RX_DLY_RST = 1'b0;
+assign lvds_rx3_1_RX_DLY_INC = 1'b0;
+assign lvds_rx3_2_RX_DLY_INC = 1'b0;
+assign lvds_rx3_3_RX_DLY_INC = 1'b0;
+assign lvds_rx3_4_RX_DLY_INC = 1'b0;
+assign lvds_rx3_5_RX_DLY_INC = 1'b0;
+assign lvds_rx3_6_RX_DLY_INC = 1'b0;
+assign lvds_rx3_7_RX_DLY_INC = 1'b0;
+assign lvds_rx3_8_RX_DLY_INC = 1'b0;
+assign lvds_rx3_9_RX_DLY_INC = 1'b0;
+assign lvds_rx3_10_RX_DLY_INC = 1'b0;
+assign lvds_rx3_11_RX_DLY_INC = 1'b0;
+assign lvds_rx3_12_RX_DLY_INC = 1'b0;
+assign lvds_rx3_13_RX_DLY_INC = 1'b0;
+assign lvds_rx3_1_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_2_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_3_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_4_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_5_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_6_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_7_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_8_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_9_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_10_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_11_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_12_RX_DLY_ENA = 1'b0;
+assign lvds_rx3_13_RX_DLY_ENA = 1'b0;
+// Group 4 delay controls
+assign lvds_rx4_1_RX_DLY_RST = 1'b0;
+assign lvds_rx4_2_RX_DLY_RST = 1'b0;
+assign lvds_rx4_3_RX_DLY_RST = 1'b0;
+assign lvds_rx4_4_RX_DLY_RST = 1'b0;
+assign lvds_rx4_5_RX_DLY_RST = 1'b0;
+assign lvds_rx4_6_RX_DLY_RST = 1'b0;
+assign lvds_rx4_7_RX_DLY_RST = 1'b0;
+assign lvds_rx4_8_RX_DLY_RST = 1'b0;
+assign lvds_rx4_9_RX_DLY_RST = 1'b0;
+assign lvds_rx4_10_RX_DLY_RST = 1'b0;
+assign lvds_rx4_11_RX_DLY_RST = 1'b0;
+assign lvds_rx4_12_RX_DLY_RST = 1'b0;
+assign lvds_rx4_13_RX_DLY_RST = 1'b0;
+assign lvds_rx4_1_RX_DLY_INC = 1'b0;
+assign lvds_rx4_2_RX_DLY_INC = 1'b0;
+assign lvds_rx4_3_RX_DLY_INC = 1'b0;
+assign lvds_rx4_4_RX_DLY_INC = 1'b0;
+assign lvds_rx4_5_RX_DLY_INC = 1'b0;
+assign lvds_rx4_6_RX_DLY_INC = 1'b0;
+assign lvds_rx4_7_RX_DLY_INC = 1'b0;
+assign lvds_rx4_8_RX_DLY_INC = 1'b0;
+assign lvds_rx4_9_RX_DLY_INC = 1'b0;
+assign lvds_rx4_10_RX_DLY_INC = 1'b0;
+assign lvds_rx4_11_RX_DLY_INC = 1'b0;
+assign lvds_rx4_12_RX_DLY_INC = 1'b0;
+assign lvds_rx4_13_RX_DLY_INC = 1'b0;
+assign lvds_rx4_1_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_2_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_3_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_4_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_5_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_6_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_7_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_8_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_9_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_10_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_11_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_12_RX_DLY_ENA = 1'b0;
+assign lvds_rx4_13_RX_DLY_ENA = 1'b0;
+
 // Reset signals (tied to not-reset for now)
 wire rstn;
 assign rstn = 1'b1;
@@ -408,6 +712,12 @@ wire [15:0] phase_diff_b;
 // Neo color array and send signal from command_processor
 wire [23:0] neo_color [2];
 wire send_color;
+
+// Internal clock for NeoPixel driver (clk50/4 = 12.5 MHz, generated by command_processor)
+wire clk_over_4;
+
+// Triggerer LED output (active during acquisition)
+wire triggerer_led;
 
 // USB data stream wires between tools_core and command_processor
 // (usb_command_handler has been removed, command_processor connects directly to USB)
@@ -552,7 +862,7 @@ triggerer triggerer_inst (
    .lvdsout_trig_b(lvdsout_trig_b),
    .exttrigin(exttrigin),
    .auxout(auxout),
-   .led(led2),
+   .led(triggerer_led),
    .acqstate(acqstate),
    .eventcounter(eventcounter),
    .ram_address_triggered(ram_address_triggered),
@@ -619,8 +929,6 @@ command_processor cmd_proc_inst (
    .axi_rvalid(cmd_axi_rvalid),
    .axi_rready(cmd_axi_rready),
 
-   .pllreset(pllreset),
-
    // SPI interface
    .spitx(spitx),
    .spirx(spirx),
@@ -638,12 +946,6 @@ command_processor cmd_proc_inst (
    .ram_rd_address(ram_rd_address),
    .lvdsbitsin(ram_rd_data),
 
-   // PLL phase control
-   .phasecounterselect(phasecounterselect),
-   .phaseupdown(phaseupdown),
-   .phasestep(phasestep),
-   .scanclk(scanclk),
-
    .debugout(debugout),
    .overrange(overrange),
    .boardin(boardin),
@@ -655,7 +957,7 @@ command_processor cmd_proc_inst (
    .clk_over_4(clk_over_4),
    .fanon(fan_out),
 
-   .clkout_ena(clkout_ena),
+   .clkout_ena(lvdsout_clk_TX_OE),
 
    // RGB LED control
    .neo_color(neo_color),
@@ -680,8 +982,6 @@ command_processor cmd_proc_inst (
    .firstlast(firstlast),
    .trigger_options(trigger_options),
 
-   .reloadflash(reloadflash),
-
    // Inputs from triggerer
    .acqstate(acqstate),
    .eventcounter(eventcounter),
@@ -702,6 +1002,7 @@ tools_core core0(
 
 // LEDs
 .LED(LED),
+.triggerer_led(triggerer_led),
 
 // USB3 Interface
 .ftdi_clk(ftdi_clk),
@@ -839,15 +1140,11 @@ tools_core core0(
 
 // LVDS clock output - drive with lvds_clk_slow_clkin1 to provide a reference clock output
 assign lvdsout_clk = lvds_clk_slow_clkin1;
-assign lvdsout_clk_TX_OE = 1'b1;     // Always enable output
-assign lvdsout_clk_TX_RST = 1'b0;    // Not in reset
+// lvdsout_clk_TX_OE is driven by command_processor via clkout_ena
 
 // LVDS trigger TX control signals - always enabled
 assign lvdsout_trig_TX_OE = 1'b1;
-assign lvdsout_trig_TX_RST = 1'b0;
 assign lvdsout_trig_b_TX_OE = 1'b1;
-assign lvdsout_trig_b_TX_RST = 1'b0;
 assign lvdsout_spare_TX_OE = 1'b1;
-assign lvdsout_spare_TX_RST = 1'b0;
 
 endmodule

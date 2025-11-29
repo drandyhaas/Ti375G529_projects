@@ -9,6 +9,7 @@ module tools_core (
 
 // LEDs
 output [3:0]    LED,
+input           triggerer_led,
 
 // USB3 FT601 Interface
 input           ftdi_clk,
@@ -825,15 +826,16 @@ axi_lite_cdc ddr_reg_cdc_inst (
 // ================================================================
 // ==================== LED Indicators ============================
 // ================================================================
-// LED[1:0] - Show low 2 bits of last received USB data
+// LED[0]   - Low bit of last received USB data
+// LED[1]   - Triggerer status (from triggerer module)
 // LED[2]   - Heartbeat from regACLK (blinks at 5Hz)
 // LED[3]   - Heartbeat from ftdi_clk (blinks at 5Hz)
 
-reg [1:0] usb_tdata_d = 2'h0;
+reg usb_tdata_d = 1'b0;
 
 always @ (posedge clk_command)
     if (usb_rx_tvalid)
-        usb_tdata_d <= usb_rx_tdata[1:0];
+        usb_tdata_d <= usb_rx_tdata[0];
 
 wire regACLK_beat;
 wire ftdi_clk_beat;
@@ -854,7 +856,8 @@ clock_beat # (
     .beat                  ( ftdi_clk_beat      )
 );
 
-assign LED[1:0] = usb_tdata_d;
+assign LED[0]   = usb_tdata_d;
+assign LED[1]   = triggerer_led;
 assign LED[2]   = regACLK_beat;
 assign LED[3]   = ftdi_clk_beat;
 

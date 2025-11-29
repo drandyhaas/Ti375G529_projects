@@ -72,11 +72,10 @@ This document describes the pin assignments for the LVDS_LPDDR4_G529 project on 
 
 | Signal  | Pin       | Ball | Direction | Description                      |
 |---------|-----------|------|-----------|----------------------------------|
-| LED[0]  | GPIOL_07  | U1   | output    | User LED 0                       |
-| LED[1]  | GPIOL_08  | W1   | output    | User LED 1                       |
-| LED[2]  | GPIOL_09  | V3   | output    | User LED 2 (regACLK heartbeat)   |
-| LED[3]  | GPIOL_10  | W3   | output    | User LED 3                       |
-| led2    | GPIOL_20  | W4   | output    | Triggerer controlled LED         |
+| LED[0]  | GPIOL_07  | U1   | output    | Low bit of last USB data         |
+| LED[1]  | GPIOL_08  | W1   | output    | Triggerer status (acquisition)   |
+| LED[2]  | GPIOL_09  | V3   | output    | regACLK heartbeat (5Hz)          |
+| LED[3]  | GPIOL_10  | W3   | output    | ftdi_clk heartbeat (5Hz)         |
 
 ### SPI Interface
 
@@ -320,7 +319,7 @@ Control signals:
 | Interface           | Total Pins | IO Bank(s)      | IO Standard  |
 |---------------------|------------|-----------------|--------------|
 | FTDI USB3           | 45         | GPIO Bank R     | 1.8V LVCMOS  |
-| LEDs                | 5          | GPIO Bank L     | 3.3V LVCMOS  |
+| LEDs                | 4          | GPIO Bank L     | 3.3V LVCMOS  |
 | SPI                 | 11         | GPIO Bank L     | 3.3V LVCMOS  |
 | NeoPixel + Fan      | 2          | GPIO Bank L     | 3.3V LVCMOS  |
 | Debug Output        | 12         | GPIO Bank R     | 1.8V LVCMOS  |
