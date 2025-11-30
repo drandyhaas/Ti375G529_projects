@@ -540,7 +540,7 @@ def generate_config_unit(unit_num, symbol_name):
 
 
 def generate_vcc_unit(unit_num, symbol_name):
-    """Generate VCC power unit"""
+    """Generate VCC power unit with pins on both LEFT and RIGHT sides"""
     lines = []
     lines.append(f'    (symbol "{symbol_name}_{unit_num}_1"')
 
@@ -553,9 +553,14 @@ def generate_vcc_unit(unit_num, symbol_name):
 
     vcc_pins.sort(key=lambda x: (x[0], x[1]))
 
-    num_pins = len(vcc_pins)
+    # Split pins between left and right sides
+    mid = (len(vcc_pins) + 1) // 2
+    left_pins = vcc_pins[:mid]
+    right_pins = vcc_pins[mid:]
+
+    num_rows = max(len(left_pins), len(right_pins))
     pin_spacing = 2.54
-    box_height = max(num_pins * pin_spacing + 7.62, 25.4)
+    box_height = max(num_rows * pin_spacing + 7.62, 25.4)
     box_width = 25.4
     y_start = box_height / 2
 
@@ -569,9 +574,19 @@ def generate_vcc_unit(unit_num, symbol_name):
     lines.append('        (effects (font (size 1.524 1.524) bold))')
     lines.append('      )')
 
+    # Left side pins
     y_pos = y_start - 5.08
-    for pin_name, ball in vcc_pins:
+    for pin_name, ball in left_pins:
         lines.append(f'      (pin power_in line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+        lines.append(f'        (name "{pin_name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    # Right side pins
+    y_pos = y_start - 5.08
+    for pin_name, ball in right_pins:
+        lines.append(f'      (pin power_in line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
         lines.append(f'        (name "{pin_name}" (effects (font (size 1.016 1.016))))')
         lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
         lines.append('      )')
@@ -582,16 +597,21 @@ def generate_vcc_unit(unit_num, symbol_name):
 
 
 def generate_gnd_unit(unit_num, symbol_name):
-    """Generate GND power unit"""
+    """Generate GND power unit with pins on both LEFT and RIGHT sides"""
     lines = []
     lines.append(f'    (symbol "{symbol_name}_{unit_num}_1"')
 
     gnd_pins = [('GND', ball) for ball in PINOUT.get('GND', [])]
     gnd_pins.sort(key=lambda x: x[1])
 
-    num_pins = len(gnd_pins)
+    # Split pins between left and right sides
+    mid = (len(gnd_pins) + 1) // 2
+    left_pins = gnd_pins[:mid]
+    right_pins = gnd_pins[mid:]
+
+    num_rows = max(len(left_pins), len(right_pins))
     pin_spacing = 2.54
-    box_height = max(num_pins * pin_spacing + 7.62, 25.4)
+    box_height = max(num_rows * pin_spacing + 7.62, 25.4)
     box_width = 20.32
     y_start = box_height / 2
 
@@ -605,10 +625,80 @@ def generate_gnd_unit(unit_num, symbol_name):
     lines.append('        (effects (font (size 1.524 1.524) bold))')
     lines.append('      )')
 
+    # Left side pins
     y_pos = y_start - 5.08
-    for pin_name, ball in gnd_pins:
+    for pin_name, ball in left_pins:
         lines.append(f'      (pin power_in line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
         lines.append(f'        (name "{pin_name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    # Right side pins
+    y_pos = y_start - 5.08
+    for pin_name, ball in right_pins:
+        lines.append(f'      (pin power_in line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
+        lines.append(f'        (name "{pin_name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    lines.append('    )')
+    return '\n'.join(lines)
+
+
+def generate_misc_unit(unit_num, symbol_name, misc_pins):
+    """Generate Misc I/O unit with inputs on LEFT and SPI/outputs on RIGHT"""
+    lines = []
+    lines.append(f'    (symbol "{symbol_name}_{unit_num}_1"')
+
+    pin_spacing = 2.54
+
+    # Separate pins: inputs on LEFT, SPI and outputs on RIGHT
+    left_pins = []
+    right_pins = []
+
+    for pin_name, (ball, signal, mode) in misc_pins.items():
+        if mode in ['output', 'clkout', 'tx'] or signal.startswith('spi'):
+            right_pins.append((pin_name, ball, signal, mode))
+        else:
+            left_pins.append((pin_name, ball, signal, mode))
+
+    # Sort each side by signal name
+    left_pins.sort(key=lambda x: x[2])
+    right_pins.sort(key=lambda x: x[2])
+
+    num_rows = max(len(left_pins), len(right_pins))
+    box_height = max(num_rows * pin_spacing + 7.62, 25.4)
+    box_width = 30.48
+    y_start = box_height / 2
+
+    lines.append(f'      (rectangle (start 0 {y_start:.2f}) (end {box_width:.2f} {-y_start:.2f})')
+    lines.append('        (stroke (width 0.254) (type default))')
+    lines.append('        (fill (type background))')
+    lines.append('      )')
+
+    lines.append('      (text "Misc I/O"')
+    lines.append(f'        (at {box_width/2:.2f} {y_start - 1.27:.2f} 0)')
+    lines.append('        (effects (font (size 1.524 1.524) bold))')
+    lines.append('      )')
+
+    # Left side pins (inputs)
+    y_pos = y_start - 5.08
+    for pin_name, ball, signal, mode in left_pins:
+        pin_type = get_pin_type(mode)
+        lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+        lines.append(f'        (name "{signal}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    # Right side pins (SPI and outputs)
+    y_pos = y_start - 5.08
+    for pin_name, ball, signal, mode in right_pins:
+        pin_type = get_pin_type(mode)
+        lines.append(f'      (pin {pin_type} line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
+        lines.append(f'        (name "{signal}" (effects (font (size 1.016 1.016))))')
         lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
         lines.append('      )')
         y_pos -= pin_spacing
@@ -689,10 +779,9 @@ def main():
         print(f"  Unit {unit_num}: DDR4 Interface (data LEFT, control RIGHT with gaps)")
         unit_num += 1
 
-        # Unit 6: Misc I/O
-        sorted_misc = sorted(misc_io_pins.items(), key=lambda x: x[1][1])
-        f.write(generate_unit(unit_num, symbol_name, "Misc I/O", sorted_misc, 'left'))
-        print(f"  Unit {unit_num}: Misc I/O ({len(sorted_misc)} pins)")
+        # Unit 6: Misc I/O (inputs on LEFT, SPI/outputs on RIGHT)
+        f.write(generate_misc_unit(unit_num, symbol_name, misc_io_pins))
+        print(f"  Unit {unit_num}: Misc I/O ({len(misc_io_pins)} pins, inputs LEFT, outputs RIGHT)")
         unit_num += 1
 
         # Unit 7: Config/JTAG

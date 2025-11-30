@@ -1995,78 +1995,6 @@
 				(pin output line
 					(at -2.54 8.89 0)
 					(length 2.54)
-					(name "DACLK+"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G9"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 6.35 0)
-					(length 2.54)
-					(name "DACLK-"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 3.81 0)
-					(length 2.54)
-					(name "DCCLK+"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G15"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 1.27 0)
-					(length 2.54)
-					(name "DCCLK-"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G16"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -1.27 0)
-					(length 2.54)
 					(name "DBCLK+"
 						(effects
 							(font
@@ -2083,7 +2011,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -3.81 0)
+					(at -2.54 6.35 0)
 					(length 2.54)
 					(name "DBCLK-"
 						(effects
@@ -2101,7 +2029,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -6.35 0)
+					(at -2.54 3.81 0)
 					(length 2.54)
 					(name "DDCLK+"
 						(effects
@@ -2119,7 +2047,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -8.89 0)
+					(at -2.54 1.27 0)
 					(length 2.54)
 					(name "DDCLK-"
 						(effects
@@ -2129,6 +2057,78 @@
 						)
 					)
 					(number "K16"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at -2.54 -1.27 0)
+					(length 2.54)
+					(name "DACLK+"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G9"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at -2.54 -3.81 0)
+					(length 2.54)
+					(name "DACLK-"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G10"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at -2.54 -6.35 0)
+					(length 2.54)
+					(name "DCCLK+"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G15"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at -2.54 -8.89 0)
+					(length 2.54)
+					(name "DCCLK-"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G16"
 						(effects
 							(font
 								(size 1.016 1.016)
@@ -8918,8 +8918,8 @@
 			)
 			(symbol "Ti90G529_Functions_6_1"
 				(rectangle
-					(start 0 99.06)
-					(end 30.48 -99.06)
+					(start 0 63.5)
+					(end 30.48 -63.5)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -8929,7 +8929,7 @@
 					)
 				)
 				(text "Misc I/O"
-					(at 15.24 97.79 0)
+					(at 15.24 62.23 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -8937,116 +8937,8 @@
 						)
 					)
 				)
-				(pin output line
-					(at -2.54 93.98 0)
-					(length 2.54)
-					(name "LED[0]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "U1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 91.44 0)
-					(length 2.54)
-					(name "LED[1]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "W1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 88.9 0)
-					(length 2.54)
-					(name "LED[2]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "V3"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 86.36 0)
-					(length 2.54)
-					(name "LED[3]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "W3"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 83.82 0)
-					(length 2.54)
-					(name "adc_clkout"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "U17"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 81.28 0)
-					(length 2.54)
-					(name "auxout"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G19"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
 				(pin input line
-					(at -2.54 78.74 0)
+					(at -2.54 58.42 0)
 					(length 2.54)
 					(name "boardin[0]"
 						(effects
@@ -9064,7 +8956,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 76.2 0)
+					(at -2.54 55.88 0)
 					(length 2.54)
 					(name "boardin[1]"
 						(effects
@@ -9082,7 +8974,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 73.66 0)
+					(at -2.54 53.34 0)
 					(length 2.54)
 					(name "boardin[2]"
 						(effects
@@ -9100,7 +8992,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 71.12 0)
+					(at -2.54 50.8 0)
 					(length 2.54)
 					(name "boardin[3]"
 						(effects
@@ -9118,7 +9010,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 68.58 0)
+					(at -2.54 48.26 0)
 					(length 2.54)
 					(name "boardin[4]"
 						(effects
@@ -9136,7 +9028,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 66.04 0)
+					(at -2.54 45.72 0)
 					(length 2.54)
 					(name "boardin[5]"
 						(effects
@@ -9154,7 +9046,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 63.5 0)
+					(at -2.54 43.18 0)
 					(length 2.54)
 					(name "boardin[6]"
 						(effects
@@ -9172,7 +9064,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 60.96 0)
+					(at -2.54 40.64 0)
 					(length 2.54)
 					(name "boardin[7]"
 						(effects
@@ -9182,150 +9074,6 @@
 						)
 					)
 					(number "H9"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 58.42 0)
-					(length 2.54)
-					(name "boardout[0]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "D11"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 55.88 0)
-					(length 2.54)
-					(name "boardout[1]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "F11"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 53.34 0)
-					(length 2.54)
-					(name "boardout[2]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "A12"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 50.8 0)
-					(length 2.54)
-					(name "boardout[3]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "E12"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 48.26 0)
-					(length 2.54)
-					(name "boardout[4]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "H12"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 45.72 0)
-					(length 2.54)
-					(name "boardout[5]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "C12"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 43.18 0)
-					(length 2.54)
-					(name "boardout[6]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "A14"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 40.64 0)
-					(length 2.54)
-					(name "boardout[7]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G13"
 						(effects
 							(font
 								(size 1.016 1.016)
@@ -9351,224 +9099,8 @@
 						)
 					)
 				)
-				(pin output line
-					(at -2.54 35.56 0)
-					(length 2.54)
-					(name "debugout[0]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "C8"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 33.02 0)
-					(length 2.54)
-					(name "debugout[10]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "H10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 30.48 0)
-					(length 2.54)
-					(name "debugout[11]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "A11"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 27.94 0)
-					(length 2.54)
-					(name "debugout[1]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "D8"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 25.4 0)
-					(length 2.54)
-					(name "debugout[2]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "A9"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 22.86 0)
-					(length 2.54)
-					(name "debugout[3]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "B9"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 20.32 0)
-					(length 2.54)
-					(name "debugout[4]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "D9"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 17.78 0)
-					(length 2.54)
-					(name "debugout[5]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "C6"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 15.24 0)
-					(length 2.54)
-					(name "debugout[6]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "A6"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 12.7 0)
-					(length 2.54)
-					(name "debugout[7]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "E7"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 10.16 0)
-					(length 2.54)
-					(name "debugout[8]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "F10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 7.62 0)
-					(length 2.54)
-					(name "debugout[9]"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "B10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
 				(pin input line
-					(at -2.54 5.08 0)
+					(at -2.54 35.56 0)
 					(length 2.54)
 					(name "ext_clkin"
 						(effects
@@ -9586,7 +9118,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 2.54 0)
+					(at -2.54 33.02 0)
 					(length 2.54)
 					(name "exttrigin"
 						(effects
@@ -9603,26 +9135,8 @@
 						)
 					)
 				)
-				(pin output line
-					(at -2.54 0 0)
-					(length 2.54)
-					(name "fan_out"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "W2"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
 				(pin input line
-					(at -2.54 -2.54 0)
+					(at -2.54 30.48 0)
 					(length 2.54)
 					(name "lockinfo[0]"
 						(effects
@@ -9640,7 +9154,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -5.08 0)
+					(at -2.54 27.94 0)
 					(length 2.54)
 					(name "lockinfo[1]"
 						(effects
@@ -9658,7 +9172,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -7.62 0)
+					(at -2.54 25.4 0)
 					(length 2.54)
 					(name "lockinfo[2]"
 						(effects
@@ -9676,7 +9190,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -10.16 0)
+					(at -2.54 22.86 0)
 					(length 2.54)
 					(name "lockinfo[3]"
 						(effects
@@ -9694,7 +9208,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -12.7 0)
+					(at -2.54 20.32 0)
 					(length 2.54)
 					(name "lvdsin_clk"
 						(effects
@@ -9712,7 +9226,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -15.24 0)
+					(at -2.54 17.78 0)
 					(length 2.54)
 					(name "lvdsin_clk_N"
 						(effects
@@ -9730,7 +9244,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -17.78 0)
+					(at -2.54 15.24 0)
 					(length 2.54)
 					(name "lvdsin_spare"
 						(effects
@@ -9748,7 +9262,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -20.32 0)
+					(at -2.54 12.7 0)
 					(length 2.54)
 					(name "lvdsin_spare_N"
 						(effects
@@ -9766,7 +9280,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -22.86 0)
+					(at -2.54 10.16 0)
 					(length 2.54)
 					(name "lvdsin_trig"
 						(effects
@@ -9784,7 +9298,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -25.4 0)
+					(at -2.54 7.62 0)
 					(length 2.54)
 					(name "lvdsin_trig_N"
 						(effects
@@ -9802,7 +9316,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -27.94 0)
+					(at -2.54 5.08 0)
 					(length 2.54)
 					(name "lvdsin_trig_b"
 						(effects
@@ -9820,7 +9334,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -30.48 0)
+					(at -2.54 2.54 0)
 					(length 2.54)
 					(name "lvdsin_trig_b_N"
 						(effects
@@ -9837,152 +9351,8 @@
 						)
 					)
 				)
-				(pin output line
-					(at -2.54 -33.02 0)
-					(length 2.54)
-					(name "lvdsout_clk"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "F19"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -35.56 0)
-					(length 2.54)
-					(name "lvdsout_clk_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "E19"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -38.1 0)
-					(length 2.54)
-					(name "lvdsout_spare"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "H19"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -40.64 0)
-					(length 2.54)
-					(name "lvdsout_spare_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "H18"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -43.18 0)
-					(length 2.54)
-					(name "lvdsout_trig"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "C21"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -45.72 0)
-					(length 2.54)
-					(name "lvdsout_trig_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "C22"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -48.26 0)
-					(length 2.54)
-					(name "lvdsout_trig_b"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "D21"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -50.8 0)
-					(length 2.54)
-					(name "lvdsout_trig_b_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "D20"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
 				(pin input line
-					(at -2.54 -53.34 0)
+					(at -2.54 0 0)
 					(length 2.54)
 					(name "main_pllin"
 						(effects
@@ -9999,26 +9369,8 @@
 						)
 					)
 				)
-				(pin output line
-					(at -2.54 -55.88 0)
-					(length 2.54)
-					(name "neo_led"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "V4"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
 				(pin input line
-					(at -2.54 -58.42 0)
+					(at -2.54 -2.54 0)
 					(length 2.54)
 					(name "overrange[0]"
 						(effects
@@ -10036,7 +9388,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -60.96 0)
+					(at -2.54 -5.08 0)
 					(length 2.54)
 					(name "overrange[1]"
 						(effects
@@ -10054,7 +9406,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -63.5 0)
+					(at -2.54 -7.62 0)
 					(length 2.54)
 					(name "overrange[2]"
 						(effects
@@ -10072,7 +9424,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -66.04 0)
+					(at -2.54 -10.16 0)
 					(length 2.54)
 					(name "overrange[3]"
 						(effects
@@ -10090,7 +9442,655 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -68.58 0)
+					(at 33.02 58.42 180)
+					(length 2.54)
+					(name "LED[0]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "U1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 55.88 180)
+					(length 2.54)
+					(name "LED[1]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 53.34 180)
+					(length 2.54)
+					(name "LED[2]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "V3"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 50.8 180)
+					(length 2.54)
+					(name "LED[3]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W3"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 48.26 180)
+					(length 2.54)
+					(name "adc_clkout"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "U17"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 45.72 180)
+					(length 2.54)
+					(name "auxout"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G19"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 43.18 180)
+					(length 2.54)
+					(name "boardout[0]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "D11"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 40.64 180)
+					(length 2.54)
+					(name "boardout[1]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "F11"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 38.1 180)
+					(length 2.54)
+					(name "boardout[2]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "A12"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 35.56 180)
+					(length 2.54)
+					(name "boardout[3]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "E12"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 33.02 180)
+					(length 2.54)
+					(name "boardout[4]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "H12"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 30.48 180)
+					(length 2.54)
+					(name "boardout[5]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "C12"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 27.94 180)
+					(length 2.54)
+					(name "boardout[6]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "A14"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 25.4 180)
+					(length 2.54)
+					(name "boardout[7]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G13"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 22.86 180)
+					(length 2.54)
+					(name "debugout[0]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "C8"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 20.32 180)
+					(length 2.54)
+					(name "debugout[10]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "H10"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 17.78 180)
+					(length 2.54)
+					(name "debugout[11]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "A11"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 15.24 180)
+					(length 2.54)
+					(name "debugout[1]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "D8"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 12.7 180)
+					(length 2.54)
+					(name "debugout[2]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "A9"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 10.16 180)
+					(length 2.54)
+					(name "debugout[3]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "B9"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 7.62 180)
+					(length 2.54)
+					(name "debugout[4]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "D9"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 5.08 180)
+					(length 2.54)
+					(name "debugout[5]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "C6"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 2.54 180)
+					(length 2.54)
+					(name "debugout[6]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "A6"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 0 180)
+					(length 2.54)
+					(name "debugout[7]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "E7"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -2.54 180)
+					(length 2.54)
+					(name "debugout[8]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "F10"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -5.08 180)
+					(length 2.54)
+					(name "debugout[9]"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "B10"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -7.62 180)
+					(length 2.54)
+					(name "fan_out"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -10.16 180)
+					(length 2.54)
+					(name "lvdsout_clk"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "F19"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -12.7 180)
+					(length 2.54)
+					(name "lvdsout_clk_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "E19"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -15.24 180)
+					(length 2.54)
+					(name "lvdsout_spare"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "H19"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -17.78 180)
+					(length 2.54)
+					(name "lvdsout_spare_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "H18"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -20.32 180)
+					(length 2.54)
+					(name "lvdsout_trig"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "C21"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -22.86 180)
+					(length 2.54)
+					(name "lvdsout_trig_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "C22"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -25.4 180)
+					(length 2.54)
+					(name "lvdsout_trig_b"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "D21"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -27.94 180)
+					(length 2.54)
+					(name "lvdsout_trig_b_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "D20"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -30.48 180)
+					(length 2.54)
+					(name "neo_led"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "V4"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 33.02 -33.02 180)
 					(length 2.54)
 					(name "spi_clk"
 						(effects
@@ -10108,7 +10108,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -71.12 0)
+					(at 33.02 -35.56 180)
 					(length 2.54)
 					(name "spi_miso"
 						(effects
@@ -10126,7 +10126,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -73.66 0)
+					(at 33.02 -38.1 180)
 					(length 2.54)
 					(name "spi_mosi"
 						(effects
@@ -10144,7 +10144,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -76.2 0)
+					(at 33.02 -40.64 180)
 					(length 2.54)
 					(name "spics[0]"
 						(effects
@@ -10162,7 +10162,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -78.74 0)
+					(at 33.02 -43.18 180)
 					(length 2.54)
 					(name "spics[1]"
 						(effects
@@ -10180,7 +10180,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -81.28 0)
+					(at 33.02 -45.72 180)
 					(length 2.54)
 					(name "spics[2]"
 						(effects
@@ -10198,7 +10198,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -83.82 0)
+					(at 33.02 -48.26 180)
 					(length 2.54)
 					(name "spics[3]"
 						(effects
@@ -10216,7 +10216,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -86.36 0)
+					(at 33.02 -50.8 180)
 					(length 2.54)
 					(name "spics[4]"
 						(effects
@@ -10234,7 +10234,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -88.9 0)
+					(at 33.02 -53.34 180)
 					(length 2.54)
 					(name "spics[5]"
 						(effects
@@ -10252,7 +10252,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -91.44 0)
+					(at 33.02 -55.88 180)
 					(length 2.54)
 					(name "spics[6]"
 						(effects
@@ -10270,7 +10270,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -93.98 0)
+					(at 33.02 -58.42 180)
 					(length 2.54)
 					(name "spics[7]"
 						(effects
@@ -10582,8 +10582,8 @@
 			)
 			(symbol "Ti90G529_Functions_8_1"
 				(rectangle
-					(start 0 134.62)
-					(end 25.4 -134.62)
+					(start 0 69.85)
+					(end 25.4 -69.85)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -10593,7 +10593,7 @@
 					)
 				)
 				(text "VCC Power"
-					(at 12.7 133.35 0)
+					(at 12.7 68.58 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -10602,7 +10602,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 129.54 0)
+					(at -2.54 64.77 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10620,7 +10620,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 127 0)
+					(at -2.54 62.23 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10638,7 +10638,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 124.46 0)
+					(at -2.54 59.69 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10656,7 +10656,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 121.92 0)
+					(at -2.54 57.15 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10674,7 +10674,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 119.38 0)
+					(at -2.54 54.61 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10692,7 +10692,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 116.84 0)
+					(at -2.54 52.07 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10710,7 +10710,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 114.3 0)
+					(at -2.54 49.53 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10728,7 +10728,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 111.76 0)
+					(at -2.54 46.99 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10746,7 +10746,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 109.22 0)
+					(at -2.54 44.45 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10764,7 +10764,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 106.68 0)
+					(at -2.54 41.91 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10782,7 +10782,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 104.14 0)
+					(at -2.54 39.37 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10800,7 +10800,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 101.6 0)
+					(at -2.54 36.83 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10818,7 +10818,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 99.06 0)
+					(at -2.54 34.29 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10836,7 +10836,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 96.52 0)
+					(at -2.54 31.75 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10854,7 +10854,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 93.98 0)
+					(at -2.54 29.21 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10872,7 +10872,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 91.44 0)
+					(at -2.54 26.67 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10890,7 +10890,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 88.9 0)
+					(at -2.54 24.13 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10908,7 +10908,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 86.36 0)
+					(at -2.54 21.59 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10926,7 +10926,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 83.82 0)
+					(at -2.54 19.05 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10944,7 +10944,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 81.28 0)
+					(at -2.54 16.51 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10962,7 +10962,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 78.74 0)
+					(at -2.54 13.97 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10980,7 +10980,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 76.2 0)
+					(at -2.54 11.43 0)
 					(length 2.54)
 					(name "VCC"
 						(effects
@@ -10998,7 +10998,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 73.66 0)
+					(at -2.54 8.89 0)
 					(length 2.54)
 					(name "VCCAUX"
 						(effects
@@ -11016,7 +11016,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 71.12 0)
+					(at -2.54 6.35 0)
 					(length 2.54)
 					(name "VCCAUX"
 						(effects
@@ -11034,7 +11034,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 68.58 0)
+					(at -2.54 3.81 0)
 					(length 2.54)
 					(name "VCCAUX"
 						(effects
@@ -11052,7 +11052,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 66.04 0)
+					(at -2.54 1.27 0)
 					(length 2.54)
 					(name "VCCAUX"
 						(effects
@@ -11070,7 +11070,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 63.5 0)
+					(at -2.54 -1.27 0)
 					(length 2.54)
 					(name "VCCA_BL"
 						(effects
@@ -11088,7 +11088,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 60.96 0)
+					(at -2.54 -3.81 0)
 					(length 2.54)
 					(name "VCCA_BR"
 						(effects
@@ -11106,7 +11106,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 58.42 0)
+					(at -2.54 -6.35 0)
 					(length 2.54)
 					(name "VCCA_TL"
 						(effects
@@ -11124,7 +11124,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 55.88 0)
+					(at -2.54 -8.89 0)
 					(length 2.54)
 					(name "VCCA_TR"
 						(effects
@@ -11142,7 +11142,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 53.34 0)
+					(at -2.54 -11.43 0)
 					(length 2.54)
 					(name "VCCIO2A"
 						(effects
@@ -11160,7 +11160,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 50.8 0)
+					(at -2.54 -13.97 0)
 					(length 2.54)
 					(name "VCCIO2A"
 						(effects
@@ -11178,7 +11178,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 48.26 0)
+					(at -2.54 -16.51 0)
 					(length 2.54)
 					(name "VCCIO2A"
 						(effects
@@ -11196,7 +11196,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 45.72 0)
+					(at -2.54 -19.05 0)
 					(length 2.54)
 					(name "VCCIO2B"
 						(effects
@@ -11214,7 +11214,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 43.18 0)
+					(at -2.54 -21.59 0)
 					(length 2.54)
 					(name "VCCIO2B"
 						(effects
@@ -11232,7 +11232,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 40.64 0)
+					(at -2.54 -24.13 0)
 					(length 2.54)
 					(name "VCCIO2B"
 						(effects
@@ -11250,7 +11250,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 38.1 0)
+					(at -2.54 -26.67 0)
 					(length 2.54)
 					(name "VCCIO2C"
 						(effects
@@ -11268,7 +11268,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 35.56 0)
+					(at -2.54 -29.21 0)
 					(length 2.54)
 					(name "VCCIO2C"
 						(effects
@@ -11286,7 +11286,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 33.02 0)
+					(at -2.54 -31.75 0)
 					(length 2.54)
 					(name "VCCIO2C"
 						(effects
@@ -11304,7 +11304,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 30.48 0)
+					(at -2.54 -34.29 0)
 					(length 2.54)
 					(name "VCCIO33_BL"
 						(effects
@@ -11322,7 +11322,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 27.94 0)
+					(at -2.54 -36.83 0)
 					(length 2.54)
 					(name "VCCIO33_BL"
 						(effects
@@ -11340,7 +11340,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 25.4 0)
+					(at -2.54 -39.37 0)
 					(length 2.54)
 					(name "VCCIO33_BR"
 						(effects
@@ -11358,7 +11358,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 22.86 0)
+					(at -2.54 -41.91 0)
 					(length 2.54)
 					(name "VCCIO33_TL"
 						(effects
@@ -11376,7 +11376,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 20.32 0)
+					(at -2.54 -44.45 0)
 					(length 2.54)
 					(name "VCCIO33_TL"
 						(effects
@@ -11394,7 +11394,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 17.78 0)
+					(at -2.54 -46.99 0)
 					(length 2.54)
 					(name "VCCIO33_TR"
 						(effects
@@ -11412,7 +11412,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 15.24 0)
+					(at -2.54 -49.53 0)
 					(length 2.54)
 					(name "VCCIO3A"
 						(effects
@@ -11430,7 +11430,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 12.7 0)
+					(at -2.54 -52.07 0)
 					(length 2.54)
 					(name "VCCIO3A"
 						(effects
@@ -11448,7 +11448,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 10.16 0)
+					(at -2.54 -54.61 0)
 					(length 2.54)
 					(name "VCCIO3B"
 						(effects
@@ -11466,7 +11466,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 7.62 0)
+					(at -2.54 -57.15 0)
 					(length 2.54)
 					(name "VCCIO3B"
 						(effects
@@ -11484,7 +11484,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 5.08 0)
+					(at -2.54 -59.69 0)
 					(length 2.54)
 					(name "VCCIO3B"
 						(effects
@@ -11502,7 +11502,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 2.54 0)
+					(at -2.54 -62.23 0)
 					(length 2.54)
 					(name "VCCIO3B"
 						(effects
@@ -11520,7 +11520,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 0 0)
+					(at -2.54 -64.77 0)
 					(length 2.54)
 					(name "VCCIO3C"
 						(effects
@@ -11538,7 +11538,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -2.54 0)
+					(at 27.94 64.77 180)
 					(length 2.54)
 					(name "VCCIO3C"
 						(effects
@@ -11556,7 +11556,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -5.08 0)
+					(at 27.94 62.23 180)
 					(length 2.54)
 					(name "VCCIO4A"
 						(effects
@@ -11574,7 +11574,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -7.62 0)
+					(at 27.94 59.69 180)
 					(length 2.54)
 					(name "VCCIO4A"
 						(effects
@@ -11592,7 +11592,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -10.16 0)
+					(at 27.94 57.15 180)
 					(length 2.54)
 					(name "VCCIO4A"
 						(effects
@@ -11610,7 +11610,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -12.7 0)
+					(at 27.94 54.61 180)
 					(length 2.54)
 					(name "VCCIO4B"
 						(effects
@@ -11628,7 +11628,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -15.24 0)
+					(at 27.94 52.07 180)
 					(length 2.54)
 					(name "VCCIO4B"
 						(effects
@@ -11646,7 +11646,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -17.78 0)
+					(at 27.94 49.53 180)
 					(length 2.54)
 					(name "VCCIO4B"
 						(effects
@@ -11664,7 +11664,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -20.32 0)
+					(at 27.94 46.99 180)
 					(length 2.54)
 					(name "VCCIO4C"
 						(effects
@@ -11682,7 +11682,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -22.86 0)
+					(at 27.94 44.45 180)
 					(length 2.54)
 					(name "VCCIO4C"
 						(effects
@@ -11700,7 +11700,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -25.4 0)
+					(at 27.94 41.91 180)
 					(length 2.54)
 					(name "VCCIO4C"
 						(effects
@@ -11718,7 +11718,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -27.94 0)
+					(at 27.94 39.37 180)
 					(length 2.54)
 					(name "VDDPLL_MCB_TOP_PHY"
 						(effects
@@ -11736,7 +11736,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -30.48 0)
+					(at 27.94 36.83 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11754,7 +11754,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -33.02 0)
+					(at 27.94 34.29 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11772,7 +11772,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -35.56 0)
+					(at 27.94 31.75 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11790,7 +11790,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -38.1 0)
+					(at 27.94 29.21 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11808,7 +11808,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -40.64 0)
+					(at 27.94 26.67 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11826,7 +11826,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -43.18 0)
+					(at 27.94 24.13 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11844,7 +11844,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -45.72 0)
+					(at 27.94 21.59 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11862,7 +11862,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -48.26 0)
+					(at 27.94 19.05 180)
 					(length 2.54)
 					(name "VDDQX_PHY"
 						(effects
@@ -11880,7 +11880,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -50.8 0)
+					(at 27.94 16.51 180)
 					(length 2.54)
 					(name "VDDQ_CK_PHY"
 						(effects
@@ -11898,7 +11898,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -53.34 0)
+					(at 27.94 13.97 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -11916,7 +11916,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -55.88 0)
+					(at 27.94 11.43 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -11934,7 +11934,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -58.42 0)
+					(at 27.94 8.89 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -11952,7 +11952,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -60.96 0)
+					(at 27.94 6.35 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -11970,7 +11970,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -63.5 0)
+					(at 27.94 3.81 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -11988,7 +11988,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -66.04 0)
+					(at 27.94 1.27 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12006,7 +12006,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -68.58 0)
+					(at 27.94 -1.27 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12024,7 +12024,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -71.12 0)
+					(at 27.94 -3.81 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12042,7 +12042,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -73.66 0)
+					(at 27.94 -6.35 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12060,7 +12060,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -76.2 0)
+					(at 27.94 -8.89 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12078,7 +12078,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -78.74 0)
+					(at 27.94 -11.43 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12096,7 +12096,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -81.28 0)
+					(at 27.94 -13.97 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12114,7 +12114,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -83.82 0)
+					(at 27.94 -16.51 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12132,7 +12132,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -86.36 0)
+					(at 27.94 -19.05 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12150,7 +12150,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -88.9 0)
+					(at 27.94 -21.59 180)
 					(length 2.54)
 					(name "VDDQ_PHY"
 						(effects
@@ -12168,7 +12168,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -91.44 0)
+					(at 27.94 -24.13 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12186,7 +12186,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -93.98 0)
+					(at 27.94 -26.67 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12204,7 +12204,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -96.52 0)
+					(at 27.94 -29.21 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12222,7 +12222,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -99.06 0)
+					(at 27.94 -31.75 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12240,7 +12240,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -101.6 0)
+					(at 27.94 -34.29 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12258,7 +12258,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -104.14 0)
+					(at 27.94 -36.83 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12276,7 +12276,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -106.68 0)
+					(at 27.94 -39.37 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12294,7 +12294,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -109.22 0)
+					(at 27.94 -41.91 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12312,7 +12312,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -111.76 0)
+					(at 27.94 -44.45 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12330,7 +12330,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -114.3 0)
+					(at 27.94 -46.99 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12348,7 +12348,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -116.84 0)
+					(at 27.94 -49.53 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12366,7 +12366,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -119.38 0)
+					(at 27.94 -52.07 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12384,7 +12384,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -121.92 0)
+					(at 27.94 -54.61 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12402,7 +12402,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -124.46 0)
+					(at 27.94 -57.15 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12420,7 +12420,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -127 0)
+					(at 27.94 -59.69 180)
 					(length 2.54)
 					(name "VDD_PHY"
 						(effects
@@ -12438,7 +12438,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -129.54 0)
+					(at 27.94 -62.23 180)
 					(length 2.54)
 					(name "VQPS"
 						(effects
@@ -12458,8 +12458,8 @@
 			)
 			(symbol "Ti90G529_Functions_9_1"
 				(rectangle
-					(start 0 114.3)
-					(end 20.32 -114.3)
+					(start 0 59.69)
+					(end 20.32 -59.69)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -12469,7 +12469,7 @@
 					)
 				)
 				(text "GND"
-					(at 10.16 113.03 0)
+					(at 10.16 58.42 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -12478,7 +12478,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 109.22 0)
+					(at -2.54 54.61 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12496,7 +12496,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 106.68 0)
+					(at -2.54 52.07 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12514,7 +12514,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 104.14 0)
+					(at -2.54 49.53 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12532,7 +12532,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 101.6 0)
+					(at -2.54 46.99 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12550,7 +12550,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 99.06 0)
+					(at -2.54 44.45 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12568,7 +12568,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 96.52 0)
+					(at -2.54 41.91 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12586,7 +12586,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 93.98 0)
+					(at -2.54 39.37 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12604,7 +12604,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 91.44 0)
+					(at -2.54 36.83 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12622,7 +12622,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 88.9 0)
+					(at -2.54 34.29 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12640,7 +12640,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 86.36 0)
+					(at -2.54 31.75 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12658,7 +12658,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 83.82 0)
+					(at -2.54 29.21 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12676,7 +12676,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 81.28 0)
+					(at -2.54 26.67 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12694,7 +12694,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 78.74 0)
+					(at -2.54 24.13 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12712,7 +12712,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 76.2 0)
+					(at -2.54 21.59 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12730,7 +12730,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 73.66 0)
+					(at -2.54 19.05 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12748,7 +12748,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 71.12 0)
+					(at -2.54 16.51 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12766,7 +12766,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 68.58 0)
+					(at -2.54 13.97 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12784,7 +12784,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 66.04 0)
+					(at -2.54 11.43 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12802,7 +12802,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 63.5 0)
+					(at -2.54 8.89 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12820,7 +12820,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 60.96 0)
+					(at -2.54 6.35 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12838,7 +12838,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 58.42 0)
+					(at -2.54 3.81 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12856,7 +12856,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 55.88 0)
+					(at -2.54 1.27 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12874,7 +12874,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 53.34 0)
+					(at -2.54 -1.27 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12892,7 +12892,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 50.8 0)
+					(at -2.54 -3.81 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12910,7 +12910,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 48.26 0)
+					(at -2.54 -6.35 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12928,7 +12928,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 45.72 0)
+					(at -2.54 -8.89 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12946,7 +12946,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 43.18 0)
+					(at -2.54 -11.43 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12964,7 +12964,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 40.64 0)
+					(at -2.54 -13.97 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -12982,7 +12982,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 38.1 0)
+					(at -2.54 -16.51 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13000,7 +13000,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 35.56 0)
+					(at -2.54 -19.05 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13018,7 +13018,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 33.02 0)
+					(at -2.54 -21.59 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13036,7 +13036,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 30.48 0)
+					(at -2.54 -24.13 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13054,7 +13054,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 27.94 0)
+					(at -2.54 -26.67 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13072,7 +13072,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 25.4 0)
+					(at -2.54 -29.21 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13090,7 +13090,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 22.86 0)
+					(at -2.54 -31.75 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13108,7 +13108,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 20.32 0)
+					(at -2.54 -34.29 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13126,7 +13126,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 17.78 0)
+					(at -2.54 -36.83 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13144,7 +13144,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 15.24 0)
+					(at -2.54 -39.37 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13162,7 +13162,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 12.7 0)
+					(at -2.54 -41.91 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13180,7 +13180,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 10.16 0)
+					(at -2.54 -44.45 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13198,7 +13198,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 7.62 0)
+					(at -2.54 -46.99 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13216,7 +13216,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 5.08 0)
+					(at -2.54 -49.53 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13234,7 +13234,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 2.54 0)
+					(at -2.54 -52.07 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13252,7 +13252,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 0 0)
+					(at -2.54 -54.61 0)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13270,7 +13270,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -2.54 0)
+					(at 22.86 54.61 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13288,7 +13288,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -5.08 0)
+					(at 22.86 52.07 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13306,7 +13306,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -7.62 0)
+					(at 22.86 49.53 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13324,7 +13324,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -10.16 0)
+					(at 22.86 46.99 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13342,7 +13342,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -12.7 0)
+					(at 22.86 44.45 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13360,7 +13360,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -15.24 0)
+					(at 22.86 41.91 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13378,7 +13378,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -17.78 0)
+					(at 22.86 39.37 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13396,7 +13396,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -20.32 0)
+					(at 22.86 36.83 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13414,7 +13414,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -22.86 0)
+					(at 22.86 34.29 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13432,7 +13432,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -25.4 0)
+					(at 22.86 31.75 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13450,7 +13450,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -27.94 0)
+					(at 22.86 29.21 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13468,7 +13468,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -30.48 0)
+					(at 22.86 26.67 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13486,7 +13486,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -33.02 0)
+					(at 22.86 24.13 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13504,7 +13504,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -35.56 0)
+					(at 22.86 21.59 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13522,7 +13522,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -38.1 0)
+					(at 22.86 19.05 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13540,7 +13540,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -40.64 0)
+					(at 22.86 16.51 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13558,7 +13558,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -43.18 0)
+					(at 22.86 13.97 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13576,7 +13576,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -45.72 0)
+					(at 22.86 11.43 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13594,7 +13594,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -48.26 0)
+					(at 22.86 8.89 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13612,7 +13612,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -50.8 0)
+					(at 22.86 6.35 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13630,7 +13630,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -53.34 0)
+					(at 22.86 3.81 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13648,7 +13648,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -55.88 0)
+					(at 22.86 1.27 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13666,7 +13666,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -58.42 0)
+					(at 22.86 -1.27 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13684,7 +13684,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -60.96 0)
+					(at 22.86 -3.81 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13702,7 +13702,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -63.5 0)
+					(at 22.86 -6.35 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13720,7 +13720,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -66.04 0)
+					(at 22.86 -8.89 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13738,7 +13738,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -68.58 0)
+					(at 22.86 -11.43 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13756,7 +13756,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -71.12 0)
+					(at 22.86 -13.97 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13774,7 +13774,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -73.66 0)
+					(at 22.86 -16.51 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13792,7 +13792,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -76.2 0)
+					(at 22.86 -19.05 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13810,7 +13810,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -78.74 0)
+					(at 22.86 -21.59 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13828,7 +13828,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -81.28 0)
+					(at 22.86 -24.13 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13846,7 +13846,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -83.82 0)
+					(at 22.86 -26.67 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13864,7 +13864,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -86.36 0)
+					(at 22.86 -29.21 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13882,7 +13882,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -88.9 0)
+					(at 22.86 -31.75 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13900,7 +13900,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -91.44 0)
+					(at 22.86 -34.29 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13918,7 +13918,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -93.98 0)
+					(at 22.86 -36.83 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13936,7 +13936,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -96.52 0)
+					(at 22.86 -39.37 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13954,7 +13954,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -99.06 0)
+					(at 22.86 -41.91 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13972,7 +13972,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -101.6 0)
+					(at 22.86 -44.45 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -13990,7 +13990,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -104.14 0)
+					(at 22.86 -46.99 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -14008,7 +14008,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -106.68 0)
+					(at 22.86 -49.53 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -14026,7 +14026,7 @@
 					)
 				)
 				(pin power_in line
-					(at -2.54 -109.22 0)
+					(at 22.86 -52.07 180)
 					(length 2.54)
 					(name "GND"
 						(effects
@@ -14503,1136 +14503,1135 @@
 	)
 	(wire
 		(pts
-			(xy 215.9 66.04) (xy 199.39 66.04)
+			(xy 123.19 114.3) (xy 133.35 114.3)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "00bb3db7-3a55-4c97-afbf-cabfe55dabeb")
+		(uuid "0393944b-1c1a-4cc9-a496-cf2ce6769a6a")
 	)
 	(wire
 		(pts
-			(xy 133.35 134.62) (xy 120.65 134.62)
+			(xy 204.47 25.4) (xy 215.9 25.4)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "04d2237f-8fcc-48af-8de4-eddaecca0de7")
+		(uuid "050a95ce-d235-4554-b2e5-737334a3d408")
 	)
 	(wire
 		(pts
-			(xy 133.35 45.72) (xy 120.65 45.72)
+			(xy 123.19 55.88) (xy 133.35 55.88)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "05631651-f572-45e5-9503-d6667fdf391e")
+		(uuid "055b64d7-0331-4ed8-9ada-5f6b6d7dbfbc")
 	)
 	(wire
 		(pts
-			(xy 133.35 154.94) (xy 120.65 154.94)
+			(xy 204.47 43.18) (xy 215.9 43.18)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "0b7ab130-9959-486e-a8b6-5c7eb5ce27c3")
+		(uuid "0850df17-8fb7-4e83-8e15-26a107c9e594")
 	)
 	(wire
 		(pts
-			(xy 133.35 63.5) (xy 120.65 63.5)
+			(xy 123.19 45.72) (xy 133.35 45.72)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "0d84d7ae-eee9-4cda-95d6-818d32f58474")
+		(uuid "0896a1f6-75ce-468f-865b-c018520718b2")
 	)
 	(wire
 		(pts
-			(xy 215.9 40.64) (xy 199.39 40.64)
+			(xy 123.19 58.42) (xy 133.35 58.42)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "153e8edf-58de-4989-8a61-ac6c1f4b64ca")
+		(uuid "0ece5cbd-21fc-4eec-9b73-d95d070bd3c1")
 	)
 	(wire
 		(pts
-			(xy 215.9 60.96) (xy 199.39 60.96)
+			(xy 204.47 96.52) (xy 215.9 96.52)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "1d272fa0-922f-4f10-86a9-9c094cee228a")
+		(uuid "108b85d5-eca2-458d-b51b-a24b8a2e3452")
 	)
 	(wire
 		(pts
-			(xy 133.35 121.92) (xy 120.65 121.92)
+			(xy 123.19 35.56) (xy 133.35 35.56)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "1d624874-8586-4edd-aa11-778b4f7f5016")
+		(uuid "11e09a28-e8a5-4c12-9c55-ee58606cc8e2")
 	)
 	(wire
 		(pts
-			(xy 133.35 96.52) (xy 120.65 96.52)
+			(xy 204.47 106.68) (xy 215.9 106.68)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "2977bb3a-c4d3-4f74-9f79-f948d1cb90a8")
+		(uuid "14f4a2ca-d085-46da-8bab-e5755cdf6ad8")
 	)
 	(wire
 		(pts
-			(xy 133.35 119.38) (xy 120.65 119.38)
+			(xy 123.19 175.26) (xy 133.35 175.26)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "29c43c43-629b-457c-b22b-2ee8766085e8")
+		(uuid "1537ca97-8474-4d8a-a1df-0032ff42b88d")
 	)
 	(wire
 		(pts
-			(xy 133.35 137.16) (xy 120.65 137.16)
+			(xy 123.19 71.12) (xy 133.35 71.12)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "2cde85b7-4d28-4588-99e2-ba8f1fb878d7")
+		(uuid "16a96a86-a85c-40ec-9774-309df8d3674d")
 	)
 	(wire
 		(pts
-			(xy 215.9 111.76) (xy 199.39 111.76)
+			(xy 204.47 27.94) (xy 215.9 27.94)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "2dbbcf9c-e27b-43e9-aa47-937f93e8e233")
+		(uuid "1aab5e65-742c-44f6-8ec1-2a7a78269257")
 	)
 	(wire
 		(pts
-			(xy 215.9 93.98) (xy 199.39 93.98)
+			(xy 123.19 88.9) (xy 133.35 88.9)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "2e25dcb9-6c93-4ceb-8c83-2893d7312804")
+		(uuid "21a13e9b-d5c8-4214-ab69-0222ff56eda1")
 	)
 	(wire
 		(pts
-			(xy 215.9 55.88) (xy 199.39 55.88)
+			(xy 204.47 101.6) (xy 215.9 101.6)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "2e6983cb-2fd4-4d55-a924-56d9b5c8181d")
+		(uuid "225cd702-3678-4915-9fff-ae3e55892fc0")
 	)
 	(wire
 		(pts
-			(xy 215.9 73.66) (xy 199.39 73.66)
+			(xy 123.19 53.34) (xy 133.35 53.34)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "2ec4c049-fd89-4633-b074-55267612d138")
+		(uuid "23bf3dc7-524d-4705-9321-489247d651f5")
 	)
 	(wire
 		(pts
-			(xy 133.35 86.36) (xy 120.65 86.36)
+			(xy 204.47 111.76) (xy 215.9 111.76)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "30260516-f711-4c44-a334-f0d93fa2ed71")
+		(uuid "2480306b-75e1-4aff-8018-deb077dfb2b7")
 	)
 	(wire
 		(pts
-			(xy 133.35 91.44) (xy 120.65 91.44)
+			(xy 123.19 172.72) (xy 133.35 172.72)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "32130993-1835-435a-bcb4-7d3dbee03ca6")
+		(uuid "24c77d71-5d2c-47ec-b87b-8f2f1747e1c1")
 	)
 	(wire
 		(pts
-			(xy 215.9 27.94) (xy 199.39 27.94)
+			(xy 123.19 185.42) (xy 133.35 185.42)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "3388a4ca-3a5d-4938-8b20-94f9a67bd800")
+		(uuid "291c90a1-0d5b-46d0-af35-1c1cbed06fe2")
 	)
 	(wire
 		(pts
-			(xy 215.9 25.4) (xy 199.39 25.4)
+			(xy 204.47 134.62) (xy 215.9 134.62)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "36b36b13-dee9-4637-81fa-b98d3623344f")
+		(uuid "29e78257-28d1-4bd4-aa65-df34af864112")
 	)
 	(wire
 		(pts
-			(xy 215.9 127) (xy 199.39 127)
+			(xy 123.19 134.62) (xy 133.35 134.62)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "3738ca30-928d-4e4d-b63d-dcff07c13abe")
+		(uuid "2b9f241d-8b9f-447c-b6bb-aa7eae7ae686")
 	)
 	(wire
 		(pts
-			(xy 215.9 137.16) (xy 199.39 137.16)
+			(xy 123.19 96.52) (xy 133.35 96.52)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "3970190b-638b-41fb-8d7f-6ccd4cd2710c")
+		(uuid "304b68c8-060b-4f09-ad9e-78559999bd86")
 	)
 	(wire
 		(pts
-			(xy 215.9 88.9) (xy 199.39 88.9)
+			(xy 204.47 93.98) (xy 215.9 93.98)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "3e330461-65ce-4a50-ab39-958b34c97f40")
+		(uuid "30ef5994-d569-46b6-93a6-88e6b37971a5")
 	)
 	(wire
 		(pts
-			(xy 215.9 48.26) (xy 199.39 48.26)
+			(xy 204.47 78.74) (xy 215.9 78.74)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "428e74b7-03b7-42f1-83fc-21d1ce3e0a8a")
+		(uuid "313eff68-d640-4552-a124-00927b2252a2")
 	)
 	(wire
 		(pts
-			(xy 133.35 55.88) (xy 120.65 55.88)
+			(xy 123.19 63.5) (xy 133.35 63.5)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "431ee5bd-8344-44ed-93af-1fc8e68a9114")
+		(uuid "31f31afe-607f-4c8b-937b-df183521abcc")
 	)
 	(wire
 		(pts
-			(xy 133.35 33.02) (xy 120.65 33.02)
+			(xy 123.19 139.7) (xy 133.35 139.7)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "4340c73f-da7a-4236-b6bf-c5cdc03338a4")
+		(uuid "32cea626-6ccb-4a50-b336-b45db89e9b53")
 	)
 	(wire
 		(pts
-			(xy 133.35 73.66) (xy 120.65 73.66)
+			(xy 204.47 53.34) (xy 215.9 53.34)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "4ae9e854-a31a-465e-8a99-c134df930fc0")
+		(uuid "335f7343-3114-4ef6-9a19-5c40c5092c9e")
 	)
 	(wire
 		(pts
-			(xy 133.35 27.94) (xy 120.65 27.94)
+			(xy 123.19 154.94) (xy 133.35 154.94)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "52017e9b-b7ae-45c4-ab89-2ad6b1e4fcfb")
+		(uuid "347d6ff5-75bd-4fce-88b1-5fd704717988")
 	)
 	(wire
 		(pts
-			(xy 215.9 152.4) (xy 199.39 152.4)
+			(xy 123.19 147.32) (xy 133.35 147.32)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "534b8f5e-f3e9-45f4-93b5-e1f2c14f1216")
+		(uuid "3890f4bc-817f-45e8-9521-8459d145ab57")
 	)
 	(wire
 		(pts
-			(xy 133.35 53.34) (xy 120.65 53.34)
+			(xy 123.19 60.96) (xy 133.35 60.96)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "55429292-30f6-4225-81de-331c687e97f0")
+		(uuid "39223190-72c8-4640-bcef-0aacdbfdcd16")
 	)
 	(wire
 		(pts
-			(xy 215.9 68.58) (xy 199.39 68.58)
+			(xy 204.47 142.24) (xy 215.9 142.24)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "5755be2f-2614-4207-9676-ee6349fdfc44")
+		(uuid "3ac3c5eb-4705-422d-b7be-05c794f9fa9d")
 	)
 	(wire
 		(pts
-			(xy 215.9 106.68) (xy 199.39 106.68)
+			(xy 123.19 78.74) (xy 133.35 78.74)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "5a4979c8-c0f4-4a01-a4a5-ae83c8fbc41c")
+		(uuid "42d214de-28eb-4077-9766-63b15d272be3")
 	)
 	(wire
 		(pts
-			(xy 133.35 189.23) (xy 120.65 189.23)
+			(xy 204.47 45.72) (xy 215.9 45.72)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "5c867caa-a41d-44ce-829d-7e3d2c4e83ed")
+		(uuid "43a42e00-9497-46a9-997c-e3e8d51aabb3")
 	)
 	(wire
 		(pts
-			(xy 215.9 45.72) (xy 199.39 45.72)
+			(xy 204.47 149.86) (xy 215.9 149.86)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "5d2e19d0-7689-448e-ba7b-fca676c2b36b")
+		(uuid "46e97187-6461-4d7b-9e26-a3715318a493")
 	)
 	(wire
 		(pts
-			(xy 215.9 119.38) (xy 199.39 119.38)
+			(xy 204.47 124.46) (xy 215.9 124.46)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "5fabdacd-afaf-4bca-b39e-fa61ad72d9e6")
+		(uuid "4cf89060-bde3-4014-abe5-d7d5a52112bb")
 	)
 	(wire
 		(pts
-			(xy 133.35 139.7) (xy 120.65 139.7)
+			(xy 204.47 76.2) (xy 215.9 76.2)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "5fe69134-8f3f-4ecc-b091-f52dec4df88a")
+		(uuid "4f016ccb-1d97-407a-b098-2a81776ce337")
 	)
 	(wire
 		(pts
-			(xy 133.35 186.69) (xy 120.65 186.69)
+			(xy 123.19 170.18) (xy 133.35 170.18)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "63b8d99c-6d34-4985-acaf-ad209208c068")
+		(uuid "4f663197-2d0c-466e-9e05-8bb78e560e17")
 	)
 	(wire
 		(pts
-			(xy 215.9 76.2) (xy 199.39 76.2)
+			(xy 204.47 60.96) (xy 215.9 60.96)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "64bc858a-29fe-4122-b769-ccf908d3dfdb")
+		(uuid "5136a36e-f593-4799-971b-18463a2595ca")
 	)
 	(wire
 		(pts
-			(xy 215.9 50.8) (xy 199.39 50.8)
+			(xy 123.19 50.8) (xy 133.35 50.8)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "659a29e3-7766-4078-84f3-0f78e9f44eba")
+		(uuid "514019d1-6ec8-4968-9abe-53bd92d0fd4e")
 	)
 	(wire
 		(pts
-			(xy 133.35 25.4) (xy 120.65 25.4)
+			(xy 204.47 104.14) (xy 215.9 104.14)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "68cbd964-d468-4233-85b6-4c54d6e44bea")
+		(uuid "51b378f2-97db-47e3-a8e2-c50dabb30ad8")
 	)
 	(wire
 		(pts
-			(xy 215.9 63.5) (xy 199.39 63.5)
+			(xy 204.47 144.78) (xy 215.9 144.78)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "6a7e4308-c431-4ef6-80b2-09887618283c")
+		(uuid "536833d9-b04e-4604-9130-6830eebad378")
 	)
 	(wire
 		(pts
-			(xy 215.9 129.54) (xy 199.39 129.54)
+			(xy 204.47 50.8) (xy 215.9 50.8)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "6e227aa0-fe4c-41a4-b07a-b9428ae1f0d0")
+		(uuid "53ac9999-272f-4db0-94eb-2e8b973504ef")
 	)
 	(wire
 		(pts
-			(xy 215.9 104.14) (xy 199.39 104.14)
+			(xy 204.47 129.54) (xy 215.9 129.54)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "74762f33-23a0-4729-9ab9-59799596bc21")
+		(uuid "5ac37012-33df-4c0c-90aa-56d0082d0799")
 	)
 	(wire
 		(pts
-			(xy 133.35 132.08) (xy 120.65 132.08)
+			(xy 123.19 25.4) (xy 133.35 25.4)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "76282a60-f443-4d5b-ade4-34750965528f")
+		(uuid "5c016dd4-2372-4993-87d3-df93c1df989b")
 	)
 	(wire
 		(pts
-			(xy 133.35 99.06) (xy 120.65 99.06)
+			(xy 204.47 40.64) (xy 215.9 40.64)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "79f1e514-1f02-4a9f-b628-da2f97af4471")
+		(uuid "5e2facc4-4e2d-44c6-a9f9-c58a5145a7b4")
 	)
 	(wire
 		(pts
-			(xy 133.35 176.53) (xy 120.65 176.53)
+			(xy 123.19 106.68) (xy 133.35 106.68)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "7e0eec30-d395-48ab-a649-a5a1343258f4")
+		(uuid "5e5c2c4f-e474-4b41-ba36-0598b9004264")
 	)
 	(wire
 		(pts
-			(xy 215.9 83.82) (xy 199.39 83.82)
+			(xy 133.35 187.96) (xy 123.19 187.96)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "817cc077-6e3f-47ba-bd61-5d7986757bcc")
+		(uuid "626e2ed9-f408-400e-be93-773c2bfac7ae")
 	)
 	(wire
 		(pts
-			(xy 133.35 78.74) (xy 120.65 78.74)
+			(xy 123.19 116.84) (xy 133.35 116.84)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "81db4287-1de6-4a1a-bccb-bf8074cb2520")
+		(uuid "63a3fa41-9c00-4f6a-a993-f4659c1fa50d")
 	)
 	(wire
 		(pts
-			(xy 133.35 171.45) (xy 120.65 171.45)
+			(xy 204.47 132.08) (xy 215.9 132.08)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "84e8e92d-9cdb-4e53-b933-e55f8ce8e055")
+		(uuid "64005f23-564b-4717-a09b-d4fee93040b4")
 	)
 	(wire
 		(pts
-			(xy 133.35 106.68) (xy 120.65 106.68)
+			(xy 123.19 152.4) (xy 133.35 152.4)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "862b131b-13a0-4444-a429-b77850bdf130")
+		(uuid "6d9338b1-b10a-4bed-9416-c00b33e88bd2")
 	)
 	(wire
 		(pts
-			(xy 215.9 43.18) (xy 199.39 43.18)
+			(xy 204.47 71.12) (xy 215.9 71.12)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "895ee4d3-7638-474b-a755-21f235610410")
+		(uuid "6e0a8687-7a36-4a1b-908f-90af24c8e057")
 	)
 	(wire
 		(pts
-			(xy 215.9 134.62) (xy 199.39 134.62)
+			(xy 123.19 132.08) (xy 133.35 132.08)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "8c5c0777-a53c-4813-9b2b-4d8c1fe1c2df")
+		(uuid "7110b360-5760-4b8c-8720-ef6f5ee3e274")
 	)
 	(wire
 		(pts
-			(xy 215.9 114.3) (xy 199.39 114.3)
+			(xy 204.47 114.3) (xy 215.9 114.3)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "8e8dac90-8c53-4c97-a8c5-61f9ca9aba8f")
+		(uuid "7e24f190-2acc-4e30-9706-be4f747e8de5")
 	)
 	(wire
 		(pts
-			(xy 133.35 58.42) (xy 120.65 58.42)
+			(xy 123.19 182.88) (xy 133.35 182.88)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "8e967e4f-eb9d-4c7a-94e8-9c40cedbb03a")
+		(uuid "7ea74a6c-87b2-4b3a-a891-170d6d084ba9")
 	)
 	(wire
 		(pts
-			(xy 133.35 142.24) (xy 120.65 142.24)
+			(xy 204.47 63.5) (xy 215.9 63.5)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "8f569adc-7b53-4c6c-b629-4cea9e0d4226")
+		(uuid "7f9ef124-5b31-455f-a986-fd81f8a8455d")
 	)
 	(wire
 		(pts
-			(xy 133.35 173.99) (xy 120.65 173.99)
+			(xy 123.19 127) (xy 133.35 127)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "8f9362fb-7f18-4c95-b2f2-bfaad9467d83")
+		(uuid "80c1cb22-cc8f-46e6-9a74-147373823a30")
 	)
 	(wire
 		(pts
-			(xy 133.35 129.54) (xy 120.65 129.54)
+			(xy 204.47 119.38) (xy 215.9 119.38)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "90afc180-1280-4dab-851a-e26c5a74da16")
+		(uuid "81d9fde6-b415-496d-8609-9d04ac77f6ce")
 	)
 	(wire
 		(pts
-			(xy 215.9 91.44) (xy 199.39 91.44)
+			(xy 123.19 129.54) (xy 133.35 129.54)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "94611c4b-6e8a-4db6-88d8-4065a78d681f")
+		(uuid "83cc2962-4a1e-4b7f-8b79-bf67aa81f2e2")
 	)
 	(wire
 		(pts
-			(xy 215.9 139.7) (xy 199.39 139.7)
+			(xy 123.19 109.22) (xy 133.35 109.22)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "954c2652-4125-4658-af8a-edbbc2eb916b")
+		(uuid "86b1ca48-1a55-45c5-bf1e-0f4e8c40bf45")
 	)
 	(wire
 		(pts
-			(xy 215.9 78.74) (xy 199.39 78.74)
+			(xy 204.47 81.28) (xy 215.9 81.28)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "96d0529d-486b-4749-b7a1-53ad1f8d0c46")
+		(uuid "87b67b60-de7c-4e7d-bcfc-f8460b8e4b54")
 	)
 	(wire
 		(pts
-			(xy 133.35 184.15) (xy 120.65 184.15)
+			(xy 204.47 147.32) (xy 215.9 147.32)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "976de793-39db-444c-b2f1-a78b6799107e")
+		(uuid "9156f800-ec2d-41a6-958e-6ba9364d4219")
 	)
 	(wire
 		(pts
-			(xy 215.9 101.6) (xy 199.39 101.6)
+			(xy 204.47 48.26) (xy 215.9 48.26)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "9e8d15d3-8cef-48cc-9522-f1f5b7c3b67b")
+		(uuid "92c0c3e1-32b4-4c5d-ba64-2113ced2f018")
 	)
 	(wire
 		(pts
-			(xy 133.35 109.22) (xy 120.65 109.22)
+			(xy 204.47 30.48) (xy 215.9 30.48)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "9fbf5f03-eac5-41b5-8491-6a03ded95aa8")
+		(uuid "9776262d-d9aa-4eab-b20f-9b0b5c05fa2b")
 	)
 	(wire
 		(pts
-			(xy 133.35 60.96) (xy 120.65 60.96)
+			(xy 123.19 119.38) (xy 133.35 119.38)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a0778ca3-8b43-4920-a6d9-9e71749c7bf8")
+		(uuid "9aaa3e6c-269c-4c36-a211-5bcac44dd405")
 	)
 	(wire
 		(pts
-			(xy 215.9 38.1) (xy 199.39 38.1)
+			(xy 123.19 91.44) (xy 133.35 91.44)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a2513b94-448c-42af-911f-1cdd0f61b482")
+		(uuid "9de3fdb8-c817-4315-aeb7-e89f383f8e4c")
 	)
 	(wire
 		(pts
-			(xy 215.9 142.24) (xy 199.39 142.24)
+			(xy 204.47 99.06) (xy 215.9 99.06)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a31308ed-1c50-44e3-a1df-a4add334d91e")
+		(uuid "9dfb18ba-86d6-48c4-a324-488ee3fa45e3")
 	)
 	(wire
 		(pts
-			(xy 133.35 88.9) (xy 120.65 88.9)
+			(xy 204.47 154.94) (xy 215.9 154.94)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a49a9f7a-df0c-4aeb-b800-fe56871ad6ec")
+		(uuid "9e38cc4c-bf20-482d-8bb3-11426c426c67")
 	)
 	(wire
 		(pts
-			(xy 215.9 149.86) (xy 199.39 149.86)
+			(xy 123.19 83.82) (xy 133.35 83.82)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a4da1187-1316-44d4-ad94-a95ba1bb6671")
+		(uuid "9f6f6ea4-12e4-4f13-b907-d289c8adc088")
 	)
 	(wire
 		(pts
-			(xy 133.35 127) (xy 120.65 127)
+			(xy 123.19 180.34) (xy 133.35 180.34)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a4dfb592-392e-4b7d-bb0b-10e97cfd56b3")
+		(uuid "a0133765-7a75-49cb-9617-d1509e9e52f6")
 	)
 	(wire
 		(pts
-			(xy 215.9 147.32) (xy 199.39 147.32)
+			(xy 123.19 81.28) (xy 133.35 81.28)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a501b7c1-e5c5-4b49-8a73-ce1a63aefc90")
+		(uuid "a0a364ab-e16f-4f24-a101-33b8472ed4e3")
 	)
 	(wire
 		(pts
-			(xy 133.35 68.58) (xy 120.65 68.58)
+			(xy 204.47 73.66) (xy 215.9 73.66)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a5d3a789-710e-4ddd-96ad-79e9df7de2eb")
+		(uuid "a0a9be45-07e5-495d-be02-dd776a22a879")
 	)
 	(wire
 		(pts
-			(xy 215.9 71.12) (xy 199.39 71.12)
+			(xy 123.19 142.24) (xy 133.35 142.24)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a74ad65b-643c-4cc5-820e-3c9e144a45f0")
+		(uuid "a21a17d0-3282-4066-abd2-1f1e4f69d316")
 	)
 	(wire
 		(pts
-			(xy 215.9 33.02) (xy 199.39 33.02)
+			(xy 123.19 76.2) (xy 133.35 76.2)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a81471a2-dc73-44fd-981d-a7b8976c23a3")
+		(uuid "a4681af3-62f2-4dae-a784-fdacec0f2249")
 	)
 	(wire
 		(pts
-			(xy 133.35 43.18) (xy 120.65 43.18)
+			(xy 204.47 68.58) (xy 215.9 68.58)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a839d6a0-4a3c-4dd6-8426-02442a4afed0")
+		(uuid "a47160d4-019c-4474-b332-1c2286860520")
 	)
 	(wire
 		(pts
-			(xy 215.9 96.52) (xy 199.39 96.52)
+			(xy 123.19 177.8) (xy 133.35 177.8)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "a9cffe3b-ee0a-41c1-987f-55f73f9ca4ee")
+		(uuid "a51196c7-7811-483f-84db-551e277ce341")
 	)
 	(wire
 		(pts
-			(xy 133.35 149.86) (xy 120.65 149.86)
+			(xy 123.19 121.92) (xy 133.35 121.92)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "abfa5d70-ef57-4db0-bb18-13d8c4cea2c9")
+		(uuid "ab30bd5f-23f1-4b3e-94d9-5cf3bd174cce")
 	)
 	(wire
 		(pts
-			(xy 133.35 114.3) (xy 120.65 114.3)
+			(xy 123.19 66.04) (xy 133.35 66.04)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "ac9b6e81-8dac-4a95-b4ab-0c44454fdeaf")
+		(uuid "af40717f-f93b-4f7d-ba11-c7f280dc1b01")
 	)
 	(wire
 		(pts
-			(xy 133.35 30.48) (xy 120.65 30.48)
+			(xy 123.19 99.06) (xy 133.35 99.06)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "aef0f135-ad09-48fa-b9e6-af4e84e9b3b0")
+		(uuid "afe4fa5f-6005-4697-ba23-df2a1d784020")
 	)
 	(wire
 		(pts
-			(xy 215.9 99.06) (xy 199.39 99.06)
+			(xy 123.19 137.16) (xy 133.35 137.16)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "af5faf40-93d6-4baa-9142-4af9c848c8cf")
+		(uuid "b1d22037-5aeb-490e-b631-090d28a0e6ff")
 	)
 	(wire
 		(pts
-			(xy 133.35 81.28) (xy 120.65 81.28)
+			(xy 123.19 43.18) (xy 133.35 43.18)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b1582a41-7bc5-416b-bcec-5d41d5034132")
+		(uuid "b22c207c-5f43-47ec-bcae-bd0153c5d720")
 	)
 	(wire
 		(pts
-			(xy 133.35 144.78) (xy 120.65 144.78)
+			(xy 123.19 93.98) (xy 133.35 93.98)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b203e498-20a3-4c22-aea3-94056a0cc8b2")
+		(uuid "b2807916-4bae-4483-b568-74f7fbc912cd")
 	)
 	(wire
 		(pts
-			(xy 133.35 104.14) (xy 120.65 104.14)
+			(xy 204.47 137.16) (xy 215.9 137.16)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b205247d-c53d-41ae-bc0f-25ab21692d71")
+		(uuid "bc60475b-83c8-4bc3-b3f4-62c4d97951a7")
 	)
 	(wire
 		(pts
-			(xy 215.9 132.08) (xy 199.39 132.08)
+			(xy 123.19 48.26) (xy 133.35 48.26)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b3258f30-a4c3-4c23-b99d-233b6f514510")
+		(uuid "bf0631cc-380c-4443-8d2e-cf9721f279d4")
 	)
 	(wire
 		(pts
-			(xy 215.9 121.92) (xy 199.39 121.92)
+			(xy 204.47 139.7) (xy 215.9 139.7)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b4c96579-96db-40ba-bd6b-1b6ae1979d39")
+		(uuid "c064da57-b980-425c-8d43-dbb501c9c86a")
 	)
 	(wire
 		(pts
-			(xy 215.9 154.94) (xy 199.39 154.94)
+			(xy 123.19 68.58) (xy 133.35 68.58)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b537cbc5-2979-4f00-9da0-1e35d8de1f84")
+		(uuid "c5e1df95-2032-4ecd-aab4-e01a5c0bb834")
 	)
 	(wire
 		(pts
-			(xy 215.9 53.34) (xy 199.39 53.34)
+			(xy 204.47 109.22) (xy 215.9 109.22)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b6bf32fb-83e0-4010-9d08-61240bf9cea0")
+		(uuid "c746e15e-39cb-499b-9e65-6690abb63755")
 	)
 	(wire
 		(pts
-			(xy 133.35 101.6) (xy 120.65 101.6)
+			(xy 204.47 121.92) (xy 215.9 121.92)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b7e62fd4-8167-40a4-b099-0166804f4143")
+		(uuid "caa8d3a8-7f53-4be2-b695-9837b8c5b52b")
 	)
 	(wire
 		(pts
-			(xy 133.35 152.4) (xy 120.65 152.4)
+			(xy 123.19 101.6) (xy 133.35 101.6)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "b843d51d-4471-4f0e-94e9-8525b240deef")
+		(uuid "cc738dbe-7312-41aa-bfaa-e13ec865ce90")
 	)
 	(wire
 		(pts
-			(xy 215.9 86.36) (xy 199.39 86.36)
+			(xy 123.19 144.78) (xy 133.35 144.78)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c0ef7314-b96a-42a1-aacb-b395040226b0")
+		(uuid "cc99d6e5-7254-4c90-b2a1-81931f295edc")
 	)
 	(wire
 		(pts
-			(xy 133.35 66.04) (xy 120.65 66.04)
+			(xy 123.19 111.76) (xy 133.35 111.76)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c3a180fe-9550-468a-af0b-20bb96f6e2d0")
+		(uuid "cdb6af2d-433b-4eda-8ff9-9432a0e3aa07")
 	)
 	(wire
 		(pts
-			(xy 133.35 181.61) (xy 120.65 181.61)
+			(xy 204.47 86.36) (xy 215.9 86.36)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c49728e6-166a-4a31-b604-be9e45a51425")
+		(uuid "cf2523e9-3978-4f30-a123-a70b25e93507")
 	)
 	(wire
 		(pts
-			(xy 215.9 109.22) (xy 199.39 109.22)
+			(xy 123.19 104.14) (xy 133.35 104.14)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c4fa79eb-cf92-43e5-afb2-8b60e192be53")
+		(uuid "d1d9f620-e3a6-420d-b63e-b00e3e9eacc0")
 	)
 	(wire
 		(pts
-			(xy 133.35 116.84) (xy 120.65 116.84)
+			(xy 204.47 152.4) (xy 215.9 152.4)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c538ab91-8130-4eff-aa5b-3d78c963c20e")
+		(uuid "d27ddbf6-7a49-4883-bdd6-fed756281d28")
 	)
 	(wire
 		(pts
-			(xy 133.35 48.26) (xy 120.65 48.26)
+			(xy 204.47 55.88) (xy 215.9 55.88)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c55fe7cc-b8a8-49e2-bed8-70f228dc6e5c")
+		(uuid "d45a1bea-7062-4064-ba67-c6a479649c2c")
 	)
 	(wire
 		(pts
-			(xy 133.35 38.1) (xy 120.65 38.1)
+			(xy 204.47 66.04) (xy 215.9 66.04)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "c56c5a36-289c-499f-bc67-8cc88359be56")
+		(uuid "d4cf5794-289b-4641-9e4f-64eaa86f2cfe")
 	)
 	(wire
 		(pts
-			(xy 215.9 81.28) (xy 199.39 81.28)
+			(xy 204.47 83.82) (xy 215.9 83.82)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "cd528429-f7e5-4c27-b912-59ed6504039a")
+		(uuid "d5fd2d78-4a7d-4c63-a31b-597588428f75")
 	)
 	(wire
 		(pts
-			(xy 215.9 124.46) (xy 199.39 124.46)
+			(xy 204.47 88.9) (xy 215.9 88.9)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "ce034701-e7d0-447a-8dfc-18686d59d920")
+		(uuid "d9348a25-74c6-4fd5-a639-76c86600a001")
 	)
 	(wire
 		(pts
-			(xy 133.35 147.32) (xy 120.65 147.32)
+			(xy 204.47 91.44) (xy 215.9 91.44)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "d423f523-42f7-4ce5-a129-3d60f402d8c2")
+		(uuid "de280fd9-6b75-4bff-a7a6-642ce459e834")
 	)
 	(wire
 		(pts
-			(xy 133.35 50.8) (xy 120.65 50.8)
+			(xy 123.19 30.48) (xy 133.35 30.48)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "d5b9521c-c149-48c3-ac5a-de5aaf251566")
+		(uuid "e0f76e1c-17fe-4c41-a49e-90dc79cd374f")
 	)
 	(wire
 		(pts
-			(xy 215.9 144.78) (xy 199.39 144.78)
+			(xy 123.19 40.64) (xy 133.35 40.64)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "da18b31f-3e9d-4d6f-9370-6c327e8ad2fc")
+		(uuid "e1ece38d-574e-4a3a-85f7-22e9b1f8a9e5")
 	)
 	(wire
 		(pts
-			(xy 133.35 124.46) (xy 120.65 124.46)
+			(xy 123.19 86.36) (xy 133.35 86.36)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "da678b26-f37b-4171-aaa1-aa1ea311063f")
+		(uuid "e2fe9f85-48da-4c0a-b711-0a22c5da1bbc")
 	)
 	(wire
 		(pts
-			(xy 215.9 30.48) (xy 199.39 30.48)
+			(xy 204.47 35.56) (xy 215.9 35.56)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "dc47f1a8-98b9-4293-a4b7-ed0d7787911e")
+		(uuid "e6004d2c-8044-4a79-be4b-4000f1b6d612")
 	)
 	(wire
 		(pts
-			(xy 133.35 76.2) (xy 120.65 76.2)
+			(xy 123.19 27.94) (xy 133.35 27.94)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "dd0799bb-b8b7-4313-963a-91c843d640b5")
+		(uuid "e7462417-11df-4929-a38e-5cc17d498bb1")
 	)
 	(wire
 		(pts
-			(xy 133.35 83.82) (xy 120.65 83.82)
+			(xy 123.19 124.46) (xy 133.35 124.46)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e15dd28f-c77e-4b8b-bef1-7750a652e31f")
+		(uuid "e7fe5915-eacd-4b46-a158-790ec1092668")
 	)
 	(wire
 		(pts
-			(xy 133.35 93.98) (xy 120.65 93.98)
+			(xy 123.19 33.02) (xy 133.35 33.02)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e1a15416-11ea-4c6e-a8f9-118c93d32322")
+		(uuid "ec0186b0-84c5-4f6b-9908-ce11f4ac9782")
 	)
 	(wire
 		(pts
-			(xy 215.9 116.84) (xy 199.39 116.84)
+			(xy 204.47 116.84) (xy 215.9 116.84)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e371c4ce-1e3a-4ccb-aaa8-248c86493561")
+		(uuid "ece54389-4a9e-4d56-89ea-8d952c00c068")
 	)
 	(wire
 		(pts
-			(xy 133.35 35.56) (xy 120.65 35.56)
+			(xy 204.47 127) (xy 215.9 127)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e4c12e87-34ba-41b9-aa2a-e54f9d4d369e")
+		(uuid "ed792d1b-1c36-4a3e-baf4-848f71f295a2")
 	)
 	(wire
 		(pts
-			(xy 133.35 40.64) (xy 120.65 40.64)
+			(xy 123.19 149.86) (xy 133.35 149.86)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e71739a4-6bd6-4790-b626-448f004e272d")
+		(uuid "efee25f8-d0d6-4403-a3ce-936b080fad7c")
 	)
 	(wire
 		(pts
-			(xy 215.9 35.56) (xy 199.39 35.56)
+			(xy 123.19 38.1) (xy 133.35 38.1)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "e8f97d13-a9bf-4665-be9c-4073b98bd817")
+		(uuid "f3550b20-d121-434a-8452-a63cd77d8ac2")
 	)
 	(wire
 		(pts
-			(xy 133.35 179.07) (xy 120.65 179.07)
+			(xy 204.47 33.02) (xy 215.9 33.02)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "f04e0219-1b67-454f-b5d4-4ca6e6604cc3")
+		(uuid "f3cece4d-12b3-4a80-8e9e-6c4a02acc885")
 	)
 	(wire
 		(pts
-			(xy 133.35 111.76) (xy 120.65 111.76)
+			(xy 123.19 73.66) (xy 133.35 73.66)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "f6cbdb6a-5cbf-48b5-b9d7-47bc675a6242")
+		(uuid "f453d0bc-db15-4799-8a96-b18e9496de35")
 	)
 	(wire
 		(pts
-			(xy 215.9 58.42) (xy 199.39 58.42)
+			(xy 204.47 58.42) (xy 215.9 58.42)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "fa523666-6849-48d4-b768-24cee91d5db5")
+		(uuid "fdcd38d2-3486-4811-9b4a-a83a7d4bcf6f")
 	)
 	(wire
 		(pts
-			(xy 133.35 71.12) (xy 120.65 71.12)
+			(xy 204.47 38.1) (xy 215.9 38.1)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "fafbf219-8468-4efc-b833-821b9cc87f6f")
+		(uuid "fe6c4417-932a-46ee-8860-e9f811a35758")
 	)
 	(symbol
 		(lib_id "Aligned_Peripheral_Symbols:ADC12DL500ACF_Aligned")
-		(at 20.32 106.68 0)
+		(at 21.59 107.95 0)
 		(unit 6)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "08bc3465-cc6f-479d-aa80-9ae65169da9a")
 		(property "Reference" "IC1"
-			(at 41.91 105.3952 0)
+			(at 21.082 17.018 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15641,7 +15640,7 @@
 			)
 		)
 		(property "Value" "ADC12DL500ACF_Aligned"
-			(at 41.91 107.9352 0)
+			(at 21.082 19.558 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15649,8 +15648,8 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "BGA256C100P16X16_1700X1700X331"
-			(at 20.32 110.49 0)
+		(property "Footprint" "ADC12DL:BGA256C100P16X16_1700X1700X331"
+			(at 21.59 111.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15659,7 +15658,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 20.32 106.68 0)
+			(at 21.59 107.95 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15668,7 +15667,7 @@
 			)
 		)
 		(property "Description" "ADC12DL500ACF - LVDS outputs aligned with Ti90G529 FPGA"
-			(at 20.32 113.03 0)
+			(at 21.59 114.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16455,7 +16454,7 @@
 	)
 	(symbol
 		(lib_id "Ti90G529_Functions:Ti90G529_Functions")
-		(at 87.63 90.17 0)
+		(at 171.45 90.17 0)
 		(unit 3)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -16464,7 +16463,7 @@
 		(fields_autoplaced yes)
 		(uuid "0df05784-db71-469e-bbc5-2219c17bab78")
 		(property "Reference" "U3"
-			(at 102.87 15.24 0)
+			(at 186.69 15.24 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16472,15 +16471,15 @@
 			)
 		)
 		(property "Value" "Ti90G529_Functions"
-			(at 102.87 17.78 0)
+			(at 186.69 17.78 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Footprint" "haasoscope_pro_adc_fpga_board:BGA-529_23x23_19.0x19.0mm"
-			(at 87.63 93.98 0)
+		(property "Footprint" "G529:BGA-529_23x23_19.0x19.0mm"
+			(at 171.45 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16489,7 +16488,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 87.63 96.52 0)
+			(at 171.45 96.52 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16498,7 +16497,7 @@
 			)
 		)
 		(property "Description" "Efinix Ti90G529 FPGA organized by peripheral interface"
-			(at 87.63 99.06 0)
+			(at 171.45 99.06 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18111,7 +18110,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "BGA256C100P16X16_1700X1700X331"
+		(property "Footprint" "ADC12DL:BGA256C100P16X16_1700X1700X331"
 			(at 58.42 185.42 0)
 			(effects
 				(font
@@ -18917,7 +18916,7 @@
 	)
 	(symbol
 		(lib_id "Ti90G529_Functions:Ti90G529_Functions")
-		(at 166.37 90.17 0)
+		(at 90.17 90.17 0)
 		(unit 2)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -18926,7 +18925,7 @@
 		(fields_autoplaced yes)
 		(uuid "1a1d645e-6ea7-417c-a664-acda9f25ab4f")
 		(property "Reference" "U3"
-			(at 181.61 15.24 0)
+			(at 105.41 15.24 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18934,15 +18933,15 @@
 			)
 		)
 		(property "Value" "Ti90G529_Functions"
-			(at 181.61 17.78 0)
+			(at 105.41 17.78 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Footprint" "haasoscope_pro_adc_fpga_board:BGA-529_23x23_19.0x19.0mm"
-			(at 166.37 93.98 0)
+		(property "Footprint" "G529:BGA-529_23x23_19.0x19.0mm"
+			(at 90.17 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18951,7 +18950,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 166.37 96.52 0)
+			(at 90.17 96.52 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18960,7 +18959,7 @@
 			)
 		)
 		(property "Description" "Efinix Ti90G529 FPGA organized by peripheral interface"
-			(at 166.37 99.06 0)
+			(at 90.17 99.06 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20548,7 +20547,7 @@
 	)
 	(symbol
 		(lib_id "Ti90G529_Functions:Ti90G529_Functions")
-		(at 87.63 180.34 0)
+		(at 90.17 179.07 0)
 		(unit 4)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -20557,7 +20556,7 @@
 		(fields_autoplaced yes)
 		(uuid "47690253-e15c-4988-bb6e-ecafc0c2e00a")
 		(property "Reference" "U3"
-			(at 114.3 179.0552 0)
+			(at 116.84 177.7852 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20567,7 +20566,7 @@
 			)
 		)
 		(property "Value" "Ti90G529_Functions"
-			(at 114.3 181.5952 0)
+			(at 116.84 180.3252 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20576,8 +20575,8 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" "haasoscope_pro_adc_fpga_board:BGA-529_23x23_19.0x19.0mm"
-			(at 87.63 184.15 0)
+		(property "Footprint" "G529:BGA-529_23x23_19.0x19.0mm"
+			(at 90.17 182.88 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20586,7 +20585,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 87.63 186.69 0)
+			(at 90.17 185.42 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20595,7 +20594,7 @@
 			)
 		)
 		(property "Description" "Efinix Ti90G529 FPGA organized by peripheral interface"
-			(at 87.63 189.23 0)
+			(at 90.17 187.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -22208,7 +22207,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "BGA256C100P16X16_1700X1700X331"
+		(property "Footprint" "ADC12DL:BGA256C100P16X16_1700X1700X331"
 			(at 135.89 93.98 0)
 			(effects
 				(font
@@ -23014,7 +23013,7 @@
 	)
 	(symbol
 		(lib_id "Aligned_Peripheral_Symbols:ADC12DL500ACF_Aligned")
-		(at 135.89 180.34 0)
+		(at 135.89 179.07 0)
 		(unit 3)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -23022,7 +23021,7 @@
 		(dnp no)
 		(uuid "8c88c3fc-1946-4730-a1df-94d479a659c7")
 		(property "Reference" "IC1"
-			(at 135.89 164.592 0)
+			(at 135.89 163.322 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23032,7 +23031,7 @@
 			)
 		)
 		(property "Value" "ADC12DL500ACF_Aligned"
-			(at 135.89 162.306 0)
+			(at 135.89 161.036 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23041,8 +23040,8 @@
 				(hide yes)
 			)
 		)
-		(property "Footprint" "BGA256C100P16X16_1700X1700X331"
-			(at 135.89 184.15 0)
+		(property "Footprint" "ADC12DL:BGA256C100P16X16_1700X1700X331"
+			(at 135.89 182.88 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23051,7 +23050,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 135.89 180.34 0)
+			(at 135.89 179.07 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23060,7 +23059,7 @@
 			)
 		)
 		(property "Description" "ADC12DL500ACF - LVDS outputs aligned with Ti90G529 FPGA"
-			(at 135.89 186.69 0)
+			(at 135.89 185.42 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23872,7 +23871,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "BGA256C100P16X16_1700X1700X331"
+		(property "Footprint" "ADC12DL:BGA256C100P16X16_1700X1700X331"
 			(at 218.44 93.98 0)
 			(effects
 				(font

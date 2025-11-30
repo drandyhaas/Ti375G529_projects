@@ -195,13 +195,15 @@ def generate_ft601q_aligned():
         ('DV10', '39', 'power_out'),
         ('AVDD', '2', 'power_in'),
         ('GND', '1', 'power_in'),
+        ('GND', '19', 'passive'),
         ('GND', '26', 'passive'),
         ('GND', '29', 'passive'),
         ('GND', '36', 'passive'),
         ('GND', '77', 'passive'),
+        ('GND', '78', 'passive'),  # Exposed pad
     ]
 
-    num_pwr = 12  # Visible power pins
+    num_pwr = len(power_pins)
     height3 = num_pwr * pin_spacing + 7.62
     y_start3 = height3 / 2
 
@@ -216,17 +218,12 @@ def generate_ft601q_aligned():
     lines.append('      )')
 
     y_pos = y_start3 - 5.08
-    seen_names = set()
     for name, pin_num, pin_type in power_pins:
-        hide = 'yes' if name in seen_names else ''
-        hide_str = '(hide yes)' if hide else ''
-        lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54) {hide_str}')
+        lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
         lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
         lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
         lines.append('      )')
-        if name not in seen_names:
-            seen_names.add(name)
-            y_pos -= pin_spacing
+        y_pos -= pin_spacing
 
     lines.append('    )')
 
@@ -413,10 +410,10 @@ def generate_adc12dl_aligned():
     lines.append('    (symbol "ADC12DL500ACF_Aligned_3_1"')
 
     lvds_clk_pins = [
-        ('DACLK+', 'G9'), ('DACLK-', 'G10'),
-        ('DCCLK+', 'G15'), ('DCCLK-', 'G16'),
         ('DBCLK+', 'K9'), ('DBCLK-', 'K10'),
         ('DDCLK+', 'K15'), ('DDCLK-', 'K16'),
+        ('DACLK+', 'G9'), ('DACLK-', 'G10'),
+        ('DCCLK+', 'G15'), ('DCCLK-', 'G16'),
     ]
 
     num_clk = len(lvds_clk_pins)
