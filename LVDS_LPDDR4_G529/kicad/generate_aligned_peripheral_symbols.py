@@ -277,7 +277,8 @@ def generate_adc12dl_aligned():
     # Channel D data: DD0-DD11 (each + and -)
     # Plus clock and strobe for each channel
 
-    # Unit 1: Channel A & C outputs (connects to ADC 1/2)
+    # Unit 1: Channel A & C data outputs (connects to ADC 1/2 LVDS Data)
+    # Clock pins moved to separate Unit 3
     lines.append('    (symbol "ADC12DL500ACF_Aligned_1_1"')
 
     ch_a_data = [
@@ -293,7 +294,7 @@ def generate_adc12dl_aligned():
         ('DA9+', 'D11'), ('DA9-', 'D12'),
         ('DA10+', 'E11'), ('DA10-', 'E12'),
         ('DA11+', 'F11'), ('DA11-', 'F12'),
-        ('DACLK+', 'G9'), ('DACLK-', 'G10'),
+        # DACLK moved to Unit 3
         ('DASTR+', 'H9'), ('DASTR-', 'H10'),
     ]
 
@@ -310,7 +311,7 @@ def generate_adc12dl_aligned():
         ('DC9+', 'D15'), ('DC9-', 'D16'),
         ('DC10+', 'E15'), ('DC10-', 'E16'),
         ('DC11+', 'F15'), ('DC11-', 'F16'),
-        ('DCCLK+', 'G15'), ('DCCLK-', 'G16'),
+        # DCCLK moved to Unit 3
         ('DCSTR+', 'H15'), ('DCSTR-', 'H16'),
     ]
 
@@ -343,7 +344,8 @@ def generate_adc12dl_aligned():
 
     lines.append('    )')
 
-    # Unit 2: Channel B & D outputs (connects to ADC 3/4)
+    # Unit 2: Channel B & D data outputs (connects to ADC 3/4 LVDS Data)
+    # Clock pins moved to separate Unit 3
     lines.append('    (symbol "ADC12DL500ACF_Aligned_2_1"')
 
     ch_b_data = [
@@ -359,7 +361,7 @@ def generate_adc12dl_aligned():
         ('DB9+', 'N11'), ('DB9-', 'N12'),
         ('DB10+', 'M11'), ('DB10-', 'M12'),
         ('DB11+', 'L11'), ('DB11-', 'L12'),
-        ('DBCLK+', 'K9'), ('DBCLK-', 'K10'),
+        # DBCLK moved to Unit 3
         ('DBSTR+', 'J9'), ('DBSTR-', 'J10'),
     ]
 
@@ -376,7 +378,7 @@ def generate_adc12dl_aligned():
         ('DD9+', 'N15'), ('DD9-', 'N16'),
         ('DD10+', 'M15'), ('DD10-', 'M16'),
         ('DD11+', 'L15'), ('DD11-', 'L16'),
-        ('DDCLK+', 'K15'), ('DDCLK-', 'K16'),
+        # DDCLK moved to Unit 3
         ('DDSTR+', 'J15'), ('DDSTR-', 'J16'),
     ]
 
@@ -405,8 +407,43 @@ def generate_adc12dl_aligned():
 
     lines.append('    )')
 
-    # Unit 3: Analog Inputs
+    # Unit 3: LVDS Clock Outputs (connects to ADC LVDS Clocks unit on FPGA)
+    # These align with lvds_rx_top_clkin1/2 and lvds_rx_bottom_clkin3/4
     lines.append('    (symbol "ADC12DL500ACF_Aligned_3_1"')
+
+    lvds_clk_pins = [
+        ('DACLK+', 'G9'), ('DACLK-', 'G10'),
+        ('DCCLK+', 'G15'), ('DCCLK-', 'G16'),
+        ('DBCLK+', 'K9'), ('DBCLK-', 'K10'),
+        ('DDCLK+', 'K15'), ('DDCLK-', 'K16'),
+    ]
+
+    num_clk = len(lvds_clk_pins)
+    height_clk = num_clk * pin_spacing + 7.62
+    y_start_clk = height_clk / 2
+
+    lines.append(f'      (rectangle (start 0 {y_start_clk:.2f}) (end {box_width:.2f} {-y_start_clk:.2f})')
+    lines.append('        (stroke (width 0.254) (type default))')
+    lines.append('        (fill (type background))')
+    lines.append('      )')
+
+    lines.append('      (text "LVDS Clock Out"')
+    lines.append(f'        (at {box_width/2:.2f} {y_start_clk - 1.27:.2f} 0)')
+    lines.append('        (effects (font (size 1.524 1.524) bold))')
+    lines.append('      )')
+
+    y_pos = y_start_clk - 5.08
+    for name, pin_num in lvds_clk_pins:
+        lines.append(f'      (pin output line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    lines.append('    )')
+
+    # Unit 4: Analog Inputs
+    lines.append('    (symbol "ADC12DL500ACF_Aligned_4_1"')
 
     analog_pins = [
         ('INA+', 'A4', 'input'),
@@ -441,8 +478,8 @@ def generate_adc12dl_aligned():
 
     lines.append('    )')
 
-    # Unit 4: Control and SPI
-    lines.append('    (symbol "ADC12DL500ACF_Aligned_4_1"')
+    # Unit 5: Control and SPI
+    lines.append('    (symbol "ADC12DL500ACF_Aligned_5_1"')
 
     ctrl_pins = [
         ('CALSTAT', 'B1', 'output'),
@@ -495,8 +532,8 @@ def generate_adc12dl_aligned():
 
     lines.append('    )')
 
-    # Unit 5: Power and Ground (simplified - just key pins)
-    lines.append('    (symbol "ADC12DL500ACF_Aligned_5_1"')
+    # Unit 6: Power and Ground (simplified - just key pins)
+    lines.append('    (symbol "ADC12DL500ACF_Aligned_6_1"')
 
     power_pins = [
         ('VA11', 'E4', 'power_in'),

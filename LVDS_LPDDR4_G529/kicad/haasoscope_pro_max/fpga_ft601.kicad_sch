@@ -2450,7 +2450,7 @@
 						(type background)
 					)
 				)
-				(text "ADC 1/2 LVDS"
+				(text "ADC 1/2 LVDS Data"
 					(at 15.24 68.58 0)
 					(effects
 						(font
@@ -3408,7 +3408,7 @@
 						(type background)
 					)
 				)
-				(text "ADC 3/4 LVDS"
+				(text "ADC 3/4 LVDS Data"
 					(at 15.24 68.58 0)
 					(effects
 						(font
@@ -4356,8 +4356,174 @@
 			)
 			(symbol "Ti90G529_Functions_4_1"
 				(rectangle
+					(start 0 13.97)
+					(end 30.48 -13.97)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(text "ADC LVDS Clocks"
+					(at 15.24 12.7 0)
+					(effects
+						(font
+							(size 1.524 1.524)
+							(bold yes)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 8.89 180)
+					(length 2.54)
+					(name "lvds_rx_top_clkin1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "J22"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 6.35 180)
+					(length 2.54)
+					(name "lvds_rx_top_clkin1_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "J23"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 3.81 180)
+					(length 2.54)
+					(name "lvds_rx_top_clkin2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "R22"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 1.27 180)
+					(length 2.54)
+					(name "lvds_rx_top_clkin2_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "R21"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 -1.27 180)
+					(length 2.54)
+					(name "lvds_rx_bottom_clkin3"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "R4"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 -3.81 180)
+					(length 2.54)
+					(name "lvds_rx_bottom_clkin3_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "R5"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 -6.35 180)
+					(length 2.54)
+					(name "lvds_rx_bottom_clkin4"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G1"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 33.02 -8.89 180)
+					(length 2.54)
+					(name "lvds_rx_bottom_clkin4_N"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "G2"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
+			(symbol "Ti90G529_Functions_5_1"
+				(rectangle
 					(start 0 80.01)
-					(end 25.4 -80.01)
+					(end 30.48 -80.01)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -4367,7 +4533,7 @@
 					)
 				)
 				(text "DDR4 Interface"
-					(at 12.7 78.74 0)
+					(at 15.24 78.74 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -5456,10 +5622,10 @@
 					)
 				)
 			)
-			(symbol "Ti90G529_Functions_5_1"
+			(symbol "Ti90G529_Functions_6_1"
 				(rectangle
-					(start 0 109.22)
-					(end 25.4 -109.22)
+					(start 0 99.06)
+					(end 30.48 -99.06)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -5469,7 +5635,7 @@
 					)
 				)
 				(text "Misc I/O"
-					(at 12.7 107.95 0)
+					(at 15.24 97.79 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -5478,7 +5644,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 104.14 0)
+					(at -2.54 93.98 0)
 					(length 2.54)
 					(name "LED[0]"
 						(effects
@@ -5496,7 +5662,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 101.6 0)
+					(at -2.54 91.44 0)
 					(length 2.54)
 					(name "LED[1]"
 						(effects
@@ -5514,7 +5680,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 99.06 0)
+					(at -2.54 88.9 0)
 					(length 2.54)
 					(name "LED[2]"
 						(effects
@@ -5532,7 +5698,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 96.52 0)
+					(at -2.54 86.36 0)
 					(length 2.54)
 					(name "LED[3]"
 						(effects
@@ -5550,7 +5716,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 93.98 0)
+					(at -2.54 83.82 0)
 					(length 2.54)
 					(name "adc_clkout"
 						(effects
@@ -5568,7 +5734,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 91.44 0)
+					(at -2.54 81.28 0)
 					(length 2.54)
 					(name "auxout"
 						(effects
@@ -5586,7 +5752,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 88.9 0)
+					(at -2.54 78.74 0)
 					(length 2.54)
 					(name "boardin[0]"
 						(effects
@@ -5604,7 +5770,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 86.36 0)
+					(at -2.54 76.2 0)
 					(length 2.54)
 					(name "boardin[1]"
 						(effects
@@ -5622,7 +5788,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 83.82 0)
+					(at -2.54 73.66 0)
 					(length 2.54)
 					(name "boardin[2]"
 						(effects
@@ -5640,7 +5806,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 81.28 0)
+					(at -2.54 71.12 0)
 					(length 2.54)
 					(name "boardin[3]"
 						(effects
@@ -5658,7 +5824,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 78.74 0)
+					(at -2.54 68.58 0)
 					(length 2.54)
 					(name "boardin[4]"
 						(effects
@@ -5676,7 +5842,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 76.2 0)
+					(at -2.54 66.04 0)
 					(length 2.54)
 					(name "boardin[5]"
 						(effects
@@ -5694,7 +5860,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 73.66 0)
+					(at -2.54 63.5 0)
 					(length 2.54)
 					(name "boardin[6]"
 						(effects
@@ -5712,7 +5878,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 71.12 0)
+					(at -2.54 60.96 0)
 					(length 2.54)
 					(name "boardin[7]"
 						(effects
@@ -5730,7 +5896,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 68.58 0)
+					(at -2.54 58.42 0)
 					(length 2.54)
 					(name "boardout[0]"
 						(effects
@@ -5748,7 +5914,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 66.04 0)
+					(at -2.54 55.88 0)
 					(length 2.54)
 					(name "boardout[1]"
 						(effects
@@ -5766,7 +5932,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 63.5 0)
+					(at -2.54 53.34 0)
 					(length 2.54)
 					(name "boardout[2]"
 						(effects
@@ -5784,7 +5950,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 60.96 0)
+					(at -2.54 50.8 0)
 					(length 2.54)
 					(name "boardout[3]"
 						(effects
@@ -5802,7 +5968,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 58.42 0)
+					(at -2.54 48.26 0)
 					(length 2.54)
 					(name "boardout[4]"
 						(effects
@@ -5820,7 +5986,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 55.88 0)
+					(at -2.54 45.72 0)
 					(length 2.54)
 					(name "boardout[5]"
 						(effects
@@ -5838,7 +6004,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 53.34 0)
+					(at -2.54 43.18 0)
 					(length 2.54)
 					(name "boardout[6]"
 						(effects
@@ -5856,7 +6022,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 50.8 0)
+					(at -2.54 40.64 0)
 					(length 2.54)
 					(name "boardout[7]"
 						(effects
@@ -5874,7 +6040,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 48.26 0)
+					(at -2.54 38.1 0)
 					(length 2.54)
 					(name "ddr_pllin"
 						(effects
@@ -5892,7 +6058,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 45.72 0)
+					(at -2.54 35.56 0)
 					(length 2.54)
 					(name "debugout[0]"
 						(effects
@@ -5910,7 +6076,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 43.18 0)
+					(at -2.54 33.02 0)
 					(length 2.54)
 					(name "debugout[10]"
 						(effects
@@ -5928,7 +6094,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 40.64 0)
+					(at -2.54 30.48 0)
 					(length 2.54)
 					(name "debugout[11]"
 						(effects
@@ -5946,7 +6112,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 38.1 0)
+					(at -2.54 27.94 0)
 					(length 2.54)
 					(name "debugout[1]"
 						(effects
@@ -5964,7 +6130,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 35.56 0)
+					(at -2.54 25.4 0)
 					(length 2.54)
 					(name "debugout[2]"
 						(effects
@@ -5982,7 +6148,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 33.02 0)
+					(at -2.54 22.86 0)
 					(length 2.54)
 					(name "debugout[3]"
 						(effects
@@ -6000,7 +6166,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 30.48 0)
+					(at -2.54 20.32 0)
 					(length 2.54)
 					(name "debugout[4]"
 						(effects
@@ -6018,7 +6184,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 27.94 0)
+					(at -2.54 17.78 0)
 					(length 2.54)
 					(name "debugout[5]"
 						(effects
@@ -6036,7 +6202,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 25.4 0)
+					(at -2.54 15.24 0)
 					(length 2.54)
 					(name "debugout[6]"
 						(effects
@@ -6054,7 +6220,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 22.86 0)
+					(at -2.54 12.7 0)
 					(length 2.54)
 					(name "debugout[7]"
 						(effects
@@ -6072,7 +6238,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 20.32 0)
+					(at -2.54 10.16 0)
 					(length 2.54)
 					(name "debugout[8]"
 						(effects
@@ -6090,7 +6256,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 17.78 0)
+					(at -2.54 7.62 0)
 					(length 2.54)
 					(name "debugout[9]"
 						(effects
@@ -6108,7 +6274,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 15.24 0)
+					(at -2.54 5.08 0)
 					(length 2.54)
 					(name "ext_clkin"
 						(effects
@@ -6126,7 +6292,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 12.7 0)
+					(at -2.54 2.54 0)
 					(length 2.54)
 					(name "exttrigin"
 						(effects
@@ -6144,7 +6310,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 10.16 0)
+					(at -2.54 0 0)
 					(length 2.54)
 					(name "fan_out"
 						(effects
@@ -6162,7 +6328,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 7.62 0)
+					(at -2.54 -2.54 0)
 					(length 2.54)
 					(name "lockinfo[0]"
 						(effects
@@ -6180,7 +6346,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 5.08 0)
+					(at -2.54 -5.08 0)
 					(length 2.54)
 					(name "lockinfo[1]"
 						(effects
@@ -6198,7 +6364,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 2.54 0)
+					(at -2.54 -7.62 0)
 					(length 2.54)
 					(name "lockinfo[2]"
 						(effects
@@ -6216,7 +6382,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 0 0)
+					(at -2.54 -10.16 0)
 					(length 2.54)
 					(name "lockinfo[3]"
 						(effects
@@ -6234,151 +6400,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -2.54 0)
-					(length 2.54)
-					(name "lvds_rx_bottom_clkin3"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "R4"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -5.08 0)
-					(length 2.54)
-					(name "lvds_rx_bottom_clkin3_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "R5"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -7.62 0)
-					(length 2.54)
-					(name "lvds_rx_bottom_clkin4"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -10.16 0)
-					(length 2.54)
-					(name "lvds_rx_bottom_clkin4_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "G2"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
 					(at -2.54 -12.7 0)
-					(length 2.54)
-					(name "lvds_rx_top_clkin1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "J22"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -15.24 0)
-					(length 2.54)
-					(name "lvds_rx_top_clkin1_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "J23"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -17.78 0)
-					(length 2.54)
-					(name "lvds_rx_top_clkin2"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "R22"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -20.32 0)
-					(length 2.54)
-					(name "lvds_rx_top_clkin2_N"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "R21"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -22.86 0)
 					(length 2.54)
 					(name "lvdsin_clk"
 						(effects
@@ -6396,7 +6418,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -25.4 0)
+					(at -2.54 -15.24 0)
 					(length 2.54)
 					(name "lvdsin_clk_N"
 						(effects
@@ -6414,7 +6436,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -27.94 0)
+					(at -2.54 -17.78 0)
 					(length 2.54)
 					(name "lvdsin_spare"
 						(effects
@@ -6432,7 +6454,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -30.48 0)
+					(at -2.54 -20.32 0)
 					(length 2.54)
 					(name "lvdsin_spare_N"
 						(effects
@@ -6450,7 +6472,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -33.02 0)
+					(at -2.54 -22.86 0)
 					(length 2.54)
 					(name "lvdsin_trig"
 						(effects
@@ -6468,7 +6490,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -35.56 0)
+					(at -2.54 -25.4 0)
 					(length 2.54)
 					(name "lvdsin_trig_N"
 						(effects
@@ -6486,7 +6508,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -38.1 0)
+					(at -2.54 -27.94 0)
 					(length 2.54)
 					(name "lvdsin_trig_b"
 						(effects
@@ -6504,7 +6526,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -40.64 0)
+					(at -2.54 -30.48 0)
 					(length 2.54)
 					(name "lvdsin_trig_b_N"
 						(effects
@@ -6522,7 +6544,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -43.18 0)
+					(at -2.54 -33.02 0)
 					(length 2.54)
 					(name "lvdsout_clk"
 						(effects
@@ -6540,7 +6562,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -45.72 0)
+					(at -2.54 -35.56 0)
 					(length 2.54)
 					(name "lvdsout_clk_N"
 						(effects
@@ -6558,7 +6580,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -48.26 0)
+					(at -2.54 -38.1 0)
 					(length 2.54)
 					(name "lvdsout_spare"
 						(effects
@@ -6576,7 +6598,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -50.8 0)
+					(at -2.54 -40.64 0)
 					(length 2.54)
 					(name "lvdsout_spare_N"
 						(effects
@@ -6594,7 +6616,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -53.34 0)
+					(at -2.54 -43.18 0)
 					(length 2.54)
 					(name "lvdsout_trig"
 						(effects
@@ -6612,7 +6634,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -55.88 0)
+					(at -2.54 -45.72 0)
 					(length 2.54)
 					(name "lvdsout_trig_N"
 						(effects
@@ -6630,7 +6652,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -58.42 0)
+					(at -2.54 -48.26 0)
 					(length 2.54)
 					(name "lvdsout_trig_b"
 						(effects
@@ -6648,7 +6670,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -60.96 0)
+					(at -2.54 -50.8 0)
 					(length 2.54)
 					(name "lvdsout_trig_b_N"
 						(effects
@@ -6666,7 +6688,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -63.5 0)
+					(at -2.54 -53.34 0)
 					(length 2.54)
 					(name "main_pllin"
 						(effects
@@ -6684,7 +6706,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -66.04 0)
+					(at -2.54 -55.88 0)
 					(length 2.54)
 					(name "neo_led"
 						(effects
@@ -6702,7 +6724,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -68.58 0)
+					(at -2.54 -58.42 0)
 					(length 2.54)
 					(name "overrange[0]"
 						(effects
@@ -6720,7 +6742,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -71.12 0)
+					(at -2.54 -60.96 0)
 					(length 2.54)
 					(name "overrange[1]"
 						(effects
@@ -6738,7 +6760,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -73.66 0)
+					(at -2.54 -63.5 0)
 					(length 2.54)
 					(name "overrange[2]"
 						(effects
@@ -6756,7 +6778,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -76.2 0)
+					(at -2.54 -66.04 0)
 					(length 2.54)
 					(name "overrange[3]"
 						(effects
@@ -6774,7 +6796,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -78.74 0)
+					(at -2.54 -68.58 0)
 					(length 2.54)
 					(name "spi_clk"
 						(effects
@@ -6792,7 +6814,7 @@
 					)
 				)
 				(pin input line
-					(at -2.54 -81.28 0)
+					(at -2.54 -71.12 0)
 					(length 2.54)
 					(name "spi_miso"
 						(effects
@@ -6810,7 +6832,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -83.82 0)
+					(at -2.54 -73.66 0)
 					(length 2.54)
 					(name "spi_mosi"
 						(effects
@@ -6828,7 +6850,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -86.36 0)
+					(at -2.54 -76.2 0)
 					(length 2.54)
 					(name "spics[0]"
 						(effects
@@ -6846,7 +6868,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -88.9 0)
+					(at -2.54 -78.74 0)
 					(length 2.54)
 					(name "spics[1]"
 						(effects
@@ -6864,7 +6886,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -91.44 0)
+					(at -2.54 -81.28 0)
 					(length 2.54)
 					(name "spics[2]"
 						(effects
@@ -6882,7 +6904,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -93.98 0)
+					(at -2.54 -83.82 0)
 					(length 2.54)
 					(name "spics[3]"
 						(effects
@@ -6900,7 +6922,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -96.52 0)
+					(at -2.54 -86.36 0)
 					(length 2.54)
 					(name "spics[4]"
 						(effects
@@ -6918,7 +6940,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -99.06 0)
+					(at -2.54 -88.9 0)
 					(length 2.54)
 					(name "spics[5]"
 						(effects
@@ -6936,7 +6958,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -101.6 0)
+					(at -2.54 -91.44 0)
 					(length 2.54)
 					(name "spics[6]"
 						(effects
@@ -6954,7 +6976,7 @@
 					)
 				)
 				(pin output line
-					(at -2.54 -104.14 0)
+					(at -2.54 -93.98 0)
 					(length 2.54)
 					(name "spics[7]"
 						(effects
@@ -6972,7 +6994,7 @@
 					)
 				)
 			)
-			(symbol "Ti90G529_Functions_6_1"
+			(symbol "Ti90G529_Functions_7_1"
 				(rectangle
 					(start 0 22.86)
 					(end 20.32 -22.86)
@@ -7264,7 +7286,7 @@
 					)
 				)
 			)
-			(symbol "Ti90G529_Functions_7_1"
+			(symbol "Ti90G529_Functions_8_1"
 				(rectangle
 					(start 0 134.62)
 					(end 25.4 -134.62)
@@ -9140,7 +9162,7 @@
 					)
 				)
 			)
-			(symbol "Ti90G529_Functions_8_1"
+			(symbol "Ti90G529_Functions_9_1"
 				(rectangle
 					(start 0 114.3)
 					(end 20.32 -114.3)
@@ -10728,10 +10750,10 @@
 					)
 				)
 			)
-			(symbol "Ti90G529_Functions_9_1"
+			(symbol "Ti90G529_Functions_10_1"
 				(rectangle
 					(start 0 34.29)
-					(end 25.4 -34.29)
+					(end 30.48 -34.29)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -10741,7 +10763,7 @@
 					)
 				)
 				(text "Unassigned GPIO"
-					(at 12.7 33.02 0)
+					(at 15.24 33.02 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -11531,232 +11553,232 @@
 			)
 		)
 		(pin "47"
-			(uuid "54ab57aa-9422-4144-a616-59769c0d31a5")
+			(uuid "54ab57aa-9422-4144-a616-59769c0d31a6")
 		)
 		(pin "52"
-			(uuid "80f9691d-7ac2-4fbf-8dda-066b5ef38565")
+			(uuid "80f9691d-7ac2-4fbf-8dda-066b5ef38566")
 		)
 		(pin "43"
-			(uuid "5c6122b2-d379-45ac-b15e-20fa3879fe1a")
+			(uuid "5c6122b2-d379-45ac-b15e-20fa3879fe1b")
 		)
 		(pin "57"
-			(uuid "8e74ae56-fb98-4ccb-b53f-841ee8a3e38d")
+			(uuid "8e74ae56-fb98-4ccb-b53f-841ee8a3e38e")
 		)
 		(pin "61"
-			(uuid "e8462f5d-7ce1-4c3e-b2ec-e149003d0437")
+			(uuid "e8462f5d-7ce1-4c3e-b2ec-e149003d0438")
 		)
 		(pin "64"
-			(uuid "e0716115-64fe-4a90-854d-f676f27be845")
+			(uuid "e0716115-64fe-4a90-854d-f676f27be846")
 		)
 		(pin "66"
-			(uuid "13a9978c-8b47-4a41-8123-c4b6a9ed693a")
+			(uuid "13a9978c-8b47-4a41-8123-c4b6a9ed693b")
 		)
 		(pin "41"
-			(uuid "1abcf281-69da-4609-bea2-2f6f1557b4f0")
+			(uuid "1abcf281-69da-4609-bea2-2f6f1557b4f1")
 		)
 		(pin "40"
-			(uuid "1b4d8843-2422-4a03-abdd-8a5e3a09490d")
+			(uuid "1b4d8843-2422-4a03-abdd-8a5e3a09490e")
 		)
 		(pin "42"
-			(uuid "8c671a5e-cf2d-4d5f-b4f5-52b6b433c975")
+			(uuid "8c671a5e-cf2d-4d5f-b4f5-52b6b433c976")
 		)
 		(pin "44"
-			(uuid "da785251-d04c-4f50-8cf0-f5eec7dfd954")
+			(uuid "da785251-d04c-4f50-8cf0-f5eec7dfd955")
 		)
 		(pin "45"
-			(uuid "47fc6ad6-a66b-4b32-926a-f04121f8252b")
+			(uuid "47fc6ad6-a66b-4b32-926a-f04121f8252c")
 		)
 		(pin "46"
-			(uuid "4204a51c-2485-48be-9acd-c17720aabdbf")
+			(uuid "4204a51c-2485-48be-9acd-c17720aabdc0")
 		)
 		(pin "50"
-			(uuid "2370ea44-2191-4e00-82ac-67ff72d7fb1b")
+			(uuid "2370ea44-2191-4e00-82ac-67ff72d7fb1c")
 		)
 		(pin "51"
-			(uuid "7a4f84ab-163f-4d0e-8ddd-37e5f20a9b91")
+			(uuid "7a4f84ab-163f-4d0e-8ddd-37e5f20a9b92")
 		)
 		(pin "53"
-			(uuid "893bcec4-2765-471a-8581-8202b91dcea2")
+			(uuid "893bcec4-2765-471a-8581-8202b91dcea3")
 		)
 		(pin "54"
-			(uuid "f21bb133-b280-4c5b-8d68-9f1f80b265d7")
+			(uuid "f21bb133-b280-4c5b-8d68-9f1f80b265d8")
 		)
 		(pin "55"
-			(uuid "86f4e1ca-f8ef-4def-b855-f3cef6a9730a")
+			(uuid "86f4e1ca-f8ef-4def-b855-f3cef6a9730b")
 		)
 		(pin "56"
-			(uuid "8d875d07-8dbd-46a2-910d-720d389bc81f")
+			(uuid "8d875d07-8dbd-46a2-910d-720d389bc820")
 		)
 		(pin "60"
-			(uuid "abd7f2b7-f4c5-44ba-b1e7-0a16ad10b72c")
+			(uuid "abd7f2b7-f4c5-44ba-b1e7-0a16ad10b72d")
 		)
 		(pin "62"
-			(uuid "65c1ab21-cf65-4092-a229-4a261c11f221")
+			(uuid "65c1ab21-cf65-4092-a229-4a261c11f222")
 		)
 		(pin "63"
-			(uuid "02a234e3-7528-4dd6-aed4-44be7aeadd14")
+			(uuid "02a234e3-7528-4dd6-aed4-44be7aeadd15")
 		)
 		(pin "65"
-			(uuid "5140d7e0-4ce1-405b-9118-887aeaf7c52a")
+			(uuid "5140d7e0-4ce1-405b-9118-887aeaf7c52b")
 		)
 		(pin "67"
-			(uuid "8f0c6a9e-dc22-4532-ae0c-c161de6dde93")
+			(uuid "8f0c6a9e-dc22-4532-ae0c-c161de6dde94")
 		)
 		(pin "69"
-			(uuid "6d482a91-c8d7-4475-9693-c99d9716c4f4")
+			(uuid "6d482a91-c8d7-4475-9693-c99d9716c4f5")
 		)
 		(pin "70"
-			(uuid "33d6f0c1-1c93-4544-9112-ae499d8ea010")
+			(uuid "33d6f0c1-1c93-4544-9112-ae499d8ea011")
 		)
 		(pin "30"
-			(uuid "bed51683-b664-435f-8c1b-2c7ad35a0ea6")
+			(uuid "bed51683-b664-435f-8c1b-2c7ad35a0ea7")
 		)
 		(pin "73"
-			(uuid "3e6b5fb4-fa59-41ff-abcf-3cb5892dd80d")
+			(uuid "3e6b5fb4-fa59-41ff-abcf-3cb5892dd80e")
 		)
 		(pin "31"
-			(uuid "7c5bcdc6-0632-4195-9890-fa7c0cf2cbe7")
+			(uuid "7c5bcdc6-0632-4195-9890-fa7c0cf2cbe8")
 		)
 		(pin "21"
-			(uuid "e6d6231d-20e8-46d7-813e-08eee14d03ef")
+			(uuid "e6d6231d-20e8-46d7-813e-08eee14d03f0")
 		)
 		(pin "11"
-			(uuid "2a365e8e-9605-4886-8f1e-39d42f9a4914")
+			(uuid "2a365e8e-9605-4886-8f1e-39d42f9a4915")
 		)
 		(pin "17"
-			(uuid "5aedb370-1103-4f51-9097-1346d65f59b2")
+			(uuid "5aedb370-1103-4f51-9097-1346d65f59b3")
 		)
 		(pin "75"
-			(uuid "56a73e3b-e448-4a5a-a506-8a3c6df9d58a")
+			(uuid "56a73e3b-e448-4a5a-a506-8a3c6df9d58b")
 		)
 		(pin "10"
-			(uuid "f2b744bc-7f82-4c19-808b-10679d3be5d6")
+			(uuid "f2b744bc-7f82-4c19-808b-10679d3be5d7")
 		)
 		(pin "76"
-			(uuid "bfcd1155-3739-42d3-91c6-12b5891f98a1")
+			(uuid "bfcd1155-3739-42d3-91c6-12b5891f98a2")
 		)
 		(pin "5"
-			(uuid "001b7ab9-0f2a-4022-8683-4354510d209f")
+			(uuid "001b7ab9-0f2a-4022-8683-4354510d20a0")
 		)
 		(pin "7"
-			(uuid "f6196a76-6101-42d2-9617-e85f1d5d3c4d")
+			(uuid "f6196a76-6101-42d2-9617-e85f1d5d3c4e")
 		)
 		(pin "58"
-			(uuid "d082474f-b62f-453d-ab72-88f33d89d8d7")
+			(uuid "d082474f-b62f-453d-ab72-88f33d89d8d8")
 		)
 		(pin "16"
-			(uuid "40e5c286-815b-42c2-9ed4-7714ddbbaba2")
+			(uuid "40e5c286-815b-42c2-9ed4-7714ddbbaba3")
 		)
 		(pin "34"
-			(uuid "a177b8dd-5c43-43c1-aded-66de86d40c65")
+			(uuid "a177b8dd-5c43-43c1-aded-66de86d40c66")
 		)
 		(pin "32"
-			(uuid "3b2df0ae-7384-4be7-b80b-7b1b0db26fe5")
+			(uuid "3b2df0ae-7384-4be7-b80b-7b1b0db26fe6")
 		)
 		(pin "9"
-			(uuid "46a4411a-8ee3-407e-97c8-b1c64d9d9973")
+			(uuid "46a4411a-8ee3-407e-97c8-b1c64d9d9974")
 		)
 		(pin "24"
-			(uuid "9ea9becd-5b15-48b9-8398-0a459c967bf5")
+			(uuid "9ea9becd-5b15-48b9-8398-0a459c967bf6")
 		)
 		(pin "14"
-			(uuid "4a914752-554d-438b-baf5-28349814bcf9")
+			(uuid "4a914752-554d-438b-baf5-28349814bcfa")
 		)
 		(pin "49"
-			(uuid "5347e779-9752-4e15-9496-010e14a91003")
+			(uuid "5347e779-9752-4e15-9496-010e14a91004")
 		)
 		(pin "68"
-			(uuid "ab1b828f-d91c-4b29-8366-85c434187af2")
+			(uuid "ab1b828f-d91c-4b29-8366-85c434187af3")
 		)
 		(pin "8"
-			(uuid "ae79397d-8567-4a27-99b0-8733d2c31baa")
+			(uuid "ae79397d-8567-4a27-99b0-8733d2c31bab")
 		)
 		(pin "12"
-			(uuid "45a959fb-c62d-4548-823c-16764862d258")
+			(uuid "45a959fb-c62d-4548-823c-16764862d259")
 		)
 		(pin "4"
-			(uuid "92b3e4bd-e606-4a0b-b2c0-4f298524e90a")
+			(uuid "92b3e4bd-e606-4a0b-b2c0-4f298524e90b")
 		)
 		(pin "13"
-			(uuid "504a8971-1b90-4084-97c9-fe3f7056d9ea")
+			(uuid "504a8971-1b90-4084-97c9-fe3f7056d9eb")
 		)
 		(pin "18"
-			(uuid "e9e71aaa-560b-48d5-afa0-366c39b45516")
+			(uuid "e9e71aaa-560b-48d5-afa0-366c39b45517")
 		)
 		(pin "25"
-			(uuid "0acda946-f78a-4f01-9252-8c0c46c1c11c")
+			(uuid "0acda946-f78a-4f01-9252-8c0c46c1c11d")
 		)
 		(pin "59"
-			(uuid "829199a1-b964-497b-b5c8-974ea3ee5ac8")
+			(uuid "829199a1-b964-497b-b5c8-974ea3ee5ac9")
 		)
 		(pin "1"
-			(uuid "265381a3-cc4f-476f-83ed-018c04a3a538")
+			(uuid "265381a3-cc4f-476f-83ed-018c04a3a539")
 		)
 		(pin "71"
-			(uuid "ba08dfd3-4cd9-4907-903e-9db9961f08dd")
+			(uuid "ba08dfd3-4cd9-4907-903e-9db9961f08de")
 		)
 		(pin "72"
-			(uuid "0b5dde5b-339e-41c5-8b7b-57fe55bdd08d")
+			(uuid "0b5dde5b-339e-41c5-8b7b-57fe55bdd08e")
 		)
 		(pin "27"
-			(uuid "d9117111-268f-42fb-ba35-5c6e71946b36")
+			(uuid "d9117111-268f-42fb-ba35-5c6e71946b37")
 		)
 		(pin "15"
-			(uuid "ca68622f-109d-4a4a-993a-31e1084aa7d2")
+			(uuid "ca68622f-109d-4a4a-993a-31e1084aa7d3")
 		)
 		(pin "20"
-			(uuid "0d440b2a-8a37-44d6-a5b4-57824123708b")
+			(uuid "0d440b2a-8a37-44d6-a5b4-57824123708c")
 		)
 		(pin "35"
-			(uuid "f0ff6a8f-33a8-448c-922e-dfd83d148376")
+			(uuid "f0ff6a8f-33a8-448c-922e-dfd83d148377")
 		)
 		(pin "6"
-			(uuid "96566df1-7cec-4d31-b838-93e439a0623c")
+			(uuid "96566df1-7cec-4d31-b838-93e439a0623d")
 		)
 		(pin "22"
-			(uuid "6a4ec62d-2a79-4c4c-84ea-ac222d62a904")
+			(uuid "6a4ec62d-2a79-4c4c-84ea-ac222d62a905")
 		)
 		(pin "37"
-			(uuid "56231f79-a2a9-43c8-a05b-b6c1f9e9dd5c")
+			(uuid "56231f79-a2a9-43c8-a05b-b6c1f9e9dd5d")
 		)
 		(pin "23"
-			(uuid "0aab89ea-5fe7-4aeb-859d-7952cf58423c")
+			(uuid "0aab89ea-5fe7-4aeb-859d-7952cf58423d")
 		)
 		(pin "28"
-			(uuid "60b45f22-4206-467d-8e4a-a5b6929f1c61")
+			(uuid "60b45f22-4206-467d-8e4a-a5b6929f1c62")
 		)
 		(pin "38"
-			(uuid "c45c3c47-fb64-4265-b8c7-ac1b567890ca")
+			(uuid "c45c3c47-fb64-4265-b8c7-ac1b567890cb")
 		)
 		(pin "3"
-			(uuid "f3fd1497-c3be-4b99-a116-83b834ad89c2")
+			(uuid "f3fd1497-c3be-4b99-a116-83b834ad89c3")
 		)
 		(pin "74"
-			(uuid "4f86e2d8-326e-48bb-b28b-27ccd785b436")
+			(uuid "4f86e2d8-326e-48bb-b28b-27ccd785b437")
 		)
 		(pin "33"
-			(uuid "f29d72e6-d77c-4b61-89e3-a7fd265ea56e")
+			(uuid "f29d72e6-d77c-4b61-89e3-a7fd265ea56f")
 		)
 		(pin "39"
-			(uuid "12133cc9-60ea-4c9f-ae31-390bbd6104e1")
+			(uuid "12133cc9-60ea-4c9f-ae31-390bbd6104e2")
 		)
 		(pin "29"
-			(uuid "f4b6db8c-2f10-4b99-8822-62cc8176327a")
+			(uuid "f4b6db8c-2f10-4b99-8822-62cc8176327b")
 		)
 		(pin "36"
-			(uuid "99828197-d253-4142-8f63-ded133996cce")
+			(uuid "99828197-d253-4142-8f63-ded133996ccf")
 		)
 		(pin "77"
-			(uuid "19e95405-7fe6-46fa-b53f-a0e60d956bc6")
+			(uuid "19e95405-7fe6-46fa-b53f-a0e60d956bc7")
 		)
 		(pin "2"
-			(uuid "f67ca1d1-c8a6-47ef-b7b7-f120517af43d")
+			(uuid "f67ca1d1-c8a6-47ef-b7b7-f120517af43e")
 		)
 		(pin "48"
-			(uuid "c12da689-e288-47b7-8b1a-0626ea568425")
+			(uuid "c12da689-e288-47b7-8b1a-0626ea568426")
 		)
 		(pin "26"
-			(uuid "7b6a9ff2-fabe-4072-87c0-abf1e3e45eb8")
+			(uuid "7b6a9ff2-fabe-4072-87c0-abf1e3e45eb9")
 		)
 		(instances
 			(project ""
@@ -11795,7 +11817,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "G529:BGA-529_23x23_19.0x19.0mm"
+		(property "Footprint" "haasoscope_pro_adc_fpga_board:BGA-529_23x23_19.0x19.0mm"
 			(at 96.52 91.44 0)
 			(effects
 				(font
@@ -13456,232 +13478,232 @@
 			)
 		)
 		(pin "47"
-			(uuid "54ab57aa-9422-4144-a616-59769c0d31a5")
+			(uuid "54ab57aa-9422-4144-a616-59769c0d31a7")
 		)
 		(pin "52"
-			(uuid "80f9691d-7ac2-4fbf-8dda-066b5ef38565")
+			(uuid "80f9691d-7ac2-4fbf-8dda-066b5ef38567")
 		)
 		(pin "43"
-			(uuid "5c6122b2-d379-45ac-b15e-20fa3879fe1a")
+			(uuid "5c6122b2-d379-45ac-b15e-20fa3879fe1c")
 		)
 		(pin "57"
-			(uuid "8e74ae56-fb98-4ccb-b53f-841ee8a3e38d")
+			(uuid "8e74ae56-fb98-4ccb-b53f-841ee8a3e38f")
 		)
 		(pin "61"
-			(uuid "e8462f5d-7ce1-4c3e-b2ec-e149003d0437")
+			(uuid "e8462f5d-7ce1-4c3e-b2ec-e149003d0439")
 		)
 		(pin "64"
-			(uuid "e0716115-64fe-4a90-854d-f676f27be845")
+			(uuid "e0716115-64fe-4a90-854d-f676f27be847")
 		)
 		(pin "66"
-			(uuid "13a9978c-8b47-4a41-8123-c4b6a9ed693a")
+			(uuid "13a9978c-8b47-4a41-8123-c4b6a9ed693c")
 		)
 		(pin "41"
-			(uuid "1abcf281-69da-4609-bea2-2f6f1557b4f0")
+			(uuid "1abcf281-69da-4609-bea2-2f6f1557b4f2")
 		)
 		(pin "40"
-			(uuid "1b4d8843-2422-4a03-abdd-8a5e3a09490d")
+			(uuid "1b4d8843-2422-4a03-abdd-8a5e3a09490f")
 		)
 		(pin "42"
-			(uuid "8c671a5e-cf2d-4d5f-b4f5-52b6b433c975")
+			(uuid "8c671a5e-cf2d-4d5f-b4f5-52b6b433c977")
 		)
 		(pin "44"
-			(uuid "da785251-d04c-4f50-8cf0-f5eec7dfd954")
+			(uuid "da785251-d04c-4f50-8cf0-f5eec7dfd956")
 		)
 		(pin "45"
-			(uuid "47fc6ad6-a66b-4b32-926a-f04121f8252b")
+			(uuid "47fc6ad6-a66b-4b32-926a-f04121f8252d")
 		)
 		(pin "46"
-			(uuid "4204a51c-2485-48be-9acd-c17720aabdbf")
+			(uuid "4204a51c-2485-48be-9acd-c17720aabdc1")
 		)
 		(pin "50"
-			(uuid "2370ea44-2191-4e00-82ac-67ff72d7fb1b")
+			(uuid "2370ea44-2191-4e00-82ac-67ff72d7fb1d")
 		)
 		(pin "51"
-			(uuid "7a4f84ab-163f-4d0e-8ddd-37e5f20a9b91")
+			(uuid "7a4f84ab-163f-4d0e-8ddd-37e5f20a9b93")
 		)
 		(pin "53"
-			(uuid "893bcec4-2765-471a-8581-8202b91dcea2")
+			(uuid "893bcec4-2765-471a-8581-8202b91dcea4")
 		)
 		(pin "54"
-			(uuid "f21bb133-b280-4c5b-8d68-9f1f80b265d7")
+			(uuid "f21bb133-b280-4c5b-8d68-9f1f80b265d9")
 		)
 		(pin "55"
-			(uuid "86f4e1ca-f8ef-4def-b855-f3cef6a9730a")
+			(uuid "86f4e1ca-f8ef-4def-b855-f3cef6a9730c")
 		)
 		(pin "56"
-			(uuid "8d875d07-8dbd-46a2-910d-720d389bc81f")
+			(uuid "8d875d07-8dbd-46a2-910d-720d389bc821")
 		)
 		(pin "60"
-			(uuid "abd7f2b7-f4c5-44ba-b1e7-0a16ad10b72c")
+			(uuid "abd7f2b7-f4c5-44ba-b1e7-0a16ad10b72e")
 		)
 		(pin "62"
-			(uuid "65c1ab21-cf65-4092-a229-4a261c11f221")
+			(uuid "65c1ab21-cf65-4092-a229-4a261c11f223")
 		)
 		(pin "63"
-			(uuid "02a234e3-7528-4dd6-aed4-44be7aeadd14")
+			(uuid "02a234e3-7528-4dd6-aed4-44be7aeadd16")
 		)
 		(pin "65"
-			(uuid "5140d7e0-4ce1-405b-9118-887aeaf7c52a")
+			(uuid "5140d7e0-4ce1-405b-9118-887aeaf7c52c")
 		)
 		(pin "67"
-			(uuid "8f0c6a9e-dc22-4532-ae0c-c161de6dde93")
+			(uuid "8f0c6a9e-dc22-4532-ae0c-c161de6dde95")
 		)
 		(pin "69"
-			(uuid "6d482a91-c8d7-4475-9693-c99d9716c4f4")
+			(uuid "6d482a91-c8d7-4475-9693-c99d9716c4f6")
 		)
 		(pin "70"
-			(uuid "33d6f0c1-1c93-4544-9112-ae499d8ea010")
+			(uuid "33d6f0c1-1c93-4544-9112-ae499d8ea012")
 		)
 		(pin "30"
-			(uuid "bed51683-b664-435f-8c1b-2c7ad35a0ea6")
+			(uuid "bed51683-b664-435f-8c1b-2c7ad35a0ea8")
 		)
 		(pin "73"
-			(uuid "3e6b5fb4-fa59-41ff-abcf-3cb5892dd80d")
+			(uuid "3e6b5fb4-fa59-41ff-abcf-3cb5892dd80f")
 		)
 		(pin "31"
-			(uuid "7c5bcdc6-0632-4195-9890-fa7c0cf2cbe7")
+			(uuid "7c5bcdc6-0632-4195-9890-fa7c0cf2cbe9")
 		)
 		(pin "21"
-			(uuid "e6d6231d-20e8-46d7-813e-08eee14d03ef")
+			(uuid "e6d6231d-20e8-46d7-813e-08eee14d03f1")
 		)
 		(pin "11"
-			(uuid "2a365e8e-9605-4886-8f1e-39d42f9a4914")
+			(uuid "2a365e8e-9605-4886-8f1e-39d42f9a4916")
 		)
 		(pin "17"
-			(uuid "5aedb370-1103-4f51-9097-1346d65f59b2")
+			(uuid "5aedb370-1103-4f51-9097-1346d65f59b4")
 		)
 		(pin "75"
-			(uuid "56a73e3b-e448-4a5a-a506-8a3c6df9d58a")
+			(uuid "56a73e3b-e448-4a5a-a506-8a3c6df9d58c")
 		)
 		(pin "10"
-			(uuid "f2b744bc-7f82-4c19-808b-10679d3be5d6")
+			(uuid "f2b744bc-7f82-4c19-808b-10679d3be5d8")
 		)
 		(pin "76"
-			(uuid "bfcd1155-3739-42d3-91c6-12b5891f98a1")
+			(uuid "bfcd1155-3739-42d3-91c6-12b5891f98a3")
 		)
 		(pin "5"
-			(uuid "001b7ab9-0f2a-4022-8683-4354510d209f")
+			(uuid "001b7ab9-0f2a-4022-8683-4354510d20a1")
 		)
 		(pin "7"
-			(uuid "f6196a76-6101-42d2-9617-e85f1d5d3c4d")
+			(uuid "f6196a76-6101-42d2-9617-e85f1d5d3c4f")
 		)
 		(pin "58"
-			(uuid "d082474f-b62f-453d-ab72-88f33d89d8d7")
+			(uuid "d082474f-b62f-453d-ab72-88f33d89d8d9")
 		)
 		(pin "16"
-			(uuid "40e5c286-815b-42c2-9ed4-7714ddbbaba2")
+			(uuid "40e5c286-815b-42c2-9ed4-7714ddbbaba4")
 		)
 		(pin "34"
-			(uuid "a177b8dd-5c43-43c1-aded-66de86d40c65")
+			(uuid "a177b8dd-5c43-43c1-aded-66de86d40c67")
 		)
 		(pin "32"
-			(uuid "3b2df0ae-7384-4be7-b80b-7b1b0db26fe5")
+			(uuid "3b2df0ae-7384-4be7-b80b-7b1b0db26fe7")
 		)
 		(pin "9"
-			(uuid "46a4411a-8ee3-407e-97c8-b1c64d9d9973")
+			(uuid "46a4411a-8ee3-407e-97c8-b1c64d9d9975")
 		)
 		(pin "24"
-			(uuid "9ea9becd-5b15-48b9-8398-0a459c967bf5")
+			(uuid "9ea9becd-5b15-48b9-8398-0a459c967bf7")
 		)
 		(pin "14"
-			(uuid "4a914752-554d-438b-baf5-28349814bcf9")
+			(uuid "4a914752-554d-438b-baf5-28349814bcfb")
 		)
 		(pin "49"
-			(uuid "5347e779-9752-4e15-9496-010e14a91003")
+			(uuid "5347e779-9752-4e15-9496-010e14a91005")
 		)
 		(pin "68"
-			(uuid "ab1b828f-d91c-4b29-8366-85c434187af2")
+			(uuid "ab1b828f-d91c-4b29-8366-85c434187af4")
 		)
 		(pin "8"
-			(uuid "ae79397d-8567-4a27-99b0-8733d2c31baa")
+			(uuid "ae79397d-8567-4a27-99b0-8733d2c31bac")
 		)
 		(pin "12"
-			(uuid "45a959fb-c62d-4548-823c-16764862d258")
+			(uuid "45a959fb-c62d-4548-823c-16764862d25a")
 		)
 		(pin "4"
-			(uuid "92b3e4bd-e606-4a0b-b2c0-4f298524e90a")
+			(uuid "92b3e4bd-e606-4a0b-b2c0-4f298524e90c")
 		)
 		(pin "13"
-			(uuid "504a8971-1b90-4084-97c9-fe3f7056d9ea")
+			(uuid "504a8971-1b90-4084-97c9-fe3f7056d9ec")
 		)
 		(pin "18"
-			(uuid "e9e71aaa-560b-48d5-afa0-366c39b45516")
+			(uuid "e9e71aaa-560b-48d5-afa0-366c39b45518")
 		)
 		(pin "25"
-			(uuid "0acda946-f78a-4f01-9252-8c0c46c1c11c")
+			(uuid "0acda946-f78a-4f01-9252-8c0c46c1c11e")
 		)
 		(pin "59"
-			(uuid "829199a1-b964-497b-b5c8-974ea3ee5ac8")
+			(uuid "829199a1-b964-497b-b5c8-974ea3ee5aca")
 		)
 		(pin "1"
-			(uuid "265381a3-cc4f-476f-83ed-018c04a3a538")
+			(uuid "265381a3-cc4f-476f-83ed-018c04a3a53a")
 		)
 		(pin "71"
-			(uuid "ba08dfd3-4cd9-4907-903e-9db9961f08dd")
+			(uuid "ba08dfd3-4cd9-4907-903e-9db9961f08df")
 		)
 		(pin "72"
-			(uuid "0b5dde5b-339e-41c5-8b7b-57fe55bdd08d")
+			(uuid "0b5dde5b-339e-41c5-8b7b-57fe55bdd08f")
 		)
 		(pin "27"
-			(uuid "d9117111-268f-42fb-ba35-5c6e71946b36")
+			(uuid "d9117111-268f-42fb-ba35-5c6e71946b38")
 		)
 		(pin "15"
-			(uuid "ca68622f-109d-4a4a-993a-31e1084aa7d2")
+			(uuid "ca68622f-109d-4a4a-993a-31e1084aa7d4")
 		)
 		(pin "20"
-			(uuid "0d440b2a-8a37-44d6-a5b4-57824123708b")
+			(uuid "0d440b2a-8a37-44d6-a5b4-57824123708d")
 		)
 		(pin "35"
-			(uuid "f0ff6a8f-33a8-448c-922e-dfd83d148376")
+			(uuid "f0ff6a8f-33a8-448c-922e-dfd83d148378")
 		)
 		(pin "6"
-			(uuid "96566df1-7cec-4d31-b838-93e439a0623c")
+			(uuid "96566df1-7cec-4d31-b838-93e439a0623e")
 		)
 		(pin "22"
-			(uuid "6a4ec62d-2a79-4c4c-84ea-ac222d62a904")
+			(uuid "6a4ec62d-2a79-4c4c-84ea-ac222d62a906")
 		)
 		(pin "37"
-			(uuid "56231f79-a2a9-43c8-a05b-b6c1f9e9dd5c")
+			(uuid "56231f79-a2a9-43c8-a05b-b6c1f9e9dd5e")
 		)
 		(pin "23"
-			(uuid "0aab89ea-5fe7-4aeb-859d-7952cf58423c")
+			(uuid "0aab89ea-5fe7-4aeb-859d-7952cf58423e")
 		)
 		(pin "28"
-			(uuid "60b45f22-4206-467d-8e4a-a5b6929f1c61")
+			(uuid "60b45f22-4206-467d-8e4a-a5b6929f1c63")
 		)
 		(pin "38"
-			(uuid "c45c3c47-fb64-4265-b8c7-ac1b567890ca")
+			(uuid "c45c3c47-fb64-4265-b8c7-ac1b567890cc")
 		)
 		(pin "3"
-			(uuid "f3fd1497-c3be-4b99-a116-83b834ad89c2")
+			(uuid "f3fd1497-c3be-4b99-a116-83b834ad89c4")
 		)
 		(pin "74"
-			(uuid "4f86e2d8-326e-48bb-b28b-27ccd785b436")
+			(uuid "4f86e2d8-326e-48bb-b28b-27ccd785b438")
 		)
 		(pin "33"
-			(uuid "f29d72e6-d77c-4b61-89e3-a7fd265ea56e")
+			(uuid "f29d72e6-d77c-4b61-89e3-a7fd265ea570")
 		)
 		(pin "39"
-			(uuid "12133cc9-60ea-4c9f-ae31-390bbd6104e1")
+			(uuid "12133cc9-60ea-4c9f-ae31-390bbd6104e3")
 		)
 		(pin "29"
-			(uuid "f4b6db8c-2f10-4b99-8822-62cc8176327a")
+			(uuid "f4b6db8c-2f10-4b99-8822-62cc8176327c")
 		)
 		(pin "36"
-			(uuid "99828197-d253-4142-8f63-ded133996cce")
+			(uuid "99828197-d253-4142-8f63-ded133996cd0")
 		)
 		(pin "77"
-			(uuid "19e95405-7fe6-46fa-b53f-a0e60d956bc6")
+			(uuid "19e95405-7fe6-46fa-b53f-a0e60d956bc8")
 		)
 		(pin "2"
-			(uuid "f67ca1d1-c8a6-47ef-b7b7-f120517af43d")
+			(uuid "f67ca1d1-c8a6-47ef-b7b7-f120517af43f")
 		)
 		(pin "48"
-			(uuid "c12da689-e288-47b7-8b1a-0626ea568425")
+			(uuid "c12da689-e288-47b7-8b1a-0626ea568427")
 		)
 		(pin "26"
-			(uuid "7b6a9ff2-fabe-4072-87c0-abf1e3e45eb8")
+			(uuid "7b6a9ff2-fabe-4072-87c0-abf1e3e45eba")
 		)
 		(instances
 			(project ""
