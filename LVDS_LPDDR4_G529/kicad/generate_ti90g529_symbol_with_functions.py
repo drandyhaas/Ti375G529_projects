@@ -283,6 +283,113 @@ def sort_ddr_pins():
     return sorted_pins
 
 
+def generate_ddr_unit(unit_num, symbol_name):
+    """Generate DDR4 Interface unit with data pins on LEFT and control on RIGHT.
+
+    Control pins have gaps to align with MT53D512M16D1DS_Aligned symbol where
+    each FPGA pin connects to two DDR pins (_A and _B channels).
+    Gaps are left where FPGA pins don't connect (CS_N[2,3], CKE[1]).
+    """
+    lines = []
+    lines.append(f'    (symbol "{symbol_name}_{unit_num}_1"')
+
+    pin_spacing = 2.54
+
+    # Data pins on LEFT - DQ, DQS, DM by byte lane
+    data_pins = []
+    for byte_lane in range(4):
+        for bit in range(8):
+            name = f'DDR_DQ[{byte_lane * 8 + bit}]'
+            if name in DDR_PINS:
+                data_pins.append((name, DDR_PINS[name], 'bidirectional'))
+        dqs_name = f'DDR_DQS[{byte_lane}]'
+        dqs_n_name = f'DDR_DQS_N[{byte_lane}]'
+        dm_name = f'DDR_DM[{byte_lane}]'
+        if dqs_name in DDR_PINS:
+            data_pins.append((dqs_name, DDR_PINS[dqs_name], 'bidirectional'))
+        if dqs_n_name in DDR_PINS:
+            data_pins.append((dqs_n_name, DDR_PINS[dqs_n_name], 'bidirectional'))
+        if dm_name in DDR_PINS:
+            data_pins.append((dm_name, DDR_PINS[dm_name], 'bidirectional'))
+
+    # Control pins on RIGHT with y_offset for gaps to align with MT53
+    # Format: (name, ball, pin_type, y_offset)
+    # Gaps at positions 2,3 (unused CS_N[2,3]) and 6 (unused CKE[1])
+    ctrl_pins = [
+        ('DDR_CS_N[0]', DDR_PINS.get('DDR_CS_N[0]', ''), 'output', 0),
+        ('DDR_CS_N[1]', DDR_PINS.get('DDR_CS_N[1]', ''), 'output', 1),
+        ('DDR_CS_N[2]', DDR_PINS.get('DDR_CS_N[2]', ''), 'output', 2),
+        ('DDR_CS_N[3]', DDR_PINS.get('DDR_CS_N[3]', ''), 'output', 3),
+        ('DDR_CKE[0]', DDR_PINS.get('DDR_CKE[0]', ''), 'output', 4),
+        # Gap at 5 for CKE0_B on MT53 (connects to same DDR_CKE[0])
+        ('DDR_CKE[1]', DDR_PINS.get('DDR_CKE[1]', ''), 'output', 6),
+        ('DDR_CK', DDR_PINS.get('DDR_CK', ''), 'output', 7),
+        # Gap at 8 for CK_t_B on MT53 (connects to same DDR_CK)
+        ('DDR_CK_N', DDR_PINS.get('DDR_CK_N', ''), 'output', 9),
+        # Gap at 10 for CK_c_B on MT53 (connects to same DDR_CK_N)
+        ('DDR_RST_N', DDR_PINS.get('DDR_RST_N', ''), 'output', 11),
+        ('DDR_A[0]', DDR_PINS.get('DDR_A[0]', ''), 'output', 12),
+        # Gap at 13 for CA0_B on MT53 (connects to same DDR_A[0])
+        ('DDR_A[1]', DDR_PINS.get('DDR_A[1]', ''), 'output', 14),
+        # Gap at 15 for CA1_B on MT53
+        ('DDR_A[2]', DDR_PINS.get('DDR_A[2]', ''), 'output', 16),
+        # Gap at 17 for CA2_B on MT53
+        ('DDR_A[3]', DDR_PINS.get('DDR_A[3]', ''), 'output', 18),
+        # Gap at 19 for CA3_B on MT53
+        ('DDR_A[4]', DDR_PINS.get('DDR_A[4]', ''), 'output', 20),
+        # Gap at 21 for CA4_B on MT53
+        ('DDR_A[5]', DDR_PINS.get('DDR_A[5]', ''), 'output', 22),
+        # Gap at 23 for CA5_B on MT53
+        ('DDR_CAL', DDR_PINS.get('DDR_CAL', ''), 'output', 24),
+        # Gaps at 25,26 for ODT_CA_A, ODT_CA_B on MT53
+    ]
+
+    # Calculate box dimensions - use the larger of data or control pin heights
+    num_data = len(data_pins)
+    num_ctrl_rows = 27  # Total rows including gaps
+
+    # Use whichever side needs more space
+    num_rows = max(num_data, num_ctrl_rows)
+    box_height = num_rows * pin_spacing + 7.62
+    box_width = 30.48
+    y_start = box_height / 2
+
+    # Draw rectangle
+    lines.append(f'      (rectangle (start 0 {y_start:.2f}) (end {box_width:.2f} {-y_start:.2f})')
+    lines.append('        (stroke (width 0.254) (type default))')
+    lines.append('        (fill (type background))')
+    lines.append('      )')
+
+    # Unit name
+    lines.append('      (text "DDR4 Interface"')
+    lines.append(f'        (at {box_width/2:.2f} {y_start - 1.27:.2f} 0)')
+    lines.append('        (effects (font (size 1.524 1.524) bold))')
+    lines.append('      )')
+
+    # Data pins on LEFT
+    y_pos = y_start - 5.08
+    for name, ball, pin_type in data_pins:
+        if ball:  # Only add pin if it exists
+            lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+            lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+            lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
+            lines.append('      )')
+        y_pos -= pin_spacing
+
+    # Control pins on RIGHT with explicit y_offset for gaps
+    y_top = y_start - 5.08
+    for name, ball, pin_type, y_offset in ctrl_pins:
+        if ball:  # Only add pin if it exists
+            y_pos = y_top - (y_offset * pin_spacing)
+            lines.append(f'      (pin {pin_type} line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
+            lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+            lines.append(f'        (number "{ball}" (effects (font (size 1.016 1.016))))')
+            lines.append('      )')
+
+    lines.append('    )')
+    return '\n'.join(lines)
+
+
 def generate_symbol_header(name):
     return f'''(kicad_symbol_lib
   (version 20231120)
@@ -577,10 +684,9 @@ def main():
         print(f"  Unit {unit_num}: ADC LVDS Clocks ({len(sorted_adc_clk)} pins)")
         unit_num += 1
 
-        # Unit 5: DDR4 Interface (pins on LEFT)
-        sorted_ddr = sort_ddr_pins()
-        f.write(generate_unit(unit_num, symbol_name, "DDR4 Interface", sorted_ddr, 'left'))
-        print(f"  Unit {unit_num}: DDR4 Interface ({len(sorted_ddr)} pins)")
+        # Unit 5: DDR4 Interface (data on LEFT, control on RIGHT with gaps)
+        f.write(generate_ddr_unit(unit_num, symbol_name))
+        print(f"  Unit {unit_num}: DDR4 Interface (data LEFT, control RIGHT with gaps)")
         unit_num += 1
 
         # Unit 6: Misc I/O

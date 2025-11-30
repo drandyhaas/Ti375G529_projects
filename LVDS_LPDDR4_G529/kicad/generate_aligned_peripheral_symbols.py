@@ -68,13 +68,20 @@ def generate_ft601q_aligned():
         ('DATA_28', '73'), ('DATA_29', '74'), ('DATA_30', '75'), ('DATA_31', '76'),
     ]
     be_pins = [('BE_0', '4'), ('BE_1', '5'), ('BE_2', '6'), ('BE_3', '7')]
+    # Control pins ordered to match Ti90G529 FT601 unit:
+    # clk, oe, rd, wr, rxf, txe, reset, siwu, wakeup, gpio0, gpio1
     control_pins = [
-        ('CLK', '58'),
-        ('~{TXE}', '8'),
-        ('~{RXF}', '9'),
-        ('~{OE}', '13'),
-        ('~{WR}', '11'),
-        ('~{RD}', '12'),
+        ('CLK', '58', 'output'),
+        ('~{OE}', '13', 'input'),
+        ('~{RD}', '12', 'input'),
+        ('~{WR}', '11', 'input'),
+        ('~{RXF}', '9', 'output'),
+        ('~{TXE}', '8', 'output'),
+        ('~{RESET}', '15', 'input'),
+        ('~{SIWU}', '10', 'input'),
+        ('~{WAKEUP}', '16', 'bidirectional'),
+        ('GPIO0', '17', 'bidirectional'),
+        ('GPIO1', '18', 'bidirectional'),
     ]
 
     # Calculate total pins for alignment
@@ -120,8 +127,7 @@ def generate_ft601q_aligned():
         y_pos -= pin_spacing
 
     # Control pins
-    for name, pin_num in control_pins:
-        pin_type = 'output' if 'TXE' in name or 'RXF' in name or 'CLK' in name else 'input'
+    for name, pin_num, pin_type in control_pins:
         lines.append(f'      (pin {pin_type} line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
         lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
         lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
@@ -130,15 +136,10 @@ def generate_ft601q_aligned():
 
     lines.append('    )')
 
-    # Unit 2 - USB and Control (other pins)
+    # Unit 2 - USB (pins not directly connected to FPGA)
     lines.append('    (symbol "FT601Q_Aligned_2_1"')
 
     other_pins = [
-        ('~{SIWU}', '10', 'input'),
-        ('~{RESET}', '15', 'input'),
-        ('~{WAKEUP}', '16', 'bidirectional'),
-        ('GPIO0', '17', 'bidirectional'),
-        ('GPIO1', '18', 'bidirectional'),
         ('DM', '25', 'bidirectional'),
         ('DP', '23', 'bidirectional'),
         ('RIDN', '34', 'input'),
@@ -159,7 +160,7 @@ def generate_ft601q_aligned():
     lines.append('        (fill (type background))')
     lines.append('      )')
 
-    lines.append('      (text "USB/Control"')
+    lines.append('      (text "USB"')
     lines.append(f'        (at 10.16 {y_start2 - 1.27:.2f} 0)')
     lines.append('        (effects (font (size 1.524 1.524) bold))')
     lines.append('      )')
@@ -532,35 +533,173 @@ def generate_adc12dl_aligned():
 
     lines.append('    )')
 
-    # Unit 6: Power and Ground (simplified - just key pins)
+    # Unit 6: Power and Ground - ALL pins from original symbol
     lines.append('    (symbol "ADC12DL500ACF_Aligned_6_1"')
 
+    # All power pins from original ADC12DL500ACF symbol
     power_pins = [
-        ('VA11', 'E4', 'power_in'),
-        ('VA19', 'G3', 'power_in'),
-        ('VD11', 'E8', 'power_in'),
-        ('VLVDS', 'G11', 'power_in'),
-        ('AGND', 'A1', 'power_in'),
-        ('DGND', 'A15', 'power_in'),
+        # VA11 - Analog 1.1V (14 pins)
+        ('VA11_1', 'E4', 'power_in'),
+        ('VA11_2', 'E5', 'power_in'),
+        ('VA11_3', 'E6', 'power_in'),
+        ('VA11_4', 'F3', 'power_in'),
+        ('VA11_5', 'F4', 'power_in'),
+        ('VA11_6', 'F5', 'power_in'),
+        ('VA11_7', 'F6', 'power_in'),
+        ('VA11_8', 'L3', 'power_in'),
+        ('VA11_9', 'L4', 'power_in'),
+        ('VA11_10', 'L5', 'power_in'),
+        ('VA11_11', 'L6', 'power_in'),
+        ('VA11_12', 'M4', 'power_in'),
+        ('VA11_13', 'M5', 'power_in'),
+        ('VA11_14', 'M6', 'power_in'),
+        # VA19 - Analog 1.9V (16 pins)
+        ('VA19_1', 'G3', 'power_in'),
+        ('VA19_2', 'G4', 'power_in'),
+        ('VA19_3', 'G5', 'power_in'),
+        ('VA19_4', 'G6', 'power_in'),
+        ('VA19_5', 'H3', 'power_in'),
+        ('VA19_6', 'H4', 'power_in'),
+        ('VA19_7', 'H5', 'power_in'),
+        ('VA19_8', 'H6', 'power_in'),
+        ('VA19_9', 'J3', 'power_in'),
+        ('VA19_10', 'J4', 'power_in'),
+        ('VA19_11', 'J5', 'power_in'),
+        ('VA19_12', 'J6', 'power_in'),
+        ('VA19_13', 'K3', 'power_in'),
+        ('VA19_14', 'K4', 'power_in'),
+        ('VA19_15', 'K5', 'power_in'),
+        ('VA19_16', 'K6', 'power_in'),
+        # VD11 - Digital 1.1V (6 pins)
+        ('VD11_1', 'E8', 'power_in'),
+        ('VD11_2', 'F8', 'power_in'),
+        ('VD11_3', 'G8', 'power_in'),
+        ('VD11_4', 'K8', 'power_in'),
+        ('VD11_5', 'L8', 'power_in'),
+        ('VD11_6', 'M8', 'power_in'),
+        # VLVDS - LVDS power (10 pins)
+        ('VLVDS_1', 'G11', 'power_in'),
+        ('VLVDS_2', 'G12', 'power_in'),
+        ('VLVDS_3', 'H11', 'power_in'),
+        ('VLVDS_4', 'H12', 'power_in'),
+        ('VLVDS_5', 'H13', 'power_in'),
+        ('VLVDS_6', 'J11', 'power_in'),
+        ('VLVDS_7', 'J12', 'power_in'),
+        ('VLVDS_8', 'J13', 'power_in'),
+        ('VLVDS_9', 'K11', 'power_in'),
+        ('VLVDS_10', 'K12', 'power_in'),
+        # AGND - Analog ground (55 pins)
+        ('AGND_1', 'A1', 'power_in'),
+        ('AGND_2', 'A2', 'power_in'),
+        ('AGND_3', 'A3', 'power_in'),
+        ('AGND_4', 'A6', 'power_in'),
+        ('AGND_5', 'A7', 'power_in'),
+        ('AGND_6', 'B3', 'power_in'),
+        ('AGND_7', 'B4', 'power_in'),
+        ('AGND_8', 'B5', 'power_in'),
+        ('AGND_9', 'B6', 'power_in'),
+        ('AGND_10', 'B7', 'power_in'),
+        ('AGND_11', 'C1', 'power_in'),
+        ('AGND_12', 'C2', 'power_in'),
+        ('AGND_13', 'C3', 'power_in'),
+        ('AGND_14', 'C4', 'power_in'),
+        ('AGND_15', 'C5', 'power_in'),
+        ('AGND_16', 'C6', 'power_in'),
+        ('AGND_17', 'C7', 'power_in'),
+        ('AGND_18', 'D3', 'power_in'),
+        ('AGND_19', 'D4', 'power_in'),
+        ('AGND_20', 'D5', 'power_in'),
+        ('AGND_21', 'D6', 'power_in'),
+        ('AGND_22', 'E3', 'power_in'),
+        ('AGND_23', 'F1', 'power_in'),
+        ('AGND_24', 'F2', 'power_in'),
+        ('AGND_25', 'G1', 'power_in'),
+        ('AGND_26', 'G2', 'power_in'),
+        ('AGND_27', 'H2', 'power_in'),
+        ('AGND_28', 'J2', 'power_in'),
+        ('AGND_29', 'K1', 'power_in'),
+        ('AGND_30', 'K2', 'power_in'),
+        ('AGND_31', 'L1', 'power_in'),
+        ('AGND_32', 'L2', 'power_in'),
+        ('AGND_33', 'M3', 'power_in'),
+        ('AGND_34', 'N3', 'power_in'),
+        ('AGND_35', 'N4', 'power_in'),
+        ('AGND_36', 'N5', 'power_in'),
+        ('AGND_37', 'N6', 'power_in'),
+        ('AGND_38', 'P1', 'power_in'),
+        ('AGND_39', 'P2', 'power_in'),
+        ('AGND_40', 'P3', 'power_in'),
+        ('AGND_41', 'P4', 'power_in'),
+        ('AGND_42', 'P5', 'power_in'),
+        ('AGND_43', 'P6', 'power_in'),
+        ('AGND_44', 'P7', 'power_in'),
+        ('AGND_45', 'R2', 'power_in'),
+        ('AGND_46', 'R3', 'power_in'),
+        ('AGND_47', 'R4', 'power_in'),
+        ('AGND_48', 'R5', 'power_in'),
+        ('AGND_49', 'R6', 'power_in'),
+        ('AGND_50', 'R7', 'power_in'),
+        ('AGND_51', 'T1', 'power_in'),
+        ('AGND_52', 'T2', 'power_in'),
+        ('AGND_53', 'T3', 'power_in'),
+        ('AGND_54', 'T6', 'power_in'),
+        ('AGND_55', 'T7', 'power_in'),
+        # DGND - Digital ground (18 pins)
+        ('DGND_1', 'A15', 'power_in'),
+        ('DGND_2', 'A16', 'power_in'),
+        ('DGND_3', 'D7', 'power_in'),
+        ('DGND_4', 'E7', 'power_in'),
+        ('DGND_5', 'F7', 'power_in'),
+        ('DGND_6', 'G7', 'power_in'),
+        ('DGND_7', 'H7', 'power_in'),
+        ('DGND_8', 'H8', 'power_in'),
+        ('DGND_9', 'H14', 'power_in'),
+        ('DGND_10', 'J7', 'power_in'),
+        ('DGND_11', 'J8', 'power_in'),
+        ('DGND_12', 'J14', 'power_in'),
+        ('DGND_13', 'K7', 'power_in'),
+        ('DGND_14', 'L7', 'power_in'),
+        ('DGND_15', 'M7', 'power_in'),
+        ('DGND_16', 'N7', 'power_in'),
+        ('DGND_17', 'T15', 'power_in'),
+        ('DGND_18', 'T16', 'power_in'),
     ]
 
-    num_pwr = len(power_pins)
-    height5 = num_pwr * pin_spacing + 7.62
-    y_start5 = height5 / 2
+    # Separate power and ground pins
+    # LEFT: VCC + DGND (46 + 18 = 64 pins)
+    # RIGHT: AGND (55 pins)
+    left_pins = [p for p in power_pins if not 'GND' in p[0] or 'DGND' in p[0]]  # VA11, VA19, VD11, VLVDS, DGND
+    right_pins = [p for p in power_pins if 'AGND' in p[0]]  # AGND only
 
-    lines.append(f'      (rectangle (start 0 {y_start5:.2f}) (end 20.32 {-y_start5:.2f})')
+    # Use the larger count to determine height
+    num_rows = max(len(left_pins), len(right_pins))
+    height5 = num_rows * pin_spacing + 7.62
+    y_start5 = height5 / 2
+    box_width = 25.4  # Wider box for two columns
+
+    lines.append(f'      (rectangle (start 0 {y_start5:.2f}) (end {box_width:.2f} {-y_start5:.2f})')
     lines.append('        (stroke (width 0.254) (type default))')
     lines.append('        (fill (type background))')
     lines.append('      )')
 
     lines.append('      (text "Power"')
-    lines.append(f'        (at 10.16 {y_start5 - 1.27:.2f} 0)')
+    lines.append(f'        (at {box_width/2:.2f} {y_start5 - 1.27:.2f} 0)')
     lines.append('        (effects (font (size 1.524 1.524) bold))')
     lines.append('      )')
 
+    # VCC + DGND pins on LEFT
     y_pos = y_start5 - 5.08
-    for name, pin_num, pin_type in power_pins:
+    for name, pin_num, pin_type in left_pins:
         lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    # AGND pins on RIGHT
+    y_pos = y_start5 - 5.08
+    for name, pin_num, pin_type in right_pins:
+        lines.append(f'      (pin {pin_type} line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
         lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
         lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
         lines.append('      )')
@@ -575,12 +714,13 @@ def generate_adc12dl_aligned():
 def generate_ddr_aligned():
     """Generate MT53D512M16D1DS symbol with pins aligned to FPGA DDR unit.
 
-    FPGA DDR4 Interface unit has pins on LEFT in this order:
-    CS_N, CKE, CK, CK_N, RST_N, A[0-5], CAL,
-    DQ[0-7], DQS[0], DQS_N[0], DM[0],
-    DQ[8-15], DQS[1], DQS_N[1], DM[1], ...
+    FPGA DDR4 Interface unit has:
+    - Data pins (DQ, DQS, DM) on LEFT side
+    - Control/Address pins (CS, CKE, CK, CA, RST) on RIGHT side
 
-    DDR_Aligned puts corresponding pins on RIGHT in same order.
+    DDR_Aligned symbol has:
+    - Unit 1: Data pins on RIGHT (connects to FPGA data on LEFT)
+    - Unit 2: Control/Address pins on LEFT (connects to FPGA control on RIGHT)
     """
     lines = []
     lines.append('  (symbol "MT53D512M16D1DS_Aligned"')
@@ -607,68 +747,14 @@ def generate_ddr_aligned():
     lines.append('      (effects (font (size 1.27 1.27)) hide)')
     lines.append('    )')
 
-    # Unit 1 - Control and Address pins
+    pin_spacing = 2.54
+    box_width = 25.4
+
+    # Unit 1 - Data pins (DQ, DQS, DMI) - pins on RIGHT to connect to FPGA LEFT
     lines.append('    (symbol "MT53D512M16D1DS_Aligned_1_1"')
 
-    # Pins to match FPGA DDR unit order
-    ctrl_pins = [
-        ('CS0_A', 'H4', 'input'),
-        ('CS0_B', 'R4', 'input'),
-        ('CKE0_A', 'J4', 'input'),
-        ('CKE0_B', 'P4', 'input'),
-        ('CK_t_A', 'J8', 'input'),
-        ('CK_t_B', 'P8', 'input'),
-        ('CK_c_A', 'J9', 'input'),
-        ('CK_c_B', 'P9', 'input'),
-        ('RESET_n', 'T11', 'input'),
-        ('ODT_CA_A', 'G2', 'input'),
-        ('ODT_CA_B', 'T2', 'input'),
-        ('CA0_A', 'H2', 'input'),
-        ('CA0_B', 'R2', 'input'),
-        ('CA1_A', 'J2', 'input'),
-        ('CA1_B', 'P2', 'input'),
-        ('CA2_A', 'H9', 'input'),
-        ('CA2_B', 'R9', 'input'),
-        ('CA3_A', 'H10', 'input'),
-        ('CA3_B', 'R10', 'input'),
-        ('CA4_A', 'H11', 'input'),
-        ('CA4_B', 'R11', 'input'),
-        ('CA5_A', 'J11', 'input'),
-        ('CA5_B', 'P11', 'input'),
-        ('ZQ0', 'A5', 'passive'),
-    ]
-
-    num_ctrl = len(ctrl_pins)
-    pin_spacing = 2.54
-    box_height = num_ctrl * pin_spacing + 7.62
-    box_width = 25.4
-    y_start = box_height / 2
-
-    lines.append(f'      (rectangle (start 0 {y_start:.2f}) (end {box_width:.2f} {-y_start:.2f})')
-    lines.append('        (stroke (width 0.254) (type default))')
-    lines.append('        (fill (type background))')
-    lines.append('      )')
-
-    lines.append('      (text "Control/Address"')
-    lines.append(f'        (at {box_width/2:.2f} {y_start - 1.27:.2f} 0)')
-    lines.append('        (effects (font (size 1.524 1.524) bold))')
-    lines.append('      )')
-
-    # Control pins on RIGHT to connect to FPGA on left
-    y_pos = y_start - 5.08
-    for name, pin_num, pin_type in ctrl_pins:
-        lines.append(f'      (pin {pin_type} line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
-        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
-        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
-        lines.append('      )')
-        y_pos -= pin_spacing
-
-    lines.append('    )')
-
-    # Unit 2 - Data pins (DQ, DQS, DMI for both channels)
-    lines.append('    (symbol "MT53D512M16D1DS_Aligned_2_1"')
-
-    # Data pins - organized by byte lane to match FPGA
+    # Data pins ordered to match FPGA DDR data pin order
+    # FPGA has: DQ[0-7], DQS[0], DQS_N[0], DM[0], DQ[8-15], DQS[1], DQS_N[1], DM[1], ...
     data_pins = []
 
     # Byte lane 0 (DQ0-7)
@@ -676,58 +762,62 @@ def generate_ddr_aligned():
         ('DQ0_A', 'B2'), ('DQ1_A', 'C2'), ('DQ2_A', 'E2'), ('DQ3_A', 'F2'),
         ('DQ4_A', 'F4'), ('DQ5_A', 'E4'), ('DQ6_A', 'C4'), ('DQ7_A', 'B4'),
     ]
-    dq0_pins_b = [
-        ('DQ0_B', 'AA2'), ('DQ1_B', 'Y2'), ('DQ2_B', 'V2'), ('DQ3_B', 'U2'),
-        ('DQ4_B', 'U4'), ('DQ5_B', 'V4'), ('DQ6_B', 'Y4'), ('DQ7_B', 'AA4'),
-    ]
-
-    dqs0_pins = [
-        ('DQS0_t_A', 'D3'), ('DQS0_c_A', 'E3'),
-        ('DQS0_t_B', 'W3'), ('DQS0_c_B', 'V3'),
-        ('DMI0_A', 'C3'), ('DMI0_B', 'Y3'),
-    ]
+    dqs0_pins_a = [('DQS0_t_A', 'D3'), ('DQS0_c_A', 'E3'), ('DMI0_A', 'C3')]
 
     # Byte lane 1 (DQ8-15)
     dq1_pins_a = [
         ('DQ8_A', 'B11'), ('DQ9_A', 'C11'), ('DQ10_A', 'E11'), ('DQ11_A', 'F11'),
         ('DQ12_A', 'F9'), ('DQ13_A', 'E9'), ('DQ14_A', 'C9'), ('DQ15_A', 'B9'),
     ]
+    dqs1_pins_a = [('DQS1_t_A', 'D10'), ('DQS1_c_A', 'E10'), ('DMI1_A', 'C10')]
+
+    # Channel B byte lanes
+    dq0_pins_b = [
+        ('DQ0_B', 'AA2'), ('DQ1_B', 'Y2'), ('DQ2_B', 'V2'), ('DQ3_B', 'U2'),
+        ('DQ4_B', 'U4'), ('DQ5_B', 'V4'), ('DQ6_B', 'Y4'), ('DQ7_B', 'AA4'),
+    ]
+    dqs0_pins_b = [('DQS0_t_B', 'W3'), ('DQS0_c_B', 'V3'), ('DMI0_B', 'Y3')]
+
     dq1_pins_b = [
         ('DQ8_B', 'AA11'), ('DQ9_B', 'Y11'), ('DQ10_B', 'V11'), ('DQ11_B', 'U11'),
         ('DQ12_B', 'U9'), ('DQ13_B', 'V9'), ('DQ14_B', 'Y9'), ('DQ15_B', 'AA9'),
     ]
+    dqs1_pins_b = [('DQS1_t_B', 'W10'), ('DQS1_c_B', 'V10'), ('DMI1_B', 'Y10')]
 
-    dqs1_pins = [
-        ('DQS1_t_A', 'D10'), ('DQS1_c_A', 'E10'),
-        ('DQS1_t_B', 'W10'), ('DQS1_c_B', 'V10'),
-        ('DMI1_A', 'C10'), ('DMI1_B', 'Y10'),
-    ]
-
-    # Combine all data pins
-    for pin in dq0_pins_a + dq0_pins_b:
+    # Order to match FPGA: byte0, byte1, byte2, byte3
+    for pin in dq0_pins_a:
         data_pins.append((pin[0], pin[1], 'bidirectional'))
-    for pin in dqs0_pins:
+    for pin in dqs0_pins_a:
         data_pins.append((pin[0], pin[1], 'bidirectional'))
-    for pin in dq1_pins_a + dq1_pins_b:
+    for pin in dq1_pins_a:
         data_pins.append((pin[0], pin[1], 'bidirectional'))
-    for pin in dqs1_pins:
+    for pin in dqs1_pins_a:
+        data_pins.append((pin[0], pin[1], 'bidirectional'))
+    for pin in dq0_pins_b:
+        data_pins.append((pin[0], pin[1], 'bidirectional'))
+    for pin in dqs0_pins_b:
+        data_pins.append((pin[0], pin[1], 'bidirectional'))
+    for pin in dq1_pins_b:
+        data_pins.append((pin[0], pin[1], 'bidirectional'))
+    for pin in dqs1_pins_b:
         data_pins.append((pin[0], pin[1], 'bidirectional'))
 
     num_data = len(data_pins)
-    box_height2 = num_data * pin_spacing + 7.62
-    y_start2 = box_height2 / 2
+    box_height = num_data * pin_spacing + 7.62
+    y_start = box_height / 2
 
-    lines.append(f'      (rectangle (start 0 {y_start2:.2f}) (end {box_width:.2f} {-y_start2:.2f})')
+    lines.append(f'      (rectangle (start 0 {y_start:.2f}) (end {box_width:.2f} {-y_start:.2f})')
     lines.append('        (stroke (width 0.254) (type default))')
     lines.append('        (fill (type background))')
     lines.append('      )')
 
     lines.append('      (text "Data (DQ/DQS/DMI)"')
-    lines.append(f'        (at {box_width/2:.2f} {y_start2 - 1.27:.2f} 0)')
+    lines.append(f'        (at {box_width/2:.2f} {y_start - 1.27:.2f} 0)')
     lines.append('        (effects (font (size 1.524 1.524) bold))')
     lines.append('      )')
 
-    y_pos = y_start2 - 5.08
+    # Data pins on RIGHT to connect to FPGA data pins on LEFT
+    y_pos = y_start - 5.08
     for name, pin_num, pin_type in data_pins:
         lines.append(f'      (pin {pin_type} line (at {box_width + 2.54:.2f} {y_pos:.2f} 180) (length 2.54)')
         lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
@@ -737,32 +827,239 @@ def generate_ddr_aligned():
 
     lines.append('    )')
 
-    # Unit 3 - Power
-    lines.append('    (symbol "MT53D512M16D1DS_Aligned_3_1"')
+    # Unit 2 - Control and Address pins - pins on LEFT to connect to FPGA RIGHT
+    lines.append('    (symbol "MT53D512M16D1DS_Aligned_2_1"')
 
-    power_pins = [
-        ('VDD1', 'F1', 'power_in'),
-        ('VDD2', 'K1', 'power_in'),
-        ('VDDQ', 'B3', 'power_in'),
-        ('VSS', 'A3', 'power_in'),
+    # Control pins ordered to align with FPGA DDR control pins on right side
+    # FPGA has (top to bottom): CS_N[0-3], CKE[0-1], CK, CK_N, RST_N, A[0-5], CAL
+    #
+    # When one FPGA pin connects to two DDR pins (_A and _B), both DDR pins
+    # are placed on consecutive rows so a wire can branch to both.
+    # When FPGA pins are not connected (CS_N[2,3], CKE[1]), we leave a gap.
+    #
+    # Format: (name, pin_number, pin_type, y_offset)
+    # y_offset is in units of pin_spacing from the top
+    ctrl_pins = [
+        # DDR_CS_N[0] -> CS0_A
+        ('CS0_A', 'H4', 'input', 0),
+        # DDR_CS_N[1] -> CS0_B
+        ('CS0_B', 'R4', 'input', 1),
+        # DDR_CS_N[2] -> not connected (gap at position 2)
+        # DDR_CS_N[3] -> not connected (gap at position 3)
+        # DDR_CKE[0] -> CKE0_A and CKE0_B (consecutive rows for branching)
+        ('CKE0_A', 'J4', 'input', 4),
+        ('CKE0_B', 'P4', 'input', 5),
+        # DDR_CKE[1] -> not connected (gap at position 6)
+        # DDR_CK -> CK_t_A and CK_t_B (consecutive rows)
+        ('CK_t_A', 'J8', 'input', 7),
+        ('CK_t_B', 'P8', 'input', 8),
+        # DDR_CK_N -> CK_c_A and CK_c_B (consecutive rows)
+        ('CK_c_A', 'J9', 'input', 9),
+        ('CK_c_B', 'P9', 'input', 10),
+        # DDR_RST_N -> RESET_n
+        ('RESET_n', 'T11', 'input', 11),
+        # DDR_A[0] -> CA0_A and CA0_B
+        ('CA0_A', 'H2', 'input', 12),
+        ('CA0_B', 'R2', 'input', 13),
+        # DDR_A[1] -> CA1_A and CA1_B
+        ('CA1_A', 'J2', 'input', 14),
+        ('CA1_B', 'P2', 'input', 15),
+        # DDR_A[2] -> CA2_A and CA2_B
+        ('CA2_A', 'H9', 'input', 16),
+        ('CA2_B', 'R9', 'input', 17),
+        # DDR_A[3] -> CA3_A and CA3_B
+        ('CA3_A', 'H10', 'input', 18),
+        ('CA3_B', 'R10', 'input', 19),
+        # DDR_A[4] -> CA4_A and CA4_B
+        ('CA4_A', 'H11', 'input', 20),
+        ('CA4_B', 'R11', 'input', 21),
+        # DDR_A[5] -> CA5_A and CA5_B
+        ('CA5_A', 'J11', 'input', 22),
+        ('CA5_B', 'P11', 'input', 23),
+        # DDR_CAL -> ZQ0 (and ODT_CA pins nearby)
+        ('ZQ0', 'A5', 'passive', 24),
+        ('ODT_CA_A', 'G2', 'input', 25),
+        ('ODT_CA_B', 'T2', 'input', 26),
     ]
 
-    num_pwr = len(power_pins)
-    height3 = num_pwr * pin_spacing + 7.62
-    y_start3 = height3 / 2
+    # Total rows including gaps
+    num_rows = 27
+    box_height2 = num_rows * pin_spacing + 7.62
+    y_start2 = box_height2 / 2
 
-    lines.append(f'      (rectangle (start 0 {y_start3:.2f}) (end 20.32 {-y_start3:.2f})')
+    lines.append(f'      (rectangle (start 0 {y_start2:.2f}) (end {box_width:.2f} {-y_start2:.2f})')
     lines.append('        (stroke (width 0.254) (type default))')
     lines.append('        (fill (type background))')
     lines.append('      )')
 
-    lines.append('      (text "Power"')
-    lines.append(f'        (at 10.16 {y_start3 - 1.27:.2f} 0)')
+    lines.append('      (text "Control/Address"')
+    lines.append(f'        (at {box_width/2:.2f} {y_start2 - 1.27:.2f} 0)')
     lines.append('        (effects (font (size 1.524 1.524) bold))')
     lines.append('      )')
 
+    # Control pins on LEFT to connect to FPGA control pins on RIGHT
+    # Use explicit y_offset for each pin to allow gaps
+    y_top = y_start2 - 5.08
+    for name, pin_num, pin_type, y_offset in ctrl_pins:
+        y_pos = y_top - (y_offset * pin_spacing)
+        lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+
+    lines.append('    )')
+
+    # Unit 3 - Power (VDD1, VDD2, VDDQ)
+    lines.append('    (symbol "MT53D512M16D1DS_Aligned_3_1"')
+
+    vdd1_pins = [
+        ('F1', 'VDD1'), ('F12', 'VDD1'), ('G4', 'VDD1'), ('G9', 'VDD1'),
+        ('T4', 'VDD1'), ('T9', 'VDD1'), ('U1', 'VDD1'), ('U12', 'VDD1'),
+    ]
+    vdd2_pins = [
+        ('A4', 'VDD2'), ('A9', 'VDD2'), ('AB4', 'VDD2'), ('AB9', 'VDD2'),
+        ('F5', 'VDD2'), ('F8', 'VDD2'), ('H1', 'VDD2'), ('H5', 'VDD2'),
+        ('H8', 'VDD2'), ('H12', 'VDD2'), ('K1', 'VDD2'), ('K3', 'VDD2'),
+        ('K10', 'VDD2'), ('K12', 'VDD2'), ('N1', 'VDD2'), ('N3', 'VDD2'),
+        ('N10', 'VDD2'), ('N12', 'VDD2'), ('R1', 'VDD2'), ('R5', 'VDD2'),
+        ('R8', 'VDD2'), ('R12', 'VDD2'), ('U5', 'VDD2'), ('U8', 'VDD2'),
+    ]
+    vddq_pins = [
+        ('AA3', 'VDDQ'), ('AA5', 'VDDQ'), ('AA8', 'VDDQ'), ('AA10', 'VDDQ'),
+        ('B3', 'VDDQ'), ('B5', 'VDDQ'), ('B8', 'VDDQ'), ('B10', 'VDDQ'),
+        ('D1', 'VDDQ'), ('D5', 'VDDQ'), ('D8', 'VDDQ'), ('D12', 'VDDQ'),
+        ('F3', 'VDDQ'), ('F10', 'VDDQ'), ('U3', 'VDDQ'), ('U10', 'VDDQ'),
+        ('W1', 'VDDQ'), ('W5', 'VDDQ'), ('W8', 'VDDQ'), ('W12', 'VDDQ'),
+    ]
+
+    power_pins = []
+    for pin, name in vdd1_pins:
+        power_pins.append((name, pin, 'power_in'))
+    for pin, name in vdd2_pins:
+        power_pins.append((name, pin, 'power_in'))
+    for pin, name in vddq_pins:
+        power_pins.append((name, pin, 'power_in'))
+
+    num_pwr = len(power_pins)
+    # Split between left and right sides
+    half = (num_pwr + 1) // 2
+    left_pwr = power_pins[:half]
+    right_pwr = power_pins[half:]
+
+    height3 = half * pin_spacing + 7.62
+    y_start3 = height3 / 2
+
+    lines.append(f'      (rectangle (start 0 {y_start3:.2f}) (end 25.40 {-y_start3:.2f})')
+    lines.append('        (stroke (width 0.254) (type default))')
+    lines.append('        (fill (type background))')
+    lines.append('      )')
+
+    lines.append('      (text "Power (VDD)"')
+    lines.append(f'        (at 12.70 {y_start3 - 1.27:.2f} 0)')
+    lines.append('        (effects (font (size 1.524 1.524) bold))')
+    lines.append('      )')
+
+    # Left side
     y_pos = y_start3 - 5.08
-    for name, pin_num, pin_type in power_pins:
+    for name, pin_num, pin_type in left_pwr:
+        lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    # Right side
+    y_pos = y_start3 - 5.08
+    for name, pin_num, pin_type in right_pwr:
+        lines.append(f'      (pin {pin_type} line (at 27.94 {y_pos:.2f} 180) (length 2.54)')
+        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    lines.append('    )')
+
+    # Unit 4 - Ground (VSS)
+    lines.append('    (symbol "MT53D512M16D1DS_Aligned_4_1"')
+
+    vss_pins = [
+        'A3', 'A10', 'AB3', 'AB5', 'AB8', 'AB10',
+        'C1', 'C5', 'C8', 'C12', 'D2', 'D4', 'D9', 'D11',
+        'E1', 'E5', 'E8', 'E12', 'G1', 'G3', 'G5', 'G8', 'G10', 'G12',
+        'J1', 'J3', 'J10', 'J12', 'K2', 'K4', 'K9', 'K11',
+        'N2', 'N4', 'N9', 'N11', 'P1', 'P3', 'P10', 'P12',
+        'T1', 'T3', 'T5', 'T8', 'T10', 'T12',
+        'V1', 'V5', 'V8', 'V12', 'W2', 'W4', 'W9', 'W11',
+        'Y1', 'Y5', 'Y8', 'Y12',
+    ]
+
+    gnd_pins = [('VSS', pin, 'power_in') for pin in vss_pins]
+    num_gnd = len(gnd_pins)
+    half_gnd = (num_gnd + 1) // 2
+    left_gnd = gnd_pins[:half_gnd]
+    right_gnd = gnd_pins[half_gnd:]
+
+    height4 = half_gnd * pin_spacing + 7.62
+    y_start4 = height4 / 2
+
+    lines.append(f'      (rectangle (start 0 {y_start4:.2f}) (end 20.32 {-y_start4:.2f})')
+    lines.append('        (stroke (width 0.254) (type default))')
+    lines.append('        (fill (type background))')
+    lines.append('      )')
+
+    lines.append('      (text "Ground (VSS)"')
+    lines.append(f'        (at 10.16 {y_start4 - 1.27:.2f} 0)')
+    lines.append('        (effects (font (size 1.524 1.524) bold))')
+    lines.append('      )')
+
+    # Left side
+    y_pos = y_start4 - 5.08
+    for name, pin_num, pin_type in left_gnd:
+        lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
+        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    # Right side
+    y_pos = y_start4 - 5.08
+    for name, pin_num, pin_type in right_gnd:
+        lines.append(f'      (pin {pin_type} line (at 22.86 {y_pos:.2f} 180) (length 2.54)')
+        lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
+        lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
+        lines.append('      )')
+        y_pos -= pin_spacing
+
+    lines.append('    )')
+
+    # Unit 5 - NC and DNU pins
+    lines.append('    (symbol "MT53D512M16D1DS_Aligned_5_1"')
+
+    nc_pins = ['A8', 'G11', 'H3', 'J5', 'K5', 'K8', 'N5', 'N8', 'P5', 'R3']
+    dnu_pins = ['A1', 'A2', 'A11', 'A12', 'AA1', 'AA12', 'AB1', 'AB2', 'AB11', 'AB12', 'B1', 'B12']
+
+    misc_pins = []
+    for pin in nc_pins:
+        misc_pins.append(('NC', pin, 'no_connect'))
+    for pin in dnu_pins:
+        misc_pins.append(('DNU', pin, 'passive'))
+
+    num_misc = len(misc_pins)
+    height5 = num_misc * pin_spacing + 7.62
+    y_start5 = height5 / 2
+
+    lines.append(f'      (rectangle (start 0 {y_start5:.2f}) (end 20.32 {-y_start5:.2f})')
+    lines.append('        (stroke (width 0.254) (type default))')
+    lines.append('        (fill (type background))')
+    lines.append('      )')
+
+    lines.append('      (text "NC/DNU"')
+    lines.append(f'        (at 10.16 {y_start5 - 1.27:.2f} 0)')
+    lines.append('        (effects (font (size 1.524 1.524) bold))')
+    lines.append('      )')
+
+    y_pos = y_start5 - 5.08
+    for name, pin_num, pin_type in misc_pins:
         lines.append(f'      (pin {pin_type} line (at -2.54 {y_pos:.2f} 0) (length 2.54)')
         lines.append(f'        (name "{name}" (effects (font (size 1.016 1.016))))')
         lines.append(f'        (number "{pin_num}" (effects (font (size 1.016 1.016))))')
