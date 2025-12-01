@@ -14046,8 +14046,8 @@
 			)
 			(symbol "Ti90G529_Functions_10_1"
 				(rectangle
-					(start 0 34.29)
-					(end 30.48 -34.29)
+					(start 0 41.91)
+					(end 30.48 -41.91)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -14056,8 +14056,8 @@
 						(type background)
 					)
 				)
-				(text "Unassigned GPIO"
-					(at 15.24 33.02 0)
+				(text "Unassigned/NC"
+					(at 15.24 40.64 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -14065,8 +14065,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 29.21 0)
+				(pin passive line
+					(at -2.54 36.83 0)
 					(length 2.54)
 					(name "GPIOB_N_32_CDI29"
 						(effects
@@ -14083,8 +14083,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 26.67 0)
+				(pin passive line
+					(at -2.54 34.29 0)
 					(length 2.54)
 					(name "GPIOB_N_33_CDI30"
 						(effects
@@ -14101,8 +14101,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 24.13 0)
+				(pin passive line
+					(at -2.54 31.75 0)
 					(length 2.54)
 					(name "GPIOB_N_34"
 						(effects
@@ -14119,8 +14119,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 21.59 0)
+				(pin passive line
+					(at -2.54 29.21 0)
 					(length 2.54)
 					(name "GPIOB_P_32_CDI28"
 						(effects
@@ -14137,8 +14137,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 19.05 0)
+				(pin passive line
+					(at -2.54 26.67 0)
 					(length 2.54)
 					(name "GPIOB_P_33_CDI31"
 						(effects
@@ -14155,8 +14155,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 16.51 0)
+				(pin passive line
+					(at -2.54 24.13 0)
 					(length 2.54)
 					(name "GPIOL_00_PLLIN1"
 						(effects
@@ -14173,8 +14173,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 13.97 0)
+				(pin passive line
+					(at -2.54 21.59 0)
 					(length 2.54)
 					(name "GPIOL_01"
 						(effects
@@ -14191,8 +14191,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 11.43 0)
+				(pin passive line
+					(at -2.54 19.05 0)
 					(length 2.54)
 					(name "GPIOL_02"
 						(effects
@@ -14209,8 +14209,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 8.89 0)
+				(pin passive line
+					(at -2.54 16.51 0)
 					(length 2.54)
 					(name "GPIOL_03_CLK24"
 						(effects
@@ -14227,8 +14227,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 6.35 0)
+				(pin passive line
+					(at -2.54 13.97 0)
 					(length 2.54)
 					(name "GPIOL_04_CLK25"
 						(effects
@@ -14245,8 +14245,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 3.81 0)
+				(pin passive line
+					(at -2.54 11.43 0)
 					(length 2.54)
 					(name "GPIOL_05_CLK26"
 						(effects
@@ -14263,8 +14263,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 1.27 0)
+				(pin passive line
+					(at -2.54 8.89 0)
 					(length 2.54)
 					(name "GPIOL_06_CLK27"
 						(effects
@@ -14281,8 +14281,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -1.27 0)
+				(pin passive line
+					(at -2.54 6.35 0)
 					(length 2.54)
 					(name "GPIOL_21"
 						(effects
@@ -14299,8 +14299,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -3.81 0)
+				(pin passive line
+					(at -2.54 3.81 0)
 					(length 2.54)
 					(name "GPIOL_36_PLLIN1"
 						(effects
@@ -14317,8 +14317,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -6.35 0)
+				(pin passive line
+					(at -2.54 1.27 0)
 					(length 2.54)
 					(name "GPIOL_40"
 						(effects
@@ -14335,8 +14335,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -8.89 0)
+				(pin passive line
+					(at -2.54 -1.27 0)
 					(length 2.54)
 					(name "GPIOL_41"
 						(effects
@@ -14353,8 +14353,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -11.43 0)
+				(pin passive line
+					(at -2.54 -3.81 0)
 					(length 2.54)
 					(name "GPIOL_42"
 						(effects
@@ -14371,8 +14371,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -13.97 0)
+				(pin passive line
+					(at -2.54 -6.35 0)
 					(length 2.54)
 					(name "GPIOL_43"
 						(effects
@@ -14389,8 +14389,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -16.51 0)
+				(pin passive line
+					(at -2.54 -8.89 0)
 					(length 2.54)
 					(name "GPIOL_44"
 						(effects
@@ -14407,8 +14407,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -19.05 0)
+				(pin passive line
+					(at -2.54 -11.43 0)
 					(length 2.54)
 					(name "GPIOT_N_23"
 						(effects
@@ -14425,8 +14425,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -21.59 0)
+				(pin passive line
+					(at -2.54 -13.97 0)
 					(length 2.54)
 					(name "GPIOT_N_33"
 						(effects
@@ -14443,8 +14443,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -24.13 0)
+				(pin passive line
+					(at -2.54 -16.51 0)
 					(length 2.54)
 					(name "GPIOT_N_34"
 						(effects
@@ -14461,8 +14461,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -26.67 0)
+				(pin passive line
+					(at -2.54 -19.05 0)
 					(length 2.54)
 					(name "GPIOT_P_23_PLLIN0"
 						(effects
@@ -14479,8 +14479,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -29.21 0)
+				(pin passive line
+					(at -2.54 -21.59 0)
 					(length 2.54)
 					(name "GPIOT_P_33"
 						(effects
@@ -14490,6 +14490,114 @@
 						)
 					)
 					(number "F17"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -24.13 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W10"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -26.67 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W11"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -29.21 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W13"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -31.75 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W14"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -34.29 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "V16"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -36.83 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W15"
 						(effects
 							(font
 								(size 1.016 1.016)
@@ -16954,6 +17062,24 @@
 		)
 		(pin "K3"
 			(uuid "0751dd4e-91d5-433e-a2ba-656b91c93971")
+		)
+		(pin "W14"
+			(uuid "070b838b-92d8-4b90-b386-555d54cfe655")
+		)
+		(pin "W10"
+			(uuid "4ca584d8-8d4f-41d1-8c34-b9a9bfeafd0b")
+		)
+		(pin "W13"
+			(uuid "1cf31a8b-b7b5-444b-9f41-f2b479cd0274")
+		)
+		(pin "V16"
+			(uuid "a8f5c4f2-47da-401d-b3f8-2699eefda1f9")
+		)
+		(pin "W15"
+			(uuid "646b83a2-ab55-41af-8414-69b7cae78c4c")
+		)
+		(pin "W11"
+			(uuid "e193f632-bf6f-457e-9352-701c09c2f26d")
 		)
 		(instances
 			(project "haasoscope_pro_max"

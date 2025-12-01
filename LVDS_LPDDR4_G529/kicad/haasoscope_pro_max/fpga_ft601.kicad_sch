@@ -1109,1528 +1109,6 @@
 			)
 			(symbol "FT601Q_Aligned_3_1"
 				(rectangle
-					(start 0 31.75)
-					(end 20.32 -31.75)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(text "Power"
-					(at 10.16 30.48 0)
-					(effects
-						(font
-							(size 1.524 1.524)
-							(bold yes)
-						)
-					)
-				)
-				(pin power_in line
-					(at -2.54 26.67 0)
-					(length 2.54)
-					(name "VBUS"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "37"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at -2.54 24.13 0)
-					(length 2.54)
-					(name "VCC33"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "20"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 21.59 0)
-					(length 2.54)
-					(name "VCC33"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "24"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 19.05 0)
-					(length 2.54)
-					(name "VCC33"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "38"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at -2.54 16.51 0)
-					(length 2.54)
-					(name "VDDA"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "28"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at -2.54 13.97 0)
-					(length 2.54)
-					(name "VCCIO"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "14"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 11.43 0)
-					(length 2.54)
-					(name "VCCIO"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "49"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 8.89 0)
-					(length 2.54)
-					(name "VCCIO"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "59"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 6.35 0)
-					(length 2.54)
-					(name "VCCIO"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "68"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at -2.54 3.81 0)
-					(length 2.54)
-					(name "VD10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 1.27 0)
-					(length 2.54)
-					(name "VD10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "30"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -1.27 0)
-					(length 2.54)
-					(name "VD10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "33"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -3.81 0)
-					(length 2.54)
-					(name "VD10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "48"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin power_out line
-					(at -2.54 -6.35 0)
-					(length 2.54)
-					(name "DV10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "39"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at -2.54 -8.89 0)
-					(length 2.54)
-					(name "AVDD"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at -2.54 -11.43 0)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -13.97 0)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "19"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -16.51 0)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "26"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -19.05 0)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "29"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -21.59 0)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "36"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -24.13 0)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "77"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -2.54 -26.67 0)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "78"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
-		(symbol "FT601Q_Aligned_1"
-			(pin_names
-				(offset 1.016)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "U"
-				(at 0 1.27 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "FT601Q_Aligned"
-				(at 0 -1.27 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" "Package_DFN_QFN:QFN-76-1EP_9x9mm_P0.4mm_EP5.81x6.31mm"
-				(at 0 -3.81 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "FT601Q USB3 FIFO - pin ordering aligned with Ti90G529 FPGA"
-				(at 0 -6.35 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "FT601Q_Aligned_1_1_1"
-				(rectangle
-					(start 0 63.5)
-					(end 25.4 -63.5)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(text "FT601Q FIFO Interface"
-					(at 12.7 62.23 0)
-					(effects
-						(font
-							(size 1.524 1.524)
-							(bold yes)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 58.42 180)
-					(length 2.54)
-					(name "DATA_0"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "40"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 55.88 180)
-					(length 2.54)
-					(name "DATA_1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "41"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 53.34 180)
-					(length 2.54)
-					(name "DATA_2"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "42"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 50.8 180)
-					(length 2.54)
-					(name "DATA_3"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "43"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 48.26 180)
-					(length 2.54)
-					(name "DATA_4"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "44"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 45.72 180)
-					(length 2.54)
-					(name "DATA_5"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "45"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 43.18 180)
-					(length 2.54)
-					(name "DATA_6"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "46"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 40.64 180)
-					(length 2.54)
-					(name "DATA_7"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "47"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 38.1 180)
-					(length 2.54)
-					(name "DATA_8"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "50"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 35.56 180)
-					(length 2.54)
-					(name "DATA_9"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "51"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 33.02 180)
-					(length 2.54)
-					(name "DATA_10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "52"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 30.48 180)
-					(length 2.54)
-					(name "DATA_11"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "53"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 27.94 180)
-					(length 2.54)
-					(name "DATA_12"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "54"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 25.4 180)
-					(length 2.54)
-					(name "DATA_13"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "55"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 22.86 180)
-					(length 2.54)
-					(name "DATA_14"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "56"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 20.32 180)
-					(length 2.54)
-					(name "DATA_15"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "57"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 17.78 180)
-					(length 2.54)
-					(name "DATA_16"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "60"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 15.24 180)
-					(length 2.54)
-					(name "DATA_17"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "61"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 12.7 180)
-					(length 2.54)
-					(name "DATA_18"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "62"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 10.16 180)
-					(length 2.54)
-					(name "DATA_19"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "63"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 7.62 180)
-					(length 2.54)
-					(name "DATA_20"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "64"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 5.08 180)
-					(length 2.54)
-					(name "DATA_21"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "65"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 2.54 180)
-					(length 2.54)
-					(name "DATA_22"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "66"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 0 180)
-					(length 2.54)
-					(name "DATA_23"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "67"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -2.54 180)
-					(length 2.54)
-					(name "DATA_24"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "69"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -5.08 180)
-					(length 2.54)
-					(name "DATA_25"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "70"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -7.62 180)
-					(length 2.54)
-					(name "DATA_26"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "71"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -10.16 180)
-					(length 2.54)
-					(name "DATA_27"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "72"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -12.7 180)
-					(length 2.54)
-					(name "DATA_28"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "73"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -15.24 180)
-					(length 2.54)
-					(name "DATA_29"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "74"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -17.78 180)
-					(length 2.54)
-					(name "DATA_30"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "75"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -20.32 180)
-					(length 2.54)
-					(name "DATA_31"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "76"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -22.86 180)
-					(length 2.54)
-					(name "BE_0"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -25.4 180)
-					(length 2.54)
-					(name "BE_1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -27.94 180)
-					(length 2.54)
-					(name "BE_2"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "6"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -30.48 180)
-					(length 2.54)
-					(name "BE_3"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "7"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at 27.94 -33.02 180)
-					(length 2.54)
-					(name "CLK"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "58"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at 27.94 -35.56 180)
-					(length 2.54)
-					(name "~{OE}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "13"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at 27.94 -38.1 180)
-					(length 2.54)
-					(name "~{RD}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "12"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at 27.94 -40.64 180)
-					(length 2.54)
-					(name "~{WR}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "11"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at 27.94 -43.18 180)
-					(length 2.54)
-					(name "~{RXF}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "9"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at 27.94 -45.72 180)
-					(length 2.54)
-					(name "~{TXE}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "8"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at 27.94 -48.26 180)
-					(length 2.54)
-					(name "~{RESET}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "15"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at 27.94 -50.8 180)
-					(length 2.54)
-					(name "~{SIWU}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "10"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -53.34 180)
-					(length 2.54)
-					(name "~{WAKEUP}"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "16"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -55.88 180)
-					(length 2.54)
-					(name "GPIO0"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "17"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at 27.94 -58.42 180)
-					(length 2.54)
-					(name "GPIO1"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "18"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-			)
-			(symbol "FT601Q_Aligned_1_2_1"
-				(rectangle
-					(start 0 15.24)
-					(end 20.32 -15.24)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(text "USB"
-					(at 10.16 13.97 0)
-					(effects
-						(font
-							(size 1.524 1.524)
-							(bold yes)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -2.54 10.16 0)
-					(length 2.54)
-					(name "DM"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "25"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin bidirectional line
-					(at -2.54 7.62 0)
-					(length 2.54)
-					(name "DP"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "23"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 5.08 0)
-					(length 2.54)
-					(name "RIDN"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "34"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 2.54 0)
-					(length 2.54)
-					(name "RIDP"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "35"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 0 0)
-					(length 2.54)
-					(name "TODN"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "31"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -2.54 0)
-					(length 2.54)
-					(name "TODP"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "32"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -5.08 0)
-					(length 2.54)
-					(name "XI"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "21"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -2.54 -7.62 0)
-					(length 2.54)
-					(name "XO"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "22"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -2.54 -10.16 0)
-					(length 2.54)
-					(name "RREF"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "27"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-			)
-			(symbol "FT601Q_Aligned_1_3_1"
-				(rectangle
 					(start 0 30.48)
 					(end 20.32 -30.48)
 					(stroke
@@ -12280,8 +10758,8 @@
 			)
 			(symbol "Ti90G529_Functions_10_1"
 				(rectangle
-					(start 0 34.29)
-					(end 30.48 -34.29)
+					(start 0 41.91)
+					(end 30.48 -41.91)
 					(stroke
 						(width 0.254)
 						(type default)
@@ -12290,8 +10768,8 @@
 						(type background)
 					)
 				)
-				(text "Unassigned GPIO"
-					(at 15.24 33.02 0)
+				(text "Unassigned/NC"
+					(at 15.24 40.64 0)
 					(effects
 						(font
 							(size 1.524 1.524)
@@ -12299,8 +10777,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 29.21 0)
+				(pin passive line
+					(at -2.54 36.83 0)
 					(length 2.54)
 					(name "GPIOB_N_32_CDI29"
 						(effects
@@ -12317,8 +10795,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 26.67 0)
+				(pin passive line
+					(at -2.54 34.29 0)
 					(length 2.54)
 					(name "GPIOB_N_33_CDI30"
 						(effects
@@ -12335,8 +10813,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 24.13 0)
+				(pin passive line
+					(at -2.54 31.75 0)
 					(length 2.54)
 					(name "GPIOB_N_34"
 						(effects
@@ -12353,8 +10831,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 21.59 0)
+				(pin passive line
+					(at -2.54 29.21 0)
 					(length 2.54)
 					(name "GPIOB_P_32_CDI28"
 						(effects
@@ -12371,8 +10849,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 19.05 0)
+				(pin passive line
+					(at -2.54 26.67 0)
 					(length 2.54)
 					(name "GPIOB_P_33_CDI31"
 						(effects
@@ -12389,8 +10867,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 16.51 0)
+				(pin passive line
+					(at -2.54 24.13 0)
 					(length 2.54)
 					(name "GPIOL_00_PLLIN1"
 						(effects
@@ -12407,8 +10885,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 13.97 0)
+				(pin passive line
+					(at -2.54 21.59 0)
 					(length 2.54)
 					(name "GPIOL_01"
 						(effects
@@ -12425,8 +10903,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 11.43 0)
+				(pin passive line
+					(at -2.54 19.05 0)
 					(length 2.54)
 					(name "GPIOL_02"
 						(effects
@@ -12443,8 +10921,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 8.89 0)
+				(pin passive line
+					(at -2.54 16.51 0)
 					(length 2.54)
 					(name "GPIOL_03_CLK24"
 						(effects
@@ -12461,8 +10939,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 6.35 0)
+				(pin passive line
+					(at -2.54 13.97 0)
 					(length 2.54)
 					(name "GPIOL_04_CLK25"
 						(effects
@@ -12479,8 +10957,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 3.81 0)
+				(pin passive line
+					(at -2.54 11.43 0)
 					(length 2.54)
 					(name "GPIOL_05_CLK26"
 						(effects
@@ -12497,8 +10975,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 1.27 0)
+				(pin passive line
+					(at -2.54 8.89 0)
 					(length 2.54)
 					(name "GPIOL_06_CLK27"
 						(effects
@@ -12515,8 +10993,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -1.27 0)
+				(pin passive line
+					(at -2.54 6.35 0)
 					(length 2.54)
 					(name "GPIOL_21"
 						(effects
@@ -12533,8 +11011,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -3.81 0)
+				(pin passive line
+					(at -2.54 3.81 0)
 					(length 2.54)
 					(name "GPIOL_36_PLLIN1"
 						(effects
@@ -12551,8 +11029,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -6.35 0)
+				(pin passive line
+					(at -2.54 1.27 0)
 					(length 2.54)
 					(name "GPIOL_40"
 						(effects
@@ -12569,8 +11047,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -8.89 0)
+				(pin passive line
+					(at -2.54 -1.27 0)
 					(length 2.54)
 					(name "GPIOL_41"
 						(effects
@@ -12587,8 +11065,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -11.43 0)
+				(pin passive line
+					(at -2.54 -3.81 0)
 					(length 2.54)
 					(name "GPIOL_42"
 						(effects
@@ -12605,8 +11083,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -13.97 0)
+				(pin passive line
+					(at -2.54 -6.35 0)
 					(length 2.54)
 					(name "GPIOL_43"
 						(effects
@@ -12623,8 +11101,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -16.51 0)
+				(pin passive line
+					(at -2.54 -8.89 0)
 					(length 2.54)
 					(name "GPIOL_44"
 						(effects
@@ -12641,8 +11119,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -19.05 0)
+				(pin passive line
+					(at -2.54 -11.43 0)
 					(length 2.54)
 					(name "GPIOT_N_23"
 						(effects
@@ -12659,8 +11137,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -21.59 0)
+				(pin passive line
+					(at -2.54 -13.97 0)
 					(length 2.54)
 					(name "GPIOT_N_33"
 						(effects
@@ -12677,8 +11155,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -24.13 0)
+				(pin passive line
+					(at -2.54 -16.51 0)
 					(length 2.54)
 					(name "GPIOT_N_34"
 						(effects
@@ -12695,8 +11173,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -26.67 0)
+				(pin passive line
+					(at -2.54 -19.05 0)
 					(length 2.54)
 					(name "GPIOT_P_23_PLLIN0"
 						(effects
@@ -12713,8 +11191,8 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -2.54 -29.21 0)
+				(pin passive line
+					(at -2.54 -21.59 0)
 					(length 2.54)
 					(name "GPIOT_P_33"
 						(effects
@@ -12724,6 +11202,114 @@
 						)
 					)
 					(number "F17"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -24.13 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W10"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -26.67 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W11"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -29.21 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W13"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -31.75 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W14"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -34.29 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "V16"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -2.54 -36.83 0)
+					(length 2.54)
+					(name "NC"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "W15"
 						(effects
 							(font
 								(size 1.016 1.016)
@@ -13488,9 +12074,6 @@
 		(pin "19"
 			(uuid "7c5c0a1b-698d-40e4-b35f-7f03e57fb081")
 		)
-		(pin "78"
-			(uuid "72042381-ddb7-4f3c-9f17-2af19fc600e0")
-		)
 		(instances
 			(project ""
 				(path "/402d4354-a429-42f1-b427-55034b5bd241/33a379c7-6f6f-4bd4-83d4-3ebdccddab33"
@@ -13785,9 +12368,6 @@
 		)
 		(pin "19"
 			(uuid "f7e10696-980a-4389-801f-7021a3630f80")
-		)
-		(pin "78"
-			(uuid "8019b99e-7322-4ec5-ba31-3db7871ce2fd")
 		)
 		(instances
 			(project ""
@@ -15421,6 +14001,24 @@
 		(pin "G18"
 			(uuid "b63203c7-6ba1-41aa-b8ba-46973e73c241")
 		)
+		(pin "V16"
+			(uuid "e250af13-7712-4ee5-be49-8a777f02e58e")
+		)
+		(pin "W11"
+			(uuid "91a3c1cb-ef0b-4c65-80a7-3f53f2a98d3c")
+		)
+		(pin "W13"
+			(uuid "ba1df29a-2faf-4545-ac64-6044e01b4dab")
+		)
+		(pin "W10"
+			(uuid "c2ec7ddd-d5b9-4d36-8aed-aebadb02a71b")
+		)
+		(pin "W14"
+			(uuid "94fbaed6-34ca-4827-99ec-da59985e38c1")
+		)
+		(pin "W15"
+			(uuid "99e9d96b-d208-4d4f-ba2c-907b15f21c72")
+		)
 		(instances
 			(project ""
 				(path "/402d4354-a429-42f1-b427-55034b5bd241/33a379c7-6f6f-4bd4-83d4-3ebdccddab33"
@@ -15431,7 +14029,6 @@
 		)
 	)
 	(symbol
-		(lib_name "FT601Q_Aligned_1")
 		(lib_id "Aligned_Peripheral_Symbols:FT601Q_Aligned")
 		(at 240.03 58.42 0)
 		(unit 3)

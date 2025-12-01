@@ -799,11 +799,19 @@ def main():
         print(f"  Unit {unit_num}: GND")
         unit_num += 1
 
-        # Unit 10: Unassigned GPIO
-        if unassigned_pins:
-            sorted_unassigned = sorted(unassigned_pins.items(), key=lambda x: x[0])
-            f.write(generate_unit(unit_num, symbol_name, "Unassigned GPIO", sorted_unassigned, 'left'))
-            print(f"  Unit {unit_num}: Unassigned GPIO ({len(sorted_unassigned)} pins)")
+        # Unit 10: Unassigned GPIO and NC pins
+        # Add NC pins from PINOUT
+        nc_pins = PINOUT.get('NC', [])
+        nc_pin_items = {f'NC_{i+1}': (ball, f'NC', 'unassigned') for i, ball in enumerate(nc_pins)}
+
+        # Combine unassigned GPIO with NC pins
+        all_unassigned = dict(unassigned_pins)
+        all_unassigned.update(nc_pin_items)
+
+        if all_unassigned:
+            sorted_unassigned = sorted(all_unassigned.items(), key=lambda x: x[0])
+            f.write(generate_unit(unit_num, symbol_name, "Unassigned/NC", sorted_unassigned, 'left', 'passive'))
+            print(f"  Unit {unit_num}: Unassigned/NC ({len(unassigned_pins)} GPIO + {len(nc_pins)} NC)")
             unit_num += 1
 
         f.write('  )\n')
