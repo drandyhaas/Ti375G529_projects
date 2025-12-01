@@ -199,8 +199,7 @@ def generate_ft601q_aligned():
         ('GND', '26', 'passive'),
         ('GND', '29', 'passive'),
         ('GND', '36', 'passive'),
-        ('GND', '77', 'passive'),
-        ('GND', '78', 'passive'),  # Exposed pad
+        ('GND', '77', 'passive'),  # Exposed thermal pad
     ]
 
     num_pwr = len(power_pins)

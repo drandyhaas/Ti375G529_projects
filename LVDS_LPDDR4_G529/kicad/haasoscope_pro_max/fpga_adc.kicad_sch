@@ -14983,6 +14983,16 @@
 	)
 	(wire
 		(pts
+			(xy 123.19 27.94) (xy 133.35 27.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "64b66979-c1fd-476b-a69b-28c2a963e8f4")
+	)
+	(wire
+		(pts
 			(xy 123.19 152.4) (xy 133.35 152.4)
 		)
 		(stroke
@@ -15513,16 +15523,6 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 27.94) (xy 133.35 27.94)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "e7462417-11df-4929-a38e-5cc17d498bb1")
-	)
-	(wire
-		(pts
 			(xy 123.19 124.46) (xy 133.35 124.46)
 		)
 		(stroke
@@ -15620,6 +15620,26 @@
 			(type default)
 		)
 		(uuid "fe6c4417-932a-46ee-8860-e9f811a35758")
+	)
+	(label "lvds_rx1_1_N"
+		(at 123.19 27.94 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "41db7963-cb46-4b46-9b1b-a99f2bd05f6d")
+	)
+	(label "lvds_rx1_1_P"
+		(at 123.19 25.4 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6e6fe629-579d-4e77-b573-a591558efccb")
 	)
 	(symbol
 		(lib_id "Aligned_Peripheral_Symbols:ADC12DL500ACF_Aligned")
