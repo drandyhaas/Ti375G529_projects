@@ -14701,7 +14701,7 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 175.26) (xy 133.35 175.26)
+			(xy 114.3 175.26) (xy 137.16 175.26)
 		)
 		(stroke
 			(width 0)
@@ -14771,7 +14771,7 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 172.72) (xy 133.35 172.72)
+			(xy 114.3 172.72) (xy 137.16 172.72)
 		)
 		(stroke
 			(width 0)
@@ -14781,7 +14781,7 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 185.42) (xy 133.35 185.42)
+			(xy 114.3 185.42) (xy 137.16 185.42)
 		)
 		(stroke
 			(width 0)
@@ -14961,7 +14961,7 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 170.18) (xy 133.35 170.18)
+			(xy 114.3 170.18) (xy 137.16 170.18)
 		)
 		(stroke
 			(width 0)
@@ -15061,7 +15061,7 @@
 	)
 	(wire
 		(pts
-			(xy 133.35 187.96) (xy 123.19 187.96)
+			(xy 137.16 187.96) (xy 114.3 187.96)
 		)
 		(stroke
 			(width 0)
@@ -15131,7 +15131,7 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 182.88) (xy 133.35 182.88)
+			(xy 114.3 182.88) (xy 137.16 182.88)
 		)
 		(stroke
 			(width 0)
@@ -15281,7 +15281,7 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 180.34) (xy 133.35 180.34)
+			(xy 114.3 180.34) (xy 137.16 180.34)
 		)
 		(stroke
 			(width 0)
@@ -15341,7 +15341,7 @@
 	)
 	(wire
 		(pts
-			(xy 123.19 177.8) (xy 133.35 177.8)
+			(xy 114.3 177.8) (xy 137.16 177.8)
 		)
 		(stroke
 			(width 0)
@@ -15729,6 +15729,276 @@
 		)
 		(uuid "ff388023-735b-4ef3-b8b4-42b9831874a7")
 	)
+	(label "lvds_rx2_4_P"
+		(at 118.11 106.68 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "009db7b4-a2bb-439d-8ba5-7a3a36ebead1")
+	)
+	(label "lvds_rx4_3_P"
+		(at 208.28 101.6 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "0670e809-f8f5-4993-ab18-113bb1eedf10")
+	)
+	(label "lvds_rx4_1_P"
+		(at 208.28 91.44 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "092520d6-6c89-44c6-b36f-deed28f7f772")
+	)
+	(label "lvds_rx3_6_P"
+		(at 208.28 50.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "0c246a32-3e67-4c17-9417-c1c576bd091d")
+	)
+	(label "lvds_rx2_3_P"
+		(at 118.11 101.6 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "0ea1c67b-0189-43a4-ae98-4e2de00142d1")
+	)
+	(label "lvds_rx2_7_P"
+		(at 118.11 121.92 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "108797a2-1a92-4fc4-9d02-5b3a4af45c75")
+	)
+	(label "lvds_rx2_11_N"
+		(at 118.11 144.78 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "10a2fef3-a102-41f1-9078-daf66e675d4a")
+	)
+	(label "lvds_rx4_7_P"
+		(at 208.28 121.92 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "127d75be-e5c0-4db8-b41a-fb10717cf087")
+	)
+	(label "lvds_rx1_12_P"
+		(at 118.11 81.28 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "15e65336-376e-491e-a2b1-35a05d9a05bd")
+	)
+	(label "lvds_rx3_2_P"
+		(at 208.28 30.48 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "176f5d16-129a-4a10-b965-030820b15924")
+	)
+	(label "lvds_rx1_7_N"
+		(at 118.11 58.42 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1cad1400-ceab-4a39-8c00-3a786b5a604f")
+	)
+	(label "lvds_rx_top_clkin4_P"
+		(at 115.57 185.42 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1cd8f83e-7957-44b5-9df7-44bbb92c3bdd")
+	)
+	(label "lvds_rx4_12_P"
+		(at 208.28 147.32 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "216b9a77-0b27-409b-aa53-cf5bd6b2c94a")
+	)
+	(label "lvds_rx3_9_P"
+		(at 208.28 66.04 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "2193a21e-f190-4508-8890-49ec4936b574")
+	)
+	(label "lvds_rx1_5_N"
+		(at 118.11 48.26 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "23294c85-b003-49d2-afb9-6f70bef58b18")
+	)
+	(label "lvds_rx4_1_N"
+		(at 208.28 93.98 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "2485be23-f1f9-4db4-9a91-ab6b5bec091e")
+	)
+	(label "lvds_rx2_6_P"
+		(at 118.11 116.84 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "25f5a022-4e2a-4d76-ab9e-52e65604e97f")
+	)
+	(label "lvds_rx1_7_P"
+		(at 118.11 55.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "2be81c89-c955-4cf6-9a78-c679abace216")
+	)
+	(label "lvds_rx3_10_N"
+		(at 208.28 73.66 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "2db07014-2815-4b73-80c6-867663cb9382")
+	)
+	(label "lvds_rx_top_clkin4_N"
+		(at 115.57 187.96 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "2fd4e4c4-c8b3-4761-818e-87096ac6e579")
+	)
+	(label "lvds_rx4_4_P"
+		(at 208.28 106.68 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "303134c5-f569-4560-bf08-848a7acd8f33")
+	)
+	(label "lvds_rx2_2_P"
+		(at 118.11 96.52 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "31ea70f7-9285-4f92-b241-b650a7353dd1")
+	)
+	(label "lvds_rx1_6_P"
+		(at 118.11 50.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "336cdc37-e4d0-4f27-8581-f258ec64376a")
+	)
+	(label "lvds_rx_top_clkin1_P"
+		(at 115.57 170.18 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "35c5fe81-84ee-46e9-a3f6-4eea46a62182")
+	)
+	(label "lvds_rx2_8_P"
+		(at 118.11 127 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "39f4131c-49cf-474d-b15e-c726d3800fc7")
+	)
+	(label "lvds_rx3_5_P"
+		(at 208.28 45.72 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "3c8d7e3a-b4d0-40c1-b7bc-ffdbd7b9a8c1")
+	)
+	(label "lvds_rx1_4_N"
+		(at 118.11 43.18 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "3cfb1f10-912e-4754-bcfa-f703782c9fb1")
+	)
 	(label "lvds_rx1_1_N"
 		(at 118.11 27.94 0)
 		(effects
@@ -15738,6 +16008,76 @@
 			(justify left bottom)
 		)
 		(uuid "41db7963-cb46-4b46-9b1b-a99f2bd05f6d")
+	)
+	(label "lvds_rx4_4_N"
+		(at 208.28 109.22 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "44aac786-9df3-48fd-b97a-16a4f776bb14")
+	)
+	(label "lvds_rx2_2_N"
+		(at 118.11 99.06 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "453f8a9e-81fd-426d-a714-cf707f5d1f96")
+	)
+	(label "lvds_rx3_11_N"
+		(at 208.28 78.74 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "486979d0-abf8-4dd0-b117-8c07b5e6c5f1")
+	)
+	(label "lvds_rx4_9_P"
+		(at 208.28 132.08 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "4a0e86e0-8114-40cd-a29a-0889c5601724")
+	)
+	(label "lvds_rx3_4_N"
+		(at 208.28 43.18 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "4a47e71c-17fb-4db0-87c5-a1a2355b1772")
+	)
+	(label "lvds_rx3_4_P"
+		(at 208.28 40.64 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "4db03dea-9fde-47ad-a9f6-fa876b8f91b4")
+	)
+	(label "lvds_rx2_5_P"
+		(at 118.11 111.76 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "4fa55341-6a8e-459a-aad6-9740ba422551")
 	)
 	(label "lvds_rx3_1_N"
 		(at 208.28 27.94 0)
@@ -15749,6 +16089,156 @@
 		)
 		(uuid "50a25496-581a-41f1-af6f-47db8e5ac460")
 	)
+	(label "lvds_rx4_13_P"
+		(at 208.28 152.4 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "55f65379-c3f4-49bf-bbe9-615176a746e7")
+	)
+	(label "lvds_rx2_10_P"
+		(at 118.11 137.16 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "57d43e8e-4144-41c4-aa95-19d89098c4ec")
+	)
+	(label "lvds_rx_top_clkin3_N"
+		(at 115.57 182.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "59d1dc54-7cac-4b60-a0f0-3b1eb67330e4")
+	)
+	(label "lvds_rx4_8_N"
+		(at 208.28 129.54 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "5d69d6c7-3e38-41d8-8335-c1ecbd36a5de")
+	)
+	(label "lvds_rx_top_clkin1_N"
+		(at 115.57 172.72 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "5f837ac8-a227-456a-b206-a7ea9e7ef4e1")
+	)
+	(label "lvds_rx2_8_N"
+		(at 118.11 129.54 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "607a5b0a-11f6-41e1-bbb0-3587f11ee50d")
+	)
+	(label "lvds_rx1_13_N"
+		(at 118.11 88.9 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "60f7a003-3f3c-468e-ab3c-fbcda6e3fd92")
+	)
+	(label "lvds_rx2_1_N"
+		(at 118.11 93.98 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "622033b5-83cb-4e64-9f22-4e4680022392")
+	)
+	(label "lvds_rx3_12_P"
+		(at 208.28 81.28 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "63ab4212-6c92-4e9f-b84d-985698ffe9da")
+	)
+	(label "lvds_rx4_10_P"
+		(at 208.28 137.16 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6443292d-c8dd-4763-9542-a54e4ccd7485")
+	)
+	(label "lvds_rx_top_clkin3_P"
+		(at 115.57 180.34 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "69ddd7e1-ecd3-4f81-b753-35e99c1bfe5e")
+	)
+	(label "lvds_rx3_3_P"
+		(at 208.28 35.56 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "69ff2d2e-e885-4a6c-9f66-26ded7755a2c")
+	)
+	(label "lvds_rx2_9_N"
+		(at 118.11 134.62 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6c9bd260-6bee-400c-a3c9-b682b72037f1")
+	)
+	(label "lvds_rx2_7_N"
+		(at 118.11 124.46 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6d625f30-5b1f-4a0d-b0d5-da7d8a1eeb32")
+	)
+	(label "lvds_rx1_3_P"
+		(at 118.11 35.56 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6dadd7a9-479b-456a-ada9-c0f676dab5f2")
+	)
 	(label "lvds_rx1_1_P"
 		(at 118.11 25.4 0)
 		(effects
@@ -15759,6 +16249,396 @@
 		)
 		(uuid "6e6fe629-579d-4e77-b573-a591558efccb")
 	)
+	(label "lvds_rx1_11_P"
+		(at 118.11 76.2 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "6f6cd0e1-6c4b-432b-b13d-5f3eacaf27db")
+	)
+	(label "lvds_rx4_13_N"
+		(at 208.28 154.94 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "72a857b6-ebed-40cf-8fc3-248a4b13f4ef")
+	)
+	(label "lvds_rx2_12_N"
+		(at 118.11 149.86 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "770f52ca-0170-43ac-9989-540433ae2f3c")
+	)
+	(label "lvds_rx2_11_P"
+		(at 118.11 142.24 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "7be86981-07e0-4e49-bfd9-20b3440e64f0")
+	)
+	(label "lvds_rx1_8_N"
+		(at 118.11 63.5 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "81444d46-7087-4700-84af-0e6a5ffb3ed7")
+	)
+	(label "lvds_rx2_13_N"
+		(at 118.11 154.94 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "8146f7bf-fec3-46ff-80d3-c1f9fcda25b3")
+	)
+	(label "lvds_rx_top_clkin2_P"
+		(at 115.57 175.26 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "8286123d-9916-47d2-ac21-f67574702ca6")
+	)
+	(label "lvds_rx2_4_N"
+		(at 118.11 109.22 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "830aad60-796b-4854-ad22-029b1434a537")
+	)
+	(label "lvds_rx3_6_N"
+		(at 208.28 53.34 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "846d405f-cf82-4d20-aef4-598108eabd17")
+	)
+	(label "lvds_rx4_5_P"
+		(at 208.28 111.76 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "89504493-1a37-4e5f-a038-40e3b92a814f")
+	)
+	(label "lvds_rx1_6_N"
+		(at 118.11 53.34 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "89d1fcae-77b7-4a6e-a150-fd48c3978200")
+	)
+	(label "lvds_rx3_3_N"
+		(at 208.28 38.1 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "8b95fcf8-26ca-41f8-b07f-af0c81ca0cff")
+	)
+	(label "lvds_rx_top_clkin2_N"
+		(at 115.57 177.8 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "8cd7bf90-7195-4dc4-8463-9db85ad7ce0f")
+	)
+	(label "lvds_rx3_7_N"
+		(at 208.28 58.42 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9231d6a7-83d1-4fd8-9682-9c8265ce504a")
+	)
+	(label "lvds_rx1_10_P"
+		(at 118.11 71.12 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "92af4d35-4c29-4f18-afaa-bc8a52c2a876")
+	)
+	(label "lvds_rx4_5_N"
+		(at 208.28 114.3 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "937b23b7-bf41-4bfb-84e4-d6b448e1f745")
+	)
+	(label "lvds_rx3_7_P"
+		(at 208.28 55.88 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "95a0a9e7-10f3-4f23-98e3-128318399cc3")
+	)
+	(label "lvds_rx3_12_N"
+		(at 208.28 83.82 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "97afb5f2-74b5-40fe-9d47-a0bf9183ce8b")
+	)
+	(label "lvds_rx4_10_N"
+		(at 208.28 139.7 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9a3a2084-a20e-41bf-a80f-25d64b1a7798")
+	)
+	(label "lvds_rx3_9_N"
+		(at 208.28 68.58 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9a92d3ca-b83e-4942-ad33-ab5dcce3eb3f")
+	)
+	(label "lvds_rx4_2_N"
+		(at 208.28 99.06 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9e68d411-a847-47c9-8905-9c6fc3f650de")
+	)
+	(label "lvds_rx3_13_P"
+		(at 208.28 86.36 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9e8667ea-f994-40dc-8f7f-e246fc812ab1")
+	)
+	(label "lvds_rx2_5_N"
+		(at 118.11 114.3 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "9f3a5353-6fd3-40b1-a899-77884eebbe8f")
+	)
+	(label "lvds_rx3_5_N"
+		(at 208.28 48.26 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "a5a6f044-6468-4d62-a046-f2e352fe1709")
+	)
+	(label "lvds_rx4_11_N"
+		(at 208.28 144.78 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "a5f0de1e-7b83-4e06-8d97-59af986f5e0b")
+	)
+	(label "lvds_rx1_5_P"
+		(at 118.11 45.72 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "af74c7c3-4229-469b-966b-f78c81454cf7")
+	)
+	(label "lvds_rx1_10_N"
+		(at 118.11 73.66 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "b3100244-7e18-47e6-a1d7-564bd3ff9fbc")
+	)
+	(label "lvds_rx1_9_N"
+		(at 118.11 68.58 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "b79e5271-41ce-477e-b00e-c994c62341de")
+	)
+	(label "lvds_rx4_8_P"
+		(at 208.28 127 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "b9f241cf-7269-46a6-b98b-ca34b99695e6")
+	)
+	(label "lvds_rx2_3_N"
+		(at 118.11 104.14 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "ba35355c-ef6b-48c4-8ac2-3da3c87f0264")
+	)
+	(label "lvds_rx2_12_P"
+		(at 118.11 147.32 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "bdb08236-883b-4531-800f-c4b890004295")
+	)
+	(label "lvds_rx4_12_N"
+		(at 208.28 149.86 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "bec4e3a0-c80a-4b86-88f3-7e636ae26116")
+	)
+	(label "lvds_rx4_6_N"
+		(at 208.28 119.38 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "bfcc3325-4f61-4a68-ab5a-bfbd1023531d")
+	)
+	(label "lvds_rx1_11_N"
+		(at 118.11 78.74 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "bfd12347-d026-4286-ba6c-2028bc5f5b9e")
+	)
+	(label "lvds_rx3_11_P"
+		(at 208.28 76.2 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c379d749-39ed-4d1e-93a7-a919d927f39d")
+	)
+	(label "lvds_rx4_11_P"
+		(at 208.28 142.24 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c48f587e-a5fd-4183-b967-3ef310635f48")
+	)
+	(label "lvds_rx1_12_N"
+		(at 118.11 83.82 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c4a7f2f2-bcbc-4f31-a06d-75847f9e8a3e")
+	)
+	(label "lvds_rx3_2_N"
+		(at 208.28 33.02 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c630e1a5-9c35-455d-848a-8fd80beac4c3")
+	)
+	(label "lvds_rx4_9_N"
+		(at 208.28 134.62 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c6d36ffc-f965-4a79-a758-0a53c8b67583")
+	)
 	(label "lvds_rx3_1_P"
 		(at 208.28 25.4 0)
 		(effects
@@ -15768,6 +16648,206 @@
 			(justify left bottom)
 		)
 		(uuid "c78dc533-59bd-4829-b167-f3c22038e68f")
+	)
+	(label "lvds_rx1_8_P"
+		(at 118.11 60.96 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "cac2ed19-c040-4035-805d-29e9ef9b0ac1")
+	)
+	(label "lvds_rx4_6_P"
+		(at 208.28 116.84 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "cb86924c-7a33-4289-ab33-a06617ce448b")
+	)
+	(label "lvds_rx2_9_P"
+		(at 118.11 132.08 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "cc2a8248-856e-4620-9fad-f5dbdbbfaa9e")
+	)
+	(label "lvds_rx1_2_P"
+		(at 118.11 30.48 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "ce6ce4d4-7f8a-4658-b410-d23370825f36")
+	)
+	(label "lvds_rx2_1_P"
+		(at 118.11 91.44 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d15f2733-7272-4ccb-aa10-cc4b41cd9d3f")
+	)
+	(label "lvds_rx1_9_P"
+		(at 118.11 66.04 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d4e00add-b30c-43d2-8575-cc166861270f")
+	)
+	(label "lvds_rx3_10_P"
+		(at 208.28 71.12 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d6318451-6cd1-4725-9f9c-8bb8a7179328")
+	)
+	(label "lvds_rx4_3_N"
+		(at 208.28 104.14 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d66dbc73-76af-4167-a86e-f7c5227dce69")
+	)
+	(label "lvds_rx4_2_P"
+		(at 208.28 96.52 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "d6d675c2-c2ee-4997-b80c-8884cd06314a")
+	)
+	(label "lvds_rx1_3_N"
+		(at 118.11 38.1 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "da28f790-d404-4e49-b1d6-844d48d90a95")
+	)
+	(label "lvds_rx3_13_N"
+		(at 208.28 88.9 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "dcd34c4d-da73-4c0e-bda9-709417241eb9")
+	)
+	(label "lvds_rx1_4_P"
+		(at 118.11 40.64 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e0b38840-869b-4fa8-9bb9-37347e2ce06a")
+	)
+	(label "lvds_rx2_6_N"
+		(at 118.11 119.38 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e314f344-32b3-4e0f-93f8-2b5513a21d3f")
+	)
+	(label "lvds_rx3_8_P"
+		(at 208.28 60.96 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e922b5bc-d5a9-48f9-ab50-4bcfff785bf7")
+	)
+	(label "lvds_rx2_10_N"
+		(at 118.11 139.7 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "e93bc4e9-8fe0-4f27-ab68-1f2c4a9ce668")
+	)
+	(label "lvds_rx4_7_N"
+		(at 208.28 124.46 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "ecfca85b-f8be-41f1-9ae5-ae4a835a8bb2")
+	)
+	(label "lvds_rx3_8_N"
+		(at 208.28 63.5 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f4b76eea-aefb-44bc-8e71-51cb9c0d6594")
+	)
+	(label "lvds_rx1_13_P"
+		(at 118.11 86.36 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f56571f7-5da7-407c-b88c-cbf33d47d09c")
+	)
+	(label "lvds_rx1_2_N"
+		(at 118.11 33.02 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "f6aa4725-37a5-40f1-a31f-3450d678d2b0")
+	)
+	(label "lvds_rx2_13_P"
+		(at 118.11 152.4 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "feec3528-5582-4a81-864a-f98d51062869")
 	)
 	(symbol
 		(lib_id "Aligned_Peripheral_Symbols:ADC12DL500ACF_Aligned")
@@ -18251,7 +19331,7 @@
 	)
 	(symbol
 		(lib_id "Aligned_Peripheral_Symbols:ADC12DL500ACF_Aligned")
-		(at 58.42 181.61 0)
+		(at 53.34 181.61 0)
 		(unit 4)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -18259,7 +19339,7 @@
 		(dnp no)
 		(uuid "135065de-2344-4b1e-9282-c2fbb838ba0f")
 		(property "Reference" "IC1"
-			(at 58.42 165.608 0)
+			(at 53.34 165.608 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18268,7 +19348,7 @@
 			)
 		)
 		(property "Value" "ADC12DL500ACF_Aligned"
-			(at 58.42 168.148 0)
+			(at 53.34 168.148 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18277,7 +19357,7 @@
 			)
 		)
 		(property "Footprint" "ADC12DL:BGA256C100P16X16_1700X1700X331"
-			(at 58.42 185.42 0)
+			(at 53.34 185.42 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18286,7 +19366,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 58.42 181.61 0)
+			(at 53.34 181.61 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -18295,7 +19375,7 @@
 			)
 		)
 		(property "Description" "ADC12DL500ACF - LVDS outputs aligned with Ti90G529 FPGA"
-			(at 58.42 187.96 0)
+			(at 53.34 187.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20731,7 +21811,7 @@
 	)
 	(symbol
 		(lib_id "Ti90G529_Functions:Ti90G529_Functions")
-		(at 90.17 179.07 0)
+		(at 81.28 179.07 0)
 		(unit 4)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -20740,7 +21820,7 @@
 		(fields_autoplaced yes)
 		(uuid "47690253-e15c-4988-bb6e-ecafc0c2e00a")
 		(property "Reference" "U3"
-			(at 116.84 177.7852 0)
+			(at 107.95 177.7852 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20750,7 +21830,7 @@
 			)
 		)
 		(property "Value" "Ti90G529_Functions"
-			(at 116.84 180.3252 0)
+			(at 107.95 180.3252 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20760,7 +21840,7 @@
 			)
 		)
 		(property "Footprint" "G529:BGA-529_23x23_19.0x19.0mm"
-			(at 90.17 182.88 0)
+			(at 81.28 182.88 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20769,7 +21849,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 90.17 185.42 0)
+			(at 81.28 185.42 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -20778,7 +21858,7 @@
 			)
 		)
 		(property "Description" "Efinix Ti90G529 FPGA organized by peripheral interface"
-			(at 90.17 187.96 0)
+			(at 81.28 187.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23215,7 +24295,7 @@
 	)
 	(symbol
 		(lib_id "Aligned_Peripheral_Symbols:ADC12DL500ACF_Aligned")
-		(at 135.89 179.07 0)
+		(at 139.7 179.07 0)
 		(unit 3)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -23223,7 +24303,7 @@
 		(dnp no)
 		(uuid "8c88c3fc-1946-4730-a1df-94d479a659c7")
 		(property "Reference" "IC1"
-			(at 135.89 163.322 0)
+			(at 139.7 163.322 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23233,7 +24313,7 @@
 			)
 		)
 		(property "Value" "ADC12DL500ACF_Aligned"
-			(at 135.89 161.036 0)
+			(at 139.7 161.036 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23243,7 +24323,7 @@
 			)
 		)
 		(property "Footprint" "ADC12DL:BGA256C100P16X16_1700X1700X331"
-			(at 135.89 182.88 0)
+			(at 139.7 182.88 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23252,7 +24332,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 135.89 179.07 0)
+			(at 139.7 179.07 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -23261,7 +24341,7 @@
 			)
 		)
 		(property "Description" "ADC12DL500ACF - LVDS outputs aligned with Ti90G529 FPGA"
-			(at 135.89 185.42 0)
+			(at 139.7 185.42 0)
 			(effects
 				(font
 					(size 1.27 1.27)
