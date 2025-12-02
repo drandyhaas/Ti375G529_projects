@@ -24,7 +24,7 @@ VIA_SIZE = 0.6  # Via pad size
 VIA_DRILL = 0.3  # Via drill size
 
 
-def build_obstacles(pcb_data, net, all_routed_tracks, layer="F.Cu"):
+def build_obstacles(pcb_data, net, all_routed_tracks, layer="F.Cu", all_vias=None):
     """Build obstacle list for routing on a specific layer."""
     obstacles = []
     net_pad_positions = set()
@@ -65,6 +65,12 @@ def build_obstacles(pcb_data, net, all_routed_tracks, layer="F.Cu"):
     for via in pcb_data.vias:
         if via.net_id != net.net_id:
             obstacles.append(Obstacle(via.x, via.y, via.size, via.size, 0, via.size/2))
+
+    # Add session vias as obstacles (except this net's vias)
+    if all_vias:
+        for via in all_vias:
+            if via['net_id'] != net.net_id:
+                obstacles.append(Obstacle(via['x'], via['y'], via['size'], via['size'], 0, via['size']/2))
 
     # Add existing track segments as obstacles (only on same layer)
     for track in pcb_data.segments:
@@ -143,68 +149,135 @@ def process_path(path, obstacles, routing_clearance):
     return final_path
 
 
+def line_segment_intersection(p1, p2, p3, p4):
+    """
+    Find intersection point of line segments p1-p2 and p3-p4.
+    Returns (x, y, t) where t is parameter along p1-p2, or None if no intersection.
+    """
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = p3
+    x4, y4 = p4
+
+    denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if abs(denom) < 1e-10:
+        return None  # Parallel lines
+
+    t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+    u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+
+    if 0 <= t <= 1 and 0 <= u <= 1:
+        ix = x1 + t * (x2 - x1)
+        iy = y1 + t * (y2 - y1)
+        return (ix, iy, t)
+    return None
+
+
+def point_to_segment_distance(px, py, x1, y1, x2, y2):
+    """Calculate minimum distance from point (px, py) to line segment (x1,y1)-(x2,y2)."""
+    dx, dy = x2 - x1, y2 - y1
+    if dx == 0 and dy == 0:
+        return math.sqrt((px - x1)**2 + (py - y1)**2)
+    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+    nearest_x = x1 + t * dx
+    nearest_y = y1 + t * dy
+    return math.sqrt((px - nearest_x)**2 + (py - nearest_y)**2)
+
+
 def find_crossing_point(source, sink, blocking_tracks, layer):
     """
     Find where the route would need to cross a blocking track.
-    Returns (crossing_x, crossing_y, track_being_crossed) or None.
+    Returns (crossing_point, blocking_track) or (None, None).
 
-    Only considers tracks that are within the Y corridor between source and sink,
-    plus a small margin to account for tracks that might be just outside.
+    Works for any route orientation (horizontal, vertical, diagonal).
+    Uses actual line-segment intersection when possible, otherwise finds
+    the closest point on blocking tracks to the route line.
     """
-    mid_x = (source[0] + sink[0]) / 2
-    mid_y = (source[1] + sink[1]) / 2
+    route_dx = sink[0] - source[0]
+    route_dy = sink[1] - source[1]
+    route_len = math.sqrt(route_dx**2 + route_dy**2)
 
-    # Define the Y corridor - tracks must be within this range to be relevant
-    route_min_y = min(source[1], sink[1])
-    route_max_y = max(source[1], sink[1])
-    # Add margin to catch tracks that are slightly outside the direct corridor
-    y_margin = 1.0  # 1mm margin
-    corridor_min_y = route_min_y - y_margin
-    corridor_max_y = route_max_y + y_margin
+    if route_len < 0.001:
+        return None, None
+
+    # Define a corridor around the route - tracks must be within this to be relevant
+    corridor_margin = 1.0  # 1mm margin perpendicular to route
 
     best_track = None
-    best_dist = float('inf')
     best_cross_point = None
+    best_t = float('inf')  # Parameter along route (0=source, 1=sink), prefer earlier crossings
 
     for track in blocking_tracks:
         if track['layer'] != layer:
             continue
 
-        start_x, start_y = track['start']
-        end_x, end_y = track['end']
+        track_start = track['start']
+        track_end = track['end']
 
-        # Check if track is between source and sink in X
-        track_min_x = min(start_x, end_x)
-        track_max_x = max(start_x, end_x)
-        route_min_x = min(source[0], sink[0])
-        route_max_x = max(source[0], sink[0])
+        # Check bounding box overlap first (quick rejection)
+        route_min_x = min(source[0], sink[0]) - corridor_margin
+        route_max_x = max(source[0], sink[0]) + corridor_margin
+        route_min_y = min(source[1], sink[1]) - corridor_margin
+        route_max_y = max(source[1], sink[1]) + corridor_margin
 
-        # Check for X overlap
+        track_min_x = min(track_start[0], track_end[0])
+        track_max_x = max(track_start[0], track_end[0])
+        track_min_y = min(track_start[1], track_end[1])
+        track_max_y = max(track_start[1], track_end[1])
+
         if track_max_x < route_min_x or track_min_x > route_max_x:
             continue
-
-        # Check for Y corridor overlap - track must be in the Y corridor
-        track_min_y = min(start_y, end_y)
-        track_max_y = max(start_y, end_y)
-        if track_max_y < corridor_min_y or track_min_y > corridor_max_y:
+        if track_max_y < route_min_y or track_min_y > route_max_y:
             continue
 
-        # Find crossing point - where our route's Y would intersect this track's X range
-        # Use interpolation along the track
-        cross_x = max(track_min_x, min(track_max_x, mid_x))
+        # Try to find actual intersection
+        intersection = line_segment_intersection(source, sink, track_start, track_end)
 
-        if abs(end_x - start_x) > 0.001:
-            t = (cross_x - start_x) / (end_x - start_x)
-            t = max(0, min(1, t))
-            cross_y = start_y + t * (end_y - start_y)
+        if intersection:
+            ix, iy, t = intersection
+            if t < best_t:
+                best_t = t
+                best_track = track
+                best_cross_point = (ix, iy)
         else:
-            cross_y = (start_y + end_y) / 2
+            # No direct intersection - find closest point on track to route line
+            # This handles tracks that are parallel but blocking
+            mid_route = ((source[0] + sink[0]) / 2, (source[1] + sink[1]) / 2)
 
-        dist = abs(cross_x - mid_x)
-        if dist < best_dist:
-            best_dist = dist
-            best_track = track
-            best_cross_point = (cross_x, cross_y)
+            # Distance from route midpoint to track segment
+            dist = point_to_segment_distance(mid_route[0], mid_route[1],
+                                            track_start[0], track_start[1],
+                                            track_end[0], track_end[1])
+
+            # Only consider if track is close enough to be blocking
+            if dist < corridor_margin:
+                # Find closest point on track to route line
+                track_dx = track_end[0] - track_start[0]
+                track_dy = track_end[1] - track_start[1]
+                track_len_sq = track_dx**2 + track_dy**2
+
+                if track_len_sq > 0.0001:
+                    # Project route midpoint onto track
+                    t_track = ((mid_route[0] - track_start[0]) * track_dx +
+                              (mid_route[1] - track_start[1]) * track_dy) / track_len_sq
+                    t_track = max(0, min(1, t_track))
+                    cross_x = track_start[0] + t_track * track_dx
+                    cross_y = track_start[1] + t_track * track_dy
+                else:
+                    cross_x = (track_start[0] + track_end[0]) / 2
+                    cross_y = (track_start[1] + track_end[1]) / 2
+
+                # Calculate t along route for this crossing point
+                if route_len > 0.001:
+                    t_route = ((cross_x - source[0]) * route_dx +
+                              (cross_y - source[1]) * route_dy) / (route_len * route_len)
+                else:
+                    t_route = 0.5
+
+                if 0 <= t_route <= 1 and t_route < best_t:
+                    best_t = t_route
+                    best_track = track
+                    best_cross_point = (cross_x, cross_y)
 
     if best_track:
         return best_cross_point, best_track
@@ -350,6 +423,203 @@ def find_valid_via_position(initial_x, initial_y, via_size, pcb_data, all_routed
     return None  # No valid position found
 
 
+def find_clear_channel(source, sink, cross_point, pcb_data, all_routed_tracks, net_id, layer,
+                       search_range=2.0, track_width=0.1, clearance=0.05):
+    """
+    Find clear channel positions perpendicular to the route direction.
+
+    Works for any route orientation (horizontal, vertical, diagonal).
+    Searches perpendicular to the route direction for clear paths.
+
+    Args:
+        source, sink: Route endpoints
+        cross_point: Point where we need to place via (near blocking track)
+        pcb_data: PCB data with existing segments
+        all_routed_tracks: Session tracks
+        net_id: Net to exclude from collision checks
+        layer: Layer to check
+        search_range: How far perpendicular to search (mm)
+        track_width: Width of tracks
+        clearance: Required clearance
+
+    Returns:
+        List of ((x, y), gap_size) tuples for clear channel positions,
+        sorted by proximity to route line
+    """
+    min_spacing = track_width + clearance * 2
+
+    # Get route direction
+    route_dx = sink[0] - source[0]
+    route_dy = sink[1] - source[1]
+    route_len = math.sqrt(route_dx**2 + route_dy**2)
+
+    if route_len < 0.001:
+        return []
+
+    # Normalize route direction
+    route_dx /= route_len
+    route_dy /= route_len
+
+    # Perpendicular direction (rotate 90 degrees)
+    perp_dx = -route_dy
+    perp_dy = route_dx
+
+    # Search area bounds along route direction (from cross_point toward sink)
+    search_along_min = 0
+    search_along_max = min(route_len * 0.5, 5.0)  # Up to 5mm along route
+
+    # Collect blocking positions projected onto perpendicular axis
+    blocking_perp_values = []
+
+    # Check PCB segments
+    for seg in pcb_data.segments:
+        if seg.net_id == net_id or seg.layer != layer:
+            continue
+
+        # Check if track is in our search area
+        for px, py in [(seg.start_x, seg.start_y), (seg.end_x, seg.end_y)]:
+            # Vector from cross_point to track point
+            dx = px - cross_point[0]
+            dy = py - cross_point[1]
+
+            # Project onto route direction
+            along = dx * route_dx + dy * route_dy
+            if along < search_along_min - 1 or along > search_along_max + 1:
+                continue
+
+            # Project onto perpendicular direction
+            perp = dx * perp_dx + dy * perp_dy
+            if -search_range - 1 <= perp <= search_range + 1:
+                blocking_perp_values.append(perp)
+
+    # Check session tracks
+    for track in all_routed_tracks:
+        if track['net_id'] == net_id or track['layer'] != layer:
+            continue
+
+        for px, py in [track['start'], track['end']]:
+            dx = px - cross_point[0]
+            dy = py - cross_point[1]
+
+            along = dx * route_dx + dy * route_dy
+            if along < search_along_min - 1 or along > search_along_max + 1:
+                continue
+
+            perp = dx * perp_dx + dy * perp_dy
+            if -search_range - 1 <= perp <= search_range + 1:
+                blocking_perp_values.append(perp)
+
+    if not blocking_perp_values:
+        # No blocking tracks, can route directly
+        return [((cross_point[0] + route_dx * 0.5, cross_point[1] + route_dy * 0.5), search_range * 2)]
+
+    # Sort and find gaps in perpendicular direction
+    blocking_perp_values = sorted(set(blocking_perp_values))
+
+    channels = []
+
+    # Check gap before first blocking track
+    if blocking_perp_values[0] > -search_range + min_spacing:
+        gap_perp = (-search_range + blocking_perp_values[0]) / 2
+        gap_size = blocking_perp_values[0] - (-search_range)
+        if gap_size > min_spacing:
+            # Convert back to (x, y) coordinates
+            via_x = cross_point[0] + route_dx * 0.5 + perp_dx * gap_perp
+            via_y = cross_point[1] + route_dy * 0.5 + perp_dy * gap_perp
+            channels.append(((via_x, via_y), gap_size))
+
+    # Check gaps between blocking tracks
+    for i in range(len(blocking_perp_values) - 1):
+        gap = blocking_perp_values[i + 1] - blocking_perp_values[i]
+        if gap > min_spacing:
+            gap_perp = (blocking_perp_values[i] + blocking_perp_values[i + 1]) / 2
+            if -search_range <= gap_perp <= search_range:
+                via_x = cross_point[0] + route_dx * 0.5 + perp_dx * gap_perp
+                via_y = cross_point[1] + route_dy * 0.5 + perp_dy * gap_perp
+                channels.append(((via_x, via_y), gap))
+
+    # Check gap after last blocking track
+    if blocking_perp_values[-1] < search_range - min_spacing:
+        gap_perp = (blocking_perp_values[-1] + search_range) / 2
+        gap_size = search_range - blocking_perp_values[-1]
+        if gap_size > min_spacing:
+            via_x = cross_point[0] + route_dx * 0.5 + perp_dx * gap_perp
+            via_y = cross_point[1] + route_dy * 0.5 + perp_dy * gap_perp
+            channels.append(((via_x, via_y), gap_size))
+
+    # Sort by proximity to route line (prefer positions close to direct path)
+    channels.sort(key=lambda c: abs(
+        (c[0][0] - cross_point[0]) * perp_dx + (c[0][1] - cross_point[1]) * perp_dy
+    ))
+
+    return channels
+
+
+# Keep the old function as an alias for backward compatibility
+def find_clear_y_channel(x_start, x_end, pcb_data, all_routed_tracks, net_id, layer,
+                         y_min, y_max, track_width=0.1, clearance=0.05):
+    """
+    Legacy function - find Y values where there's a clear horizontal channel.
+    For new code, use find_clear_channel() which handles all orientations.
+    """
+    min_spacing = track_width + clearance * 2
+
+    blocking_y_values = []
+
+    for seg in pcb_data.segments:
+        if seg.net_id == net_id or seg.layer != layer:
+            continue
+        seg_x_min = min(seg.start_x, seg.end_x)
+        seg_x_max = max(seg.start_x, seg.end_x)
+        if seg_x_max < x_start or seg_x_min > x_end:
+            continue
+        for y in [seg.start_y, seg.end_y]:
+            if y_min - 1 <= y <= y_max + 1:
+                blocking_y_values.append(y)
+
+    for track in all_routed_tracks:
+        if track['net_id'] == net_id or track['layer'] != layer:
+            continue
+        seg_x_min = min(track['start'][0], track['end'][0])
+        seg_x_max = max(track['start'][0], track['end'][0])
+        if seg_x_max < x_start or seg_x_min > x_end:
+            continue
+        for y in [track['start'][1], track['end'][1]]:
+            if y_min - 1 <= y <= y_max + 1:
+                blocking_y_values.append(y)
+
+    if not blocking_y_values:
+        return [((y_min + y_max) / 2, y_max - y_min)]
+
+    blocking_y_values = sorted(set(blocking_y_values))
+
+    channels = []
+    y_mid = (y_min + y_max) / 2
+
+    if blocking_y_values[0] > y_min + min_spacing:
+        gap_y = (y_min + blocking_y_values[0]) / 2
+        gap_size = blocking_y_values[0] - y_min
+        if y_min <= gap_y <= y_max:
+            channels.append((gap_y, gap_size))
+
+    for i in range(len(blocking_y_values) - 1):
+        gap = blocking_y_values[i + 1] - blocking_y_values[i]
+        if gap > min_spacing:
+            gap_y = (blocking_y_values[i] + blocking_y_values[i + 1]) / 2
+            if y_min <= gap_y <= y_max:
+                channels.append((gap_y, gap))
+
+    if blocking_y_values[-1] < y_max - min_spacing:
+        gap_y = (blocking_y_values[-1] + y_max) / 2
+        gap_size = y_max - blocking_y_values[-1]
+        if y_min <= gap_y <= y_max:
+            channels.append((gap_y, gap_size))
+
+    channels.sort(key=lambda c: abs(c[0] - y_mid))
+
+    return channels
+
+
 def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
     """Route a single net and return the track segments and vias.
 
@@ -401,7 +671,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
     via_layers = [allowed_layers[0], allowed_layers[-1]] if len(allowed_layers) > 1 else allowed_layers
 
     # Try routing on primary layer first
-    obstacles = build_obstacles(pcb_data, net, all_routed_tracks, primary_layer)
+    obstacles = build_obstacles(pcb_data, net, all_routed_tracks, primary_layer, all_vias)
     print(f"  Total obstacles on {primary_layer}: {len(obstacles)}")
 
     print(f"\nRouting on {primary_layer}...")
@@ -439,7 +709,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
     if source_via and alternate_layers:
         for alt_layer in alternate_layers:
             print(f"  Trying direct route on {alt_layer}...")
-            alt_obstacles = build_obstacles(pcb_data, net, all_routed_tracks, alt_layer)
+            alt_obstacles = build_obstacles(pcb_data, net, all_routed_tracks, alt_layer, all_vias)
             alt_path = route_path(source, sink, alt_obstacles, max_time=0.5)
             if alt_path:
                 print(f"  Success on {alt_layer}!")
@@ -510,6 +780,22 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
         via1_x, via2_x = via2_x, via1_x
         via1_y, via2_y = via2_y, via1_y
 
+    # Find clear channels perpendicular to route direction
+    # This works for horizontal, vertical, and diagonal routes
+    clear_channels = find_clear_channel(
+        source, sink, cross_point, pcb_data, all_routed_tracks,
+        net.net_id, primary_layer, search_range=2.0
+    )
+
+    if clear_channels:
+        # Use the best channel position for via placement
+        best_pos, gap_size = clear_channels[0]
+        print(f"  Found clear channel at ({best_pos[0]:.2f}, {best_pos[1]:.2f}) (gap={gap_size:.2f}mm)")
+        # Use the clear channel position for via2
+        via2_x, via2_y = best_pos
+    else:
+        print(f"  No clear channel found on {primary_layer}")
+
     all_tracks = []
     new_vias = []
 
@@ -534,7 +820,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
 
             # Segment 1: Source via to new via on alternate layer
             print(f"\n  Routing segment 1: Source via to new via on {alternate_layer}...")
-            obstacles1 = build_obstacles(pcb_data, net, all_routed_tracks, alternate_layer)
+            obstacles1 = build_obstacles(pcb_data, net, all_routed_tracks, alternate_layer, all_vias)
             source_via_pos = (source_via.x, source_via.y)
             path1 = route_path(source_via_pos, (new_via_x, new_via_y), obstacles1, max_time=0.5)
 
@@ -571,7 +857,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
 
             # Segment 2: New via to sink on primary layer
             print(f"\n  Routing segment 2: New via to Sink on {primary_layer}...")
-            obstacles2 = build_obstacles(pcb_data, net, all_routed_tracks + temp_tracks, primary_layer)
+            obstacles2 = build_obstacles(pcb_data, net, all_routed_tracks + temp_tracks, primary_layer, all_vias)
             path2 = route_path((new_via_x, new_via_y), sink, obstacles2, max_time=0.5)
 
             if not path2:
@@ -602,12 +888,30 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
 
     # Standard two-via approach if no source via or fallback needed
     if not source_via and alternate_layers:
+        # Validate via positions - find collision-free positions
+        valid_pos1 = find_valid_via_position(via1_x, via1_y, VIA_SIZE, pcb_data,
+                                             all_routed_tracks, net.net_id, source, sink)
+        valid_pos2 = find_valid_via_position(via2_x, via2_y, VIA_SIZE, pcb_data,
+                                             all_routed_tracks, net.net_id, source, sink)
+
+        if valid_pos1 is None or valid_pos2 is None:
+            print(f"  Could not find valid via positions for two-via approach")
+            return [], []
+
+        if abs(valid_pos1[0] - via1_x) > 0.01 or abs(valid_pos1[1] - via1_y) > 0.01:
+            print(f"  Via 1 adjusted from ({via1_x:.2f}, {via1_y:.2f}) to ({valid_pos1[0]:.2f}, {valid_pos1[1]:.2f})")
+        if abs(valid_pos2[0] - via2_x) > 0.01 or abs(valid_pos2[1] - via2_y) > 0.01:
+            print(f"  Via 2 adjusted from ({via2_x:.2f}, {via2_y:.2f}) to ({valid_pos2[0]:.2f}, {valid_pos2[1]:.2f})")
+
+        via1_x, via1_y = valid_pos1
+        via2_x, via2_y = valid_pos2
+
         print(f"  Via 1 at ({via1_x:.2f}, {via1_y:.2f})")
         print(f"  Via 2 at ({via2_x:.2f}, {via2_y:.2f})")
 
         # Route segment 1 first (on primary layer) - same for all attempts
         print(f"\n  Routing segment 1: Source to Via1 on {primary_layer}...")
-        obstacles1 = build_obstacles(pcb_data, net, all_routed_tracks, primary_layer)
+        obstacles1 = build_obstacles(pcb_data, net, all_routed_tracks, primary_layer, all_vias)
         path1 = route_path(source, (via1_x, via1_y), obstacles1, max_time=0.5)
 
         if not path1:
@@ -631,7 +935,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
         two_via_success = False
         for alternate_layer in alternate_layers:
             print(f"\n  Trying segment 2 on {alternate_layer}...")
-            obstacles2 = build_obstacles(pcb_data, net, all_routed_tracks, alternate_layer)
+            obstacles2 = build_obstacles(pcb_data, net, all_routed_tracks, alternate_layer, all_vias)
             path2 = route_path((via1_x, via1_y), (via2_x, via2_y), obstacles2, max_time=0.5)
 
             if not path2:
@@ -656,7 +960,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
 
             # Segment 3: Via2 to Sink on primary layer
             print(f"\n  Routing segment 3: Via2 to Sink on {primary_layer}...")
-            obstacles3 = build_obstacles(pcb_data, net, all_routed_tracks + seg1_tracks + seg2_tracks, primary_layer)
+            obstacles3 = build_obstacles(pcb_data, net, all_routed_tracks + seg1_tracks + seg2_tracks, primary_layer, all_vias)
             path3 = route_path((via2_x, via2_y), sink, obstacles3, max_time=0.5)
 
             if not path3:
