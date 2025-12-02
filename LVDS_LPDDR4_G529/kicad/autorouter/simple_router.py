@@ -1007,22 +1007,34 @@ def optimize_path_45deg(
     return best_path
 
 
-def find_optimal_y_at_x(x: float, y: float, obstacles: List[Obstacle], index: SpatialIndex,
-                        search_range: float = 2.0, x_tolerance: float = 0.5) -> Optional[float]:
+def find_optimal_perpendicular_offset(
+    pos: Tuple[float, float],
+    along_dir: Tuple[float, float],
+    perp_dir: Tuple[float, float],
+    obstacles: List[Obstacle],
+    index: SpatialIndex,
+    search_range: float = 3.0,
+    along_tolerance: float = 2.0
+) -> Optional[float]:
     """
-    Find the optimal Y position at a given X coordinate by centering between
-    obstacles above and below.
+    Find the optimal perpendicular offset by centering between obstacles
+    on either side of the segment.
 
     Args:
-        x: X coordinate to search at
-        y: Current Y position
+        pos: Position to search at (x, y)
+        along_dir: Unit vector along the segment direction
+        perp_dir: Unit vector perpendicular to the segment (direction we want to center in)
         obstacles: List of obstacles
         index: Spatial index
         search_range: Range to search for obstacles
-        x_tolerance: How far from the X coordinate an obstacle can be
+        along_tolerance: How far along the segment direction an obstacle can be
+
+    Returns:
+        Optimal perpendicular offset from current position, or None if can't find centering
     """
-    obs_above_y = None  # Bottom edge of obstacle above
-    obs_below_y = None  # Top edge of obstacle below
+    x, y = pos
+    obs_neg_edge = None  # Edge of obstacle in negative perp direction
+    obs_pos_edge = None  # Edge of obstacle in positive perp direction
 
     for obs in index.get_nearby(x, y, search_range):
         # Get effective dimensions accounting for rotation
@@ -1034,22 +1046,47 @@ def find_optimal_y_at_x(x: float, y: float, obstacles: List[Obstacle], index: Sp
             eff_width = obs.width
             eff_height = obs.height
 
-        # Check if obstacle is near this X
-        if abs(obs.x - x) > eff_width / 2 + x_tolerance:
+        # Vector from pos to obstacle center
+        dx = obs.x - x
+        dy = obs.y - y
+
+        # Project onto along and perpendicular directions
+        along_dist = dx * along_dir[0] + dy * along_dir[1]
+        perp_dist = dx * perp_dir[0] + dy * perp_dir[1]
+
+        # Check if obstacle is within tolerance along the segment direction
+        # Account for obstacle size in the along direction
+        half_along = (eff_width * abs(along_dir[0]) + eff_height * abs(along_dir[1])) / 2
+        if abs(along_dist) > half_along + along_tolerance:
             continue
 
-        half_h = eff_height / 2
-        obs_top = obs.y - half_h
-        obs_bottom = obs.y + half_h
+        # Calculate obstacle edge in perpendicular direction
+        half_perp = (eff_width * abs(perp_dir[0]) + eff_height * abs(perp_dir[1])) / 2
+        obs_neg = perp_dist - half_perp  # Closer edge in negative direction
+        obs_pos = perp_dist + half_perp  # Farther edge in positive direction
 
-        if obs_bottom < y and (obs_above_y is None or obs_bottom > obs_above_y):
-            obs_above_y = obs_bottom
-        if obs_top > y and (obs_below_y is None or obs_top < obs_below_y):
-            obs_below_y = obs_top
+        # Track closest obstacles on each side
+        if obs_pos < 0 and (obs_neg_edge is None or obs_pos > obs_neg_edge):
+            obs_neg_edge = obs_pos
+        if obs_neg > 0 and (obs_pos_edge is None or obs_neg < obs_pos_edge):
+            obs_pos_edge = obs_neg
 
-    if obs_above_y is not None and obs_below_y is not None:
-        return (obs_above_y + obs_below_y) / 2
+    if obs_neg_edge is not None and obs_pos_edge is not None:
+        # Return the offset to center between the two obstacles
+        return (obs_neg_edge + obs_pos_edge) / 2
     return None
+
+
+def get_segment_type(dx: float, dy: float) -> str:
+    """Determine if segment is horizontal, vertical, or diagonal."""
+    if abs(dy) < 0.001:
+        return 'horizontal'
+    elif abs(dx) < 0.001:
+        return 'vertical'
+    elif abs(abs(dx) - abs(dy)) < 0.001:
+        return 'diagonal'
+    else:
+        return 'other'
 
 
 def try_multi_zone_centering(
@@ -1061,13 +1098,17 @@ def try_multi_zone_centering(
     clearance_weight: float
 ) -> List[Tuple[float, float]]:
     """
-    For each horizontal segment, check if the START and END portions need different Y positions.
-    If so, insert a 45-degree jog to transition between them.
+    For each segment (horizontal, vertical, or diagonal), check if the START and END
+    portions need different perpendicular offsets. If so, insert a 45-degree jog to
+    transition between them.
 
-    This handles cases where:
-    - Left end should be centered between BGA pads
-    - Right end should be centered between connector pads
-    - The optimal Y values differ
+    This works by:
+    1. Identifying the segment direction (along) and perpendicular direction
+    2. Finding optimal perpendicular centering at start and end of segment
+    3. If they differ, inserting a jog that transitions between them
+
+    The logic is rotation-invariant: it works the same for horizontal, vertical,
+    and diagonal segments.
     """
     if len(path) < 4:
         return path
@@ -1090,68 +1131,91 @@ def try_multi_zone_centering(
         seg_dy = p2[1] - p1[1]
         seg_len = math.sqrt(seg_dx * seg_dx + seg_dy * seg_dy)
 
-        # Only consider horizontal segments that are at least 4mm long
-        is_horizontal = abs(seg_dy) < 0.001 and seg_len > 4.0
-
-        if not is_horizontal:
+        # Only consider segments that are at least 4mm long
+        if seg_len < 4.0:
             continue
+
+        # Determine segment type and get direction vectors
+        seg_type = get_segment_type(seg_dx, seg_dy)
+        if seg_type == 'other':
+            continue  # Not a 45-degree valid segment
+
+        # Unit vector along the segment
+        along_dir = (seg_dx / seg_len, seg_dy / seg_len)
+
+        # Perpendicular direction (rotate 90 degrees counterclockwise)
+        perp_dir = (-along_dir[1], along_dir[0])
 
         # Get incoming/outgoing directions
         d_in = get_45_direction(p1[0] - p0[0], p1[1] - p0[1])
         d_out = get_45_direction(p3[0] - p2[0], p3[1] - p2[1])
 
-        # Both must be diagonal for the jog to work
-        if abs(d_in[1]) <= 0.5 or abs(d_out[1]) <= 0.5:
+        # The adjacent segments must have a component in the perpendicular direction
+        # for a jog to be possible
+        in_perp = abs(d_in[0] * perp_dir[0] + d_in[1] * perp_dir[1])
+        out_perp = abs(d_out[0] * perp_dir[0] + d_out[1] * perp_dir[1])
+        if in_perp < 0.5 or out_perp < 0.5:
             continue
 
-        seg_x_min = min(p1[0], p2[0])
-        seg_x_max = max(p1[0], p2[0])
-        seg_y = p1[1]
+        # Find optimal perpendicular offset at start and end of segment
+        start_offset = find_optimal_perpendicular_offset(
+            p1, along_dir, perp_dir, obstacles, index,
+            search_range=3.0, along_tolerance=2.0
+        )
+        end_offset = find_optimal_perpendicular_offset(
+            p2, along_dir, perp_dir, obstacles, index,
+            search_range=3.0, along_tolerance=2.0
+        )
 
-        # Find optimal Y near the START (left) of the segment
-        # Search with larger tolerance to find nearby BGA pads
-        left_optimal_y = find_optimal_y_at_x(seg_x_min, seg_y, obstacles, index,
-                                             search_range=3.0, x_tolerance=2.0)
-
-        # Find optimal Y near the END (right) of the segment
-        right_optimal_y = find_optimal_y_at_x(seg_x_max, seg_y, obstacles, index,
-                                              search_range=3.0, x_tolerance=2.0)
-
-        # Debug output
-        # print(f"    Multi-zone check: left_y={left_optimal_y}, right_y={right_optimal_y}")
-
-        if left_optimal_y is None or right_optimal_y is None:
+        if start_offset is None or end_offset is None:
             continue
 
-        delta_y = right_optimal_y - left_optimal_y
+        delta_offset = end_offset - start_offset
 
         # Only add jog if there's a significant difference (at least 0.05mm)
-        if abs(delta_y) < 0.05:
+        if abs(delta_offset) < 0.05:
             continue
 
         # Insert a jog at the midpoint
-        # The jog needs to transition from left_optimal_y to right_optimal_y
-        mid_x = (seg_x_min + seg_x_max) / 2
-        jog_len = abs(delta_y)  # 45-degree jog length equals Y change
+        # The jog transitions from start_offset to end_offset in the perpendicular direction
+        mid_along = seg_len / 2
+        jog_len = abs(delta_offset)  # 45-degree jog length equals perpendicular change
 
-        # Calculate jog corners
-        # Left portion at left_optimal_y, right portion at right_optimal_y
-        jog_start_x = mid_x - jog_len / 2
-        jog_end_x = mid_x + jog_len / 2
+        # Calculate positions along the segment
+        jog_start_along = mid_along - jog_len / 2
+        jog_end_along = mid_along + jog_len / 2
 
-        # Adjust p1, p2 positions for the new Y values
-        delta_y_left = left_optimal_y - seg_y
-        delta_y_right = right_optimal_y - seg_y
+        # When we shift perpendicularly, we need to also shift along the segment
+        # to maintain 45-degree constraints with the adjacent diagonal segments.
+        # The sign depends on the diagonal direction: +1 if d.x * d.y > 0, else -1
+        in_sign = 1 if d_in[0] * d_in[1] > 0 else -1
+        out_sign = 1 if d_out[0] * d_out[1] > 0 else -1
 
-        delta_x1 = delta_y_left * (1 if d_in[0] * d_in[1] > 0 else -1)
-        delta_x2 = delta_y_right * (1 if d_out[0] * d_out[1] > 0 else -1)
+        # Convert to world coordinates
+        # New p1 position: move perpendicular by start_offset, and along by compensation
+        # The along compensation = start_offset * in_sign (matching original formula)
+        new_p1 = (
+            round(p1[0] + start_offset * perp_dir[0] + start_offset * in_sign * along_dir[0], 3),
+            round(p1[1] + start_offset * perp_dir[1] + start_offset * in_sign * along_dir[1], 3)
+        )
 
-        new_p1 = (round(p1[0] + delta_x1, 3), round(left_optimal_y, 3))
-        new_p2 = (round(p2[0] + delta_x2, 3), round(right_optimal_y, 3))
+        # New p2 position: move perpendicular by end_offset, and along by compensation
+        new_p2 = (
+            round(p2[0] + end_offset * perp_dir[0] + end_offset * out_sign * along_dir[0], 3),
+            round(p2[1] + end_offset * perp_dir[1] + end_offset * out_sign * along_dir[1], 3)
+        )
 
-        # The jog corners
-        corner1 = (round(jog_start_x, 3), round(left_optimal_y, 3))
-        corner2 = (round(jog_end_x, 3), round(right_optimal_y, 3))
+        # Jog corner 1: along segment from new_p1, at jog_start_along distance
+        corner1 = (
+            round(new_p1[0] + jog_start_along * along_dir[0], 3),
+            round(new_p1[1] + jog_start_along * along_dir[1], 3)
+        )
+
+        # Jog corner 2: at end perpendicular offset, at jog_end_along from new_p1
+        corner2 = (
+            round(new_p1[0] + jog_end_along * along_dir[0] + delta_offset * perp_dir[0], 3),
+            round(new_p1[1] + jog_end_along * along_dir[1] + delta_offset * perp_dir[1], 3)
+        )
 
         # Verify all segments are 45-degree valid
         if not is_exact_45_segment(p0[0], p0[1], new_p1[0], new_p1[1]):
@@ -1177,7 +1241,13 @@ def try_multi_zone_centering(
         candidate_cost = fast_path_cost(candidate, index, clearance, length_weight, clearance_weight)
 
         if candidate_cost < float('inf'):
-            print(f"    Added jog: y={left_optimal_y:.3f} -> y={right_optimal_y:.3f}")
+            # Format output based on segment type
+            if seg_type == 'horizontal':
+                print(f"    Added jog: y={p1[1] + start_offset:.3f} -> y={p1[1] + end_offset:.3f}")
+            elif seg_type == 'vertical':
+                print(f"    Added jog: x={p1[0] + start_offset:.3f} -> x={p1[0] + end_offset:.3f}")
+            else:
+                print(f"    Added jog: offset={start_offset:.3f} -> {end_offset:.3f}")
             best_path = candidate
             # Path changed, restart loop
             break
