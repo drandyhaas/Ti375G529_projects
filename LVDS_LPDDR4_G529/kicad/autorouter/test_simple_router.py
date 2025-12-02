@@ -224,6 +224,132 @@ def find_via_at_pad(pcb_data, pad, net_id, tolerance=0.5):
     return None
 
 
+def check_via_collision(x, y, via_size, pcb_data, all_routed_tracks, net_id, clearance=0.1):
+    """
+    Check if a via at (x, y) would collide with existing tracks on any layer.
+    Returns True if collision detected, False if position is clear.
+    """
+    via_radius = via_size / 2 + clearance
+
+    # Check against existing PCB tracks (all layers - vias go through all)
+    for track in pcb_data.segments:
+        if track.net_id == net_id:
+            continue  # Don't check our own net's tracks
+        # Point-to-segment distance
+        start_x, start_y = track.start_x, track.start_y
+        end_x, end_y = track.end_x, track.end_y
+
+        dx = end_x - start_x
+        dy = end_y - start_y
+        seg_len_sq = dx*dx + dy*dy
+
+        if seg_len_sq < 0.0001:
+            # Track is essentially a point
+            dist = math.sqrt((x - start_x)**2 + (y - start_y)**2)
+        else:
+            # Project point onto line segment
+            t = max(0, min(1, ((x - start_x)*dx + (y - start_y)*dy) / seg_len_sq))
+            proj_x = start_x + t * dx
+            proj_y = start_y + t * dy
+            dist = math.sqrt((x - proj_x)**2 + (y - proj_y)**2)
+
+        min_dist = via_radius + track.width / 2
+        if dist < min_dist:
+            return True
+
+    # Check against session tracks (all layers)
+    for track in all_routed_tracks:
+        if track['net_id'] == net_id:
+            continue
+        start_x, start_y = track['start']
+        end_x, end_y = track['end']
+
+        dx = end_x - start_x
+        dy = end_y - start_y
+        seg_len_sq = dx*dx + dy*dy
+
+        if seg_len_sq < 0.0001:
+            dist = math.sqrt((x - start_x)**2 + (y - start_y)**2)
+        else:
+            t = max(0, min(1, ((x - start_x)*dx + (y - start_y)*dy) / seg_len_sq))
+            proj_x = start_x + t * dx
+            proj_y = start_y + t * dy
+            dist = math.sqrt((x - proj_x)**2 + (y - proj_y)**2)
+
+        min_dist = via_radius + track['width'] / 2
+        if dist < min_dist:
+            return True
+
+    # Check against existing vias
+    for via in pcb_data.vias:
+        if via.net_id == net_id:
+            continue
+        dist = math.sqrt((x - via.x)**2 + (y - via.y)**2)
+        min_dist = via_radius + via.size / 2
+        if dist < min_dist:
+            return True
+
+    return False
+
+
+def find_valid_via_position(initial_x, initial_y, via_size, pcb_data, all_routed_tracks,
+                            net_id, source, sink, clearance=0.1, max_offset=2.0):
+    """
+    Find a valid via position near (initial_x, initial_y) that doesn't collide with tracks.
+    Searches in a spiral pattern, preferring positions along the source-sink axis.
+
+    Returns (x, y) of valid position, or None if no valid position found.
+    """
+    # First check if initial position is valid
+    if not check_via_collision(initial_x, initial_y, via_size, pcb_data,
+                               all_routed_tracks, net_id, clearance):
+        return initial_x, initial_y
+
+    # Calculate direction along route
+    route_dx = sink[0] - source[0]
+    route_dy = sink[1] - source[1]
+    route_len = math.sqrt(route_dx**2 + route_dy**2)
+    if route_len > 0:
+        route_dx /= route_len
+        route_dy /= route_len
+    else:
+        route_dx, route_dy = 1, 0
+
+    # Perpendicular direction
+    perp_dx = -route_dy
+    perp_dy = route_dx
+
+    # Search in increments along and perpendicular to route
+    step = 0.1  # 0.1mm steps
+    for offset in [i * step for i in range(1, int(max_offset / step) + 1)]:
+        # Try positions along route axis first (toward sink, then toward source)
+        for along in [offset, -offset]:
+            test_x = initial_x + along * route_dx
+            test_y = initial_y + along * route_dy
+            if not check_via_collision(test_x, test_y, via_size, pcb_data,
+                                       all_routed_tracks, net_id, clearance):
+                return test_x, test_y
+
+        # Try perpendicular positions
+        for perp in [offset, -offset]:
+            test_x = initial_x + perp * perp_dx
+            test_y = initial_y + perp * perp_dy
+            if not check_via_collision(test_x, test_y, via_size, pcb_data,
+                                       all_routed_tracks, net_id, clearance):
+                return test_x, test_y
+
+        # Try diagonal positions
+        for along in [offset, -offset]:
+            for perp in [offset, -offset]:
+                test_x = initial_x + along * route_dx + perp * perp_dx
+                test_y = initial_y + along * route_dy + perp * perp_dy
+                if not check_via_collision(test_x, test_y, via_size, pcb_data,
+                                           all_routed_tracks, net_id, clearance):
+                    return test_x, test_y
+
+    return None  # No valid position found
+
+
 def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
     """Route a single net and return the track segments and vias.
 
@@ -395,8 +521,16 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
             print(f"  Trying existing source via - routing on {alternate_layer}")
 
             # Only need one via - place it on the sink side of the crossing
-            new_via_x = via2_x
-            new_via_y = via2_y
+            # Find a valid position that doesn't collide with existing tracks
+            valid_pos = find_valid_via_position(via2_x, via2_y, VIA_SIZE, pcb_data,
+                                                all_routed_tracks, net.net_id, source, sink)
+            if valid_pos is None:
+                print(f"    Could not find valid via position near ({via2_x:.2f}, {via2_y:.2f})")
+                continue
+
+            new_via_x, new_via_y = valid_pos
+            if abs(new_via_x - via2_x) > 0.01 or abs(new_via_y - via2_y) > 0.01:
+                print(f"    Via position adjusted from ({via2_x:.2f}, {via2_y:.2f}) to ({new_via_x:.2f}, {new_via_y:.2f})")
 
             # Segment 1: Source via to new via on alternate layer
             print(f"\n  Routing segment 1: Source via to new via on {alternate_layer}...")
