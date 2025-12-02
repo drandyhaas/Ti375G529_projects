@@ -179,8 +179,18 @@ def route_single_net(
             continue
 
         # Blocked! Try all 8 directions at 45-degree increments
+        # Sort by dot product with goal direction (prefer directions closer to goal)
+        length = math.sqrt(dx*dx + dy*dy)
+        if length > 0.001:
+            norm_dx, norm_dy = dx / length, dy / length
+        else:
+            norm_dx, norm_dy = 1.0, 0.0
+        sorted_dirs = sorted(
+            DIRECTIONS_45,
+            key=lambda d: -(d[0] * norm_dx + d[1] * norm_dy)  # Descending by dot product
+        )
         found = False
-        for dir_x, dir_y in DIRECTIONS_45:
+        for dir_x, dir_y in sorted_dirs:
             if (dir_x, dir_y) == best_dir:
                 continue  # Already tried
 
@@ -309,8 +319,18 @@ def escape_from_pad(
             continue
 
         # Blocked - try other 45-degree directions, ordered by preference
+        # Sort by dot product with goal direction (prefer directions closer to target)
+        length = math.sqrt(dx*dx + dy*dy)
+        if length > 0.001:
+            norm_dx, norm_dy = dx / length, dy / length
+        else:
+            norm_dx, norm_dy = 1.0, 0.0
+        sorted_dirs = sorted(
+            DIRECTIONS_45,
+            key=lambda d: -(d[0] * norm_dx + d[1] * norm_dy)  # Descending by dot product
+        )
         found = False
-        for dir_x, dir_y in DIRECTIONS_45:
+        for dir_x, dir_y in sorted_dirs:
             if (dir_x, dir_y) == best_dir:
                 continue  # Already tried
 
@@ -609,16 +629,18 @@ def fast_path_cost(
         if is_blocked_indexed(mx, my, index, clearance):
             return float('inf')
 
-        # Check quarter points for longer segments
+        # Check points along segment - more points for longer segments
         dx = x2 - x1
         dy = y2 - y1
         seg_len = math.sqrt(dx*dx + dy*dy)
-        if seg_len > 1.0:
-            for t in [0.25, 0.75]:
-                px = x1 + t * dx
-                py = y1 + t * dy
-                if is_blocked_indexed(px, py, index, clearance):
-                    return float('inf')
+        # Check every 0.5mm for longer segments to catch all obstacles
+        num_checks = max(2, int(seg_len / 0.5))
+        for j in range(1, num_checks):
+            t = j / num_checks
+            px = x1 + t * dx
+            py = y1 + t * dy
+            if is_blocked_indexed(px, py, index, clearance):
+                return float('inf')
 
     # Calculate total length
     total_length = 0.0
