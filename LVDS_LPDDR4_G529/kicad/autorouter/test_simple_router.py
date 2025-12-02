@@ -147,10 +147,20 @@ def find_crossing_point(source, sink, blocking_tracks, layer):
     """
     Find where the route would need to cross a blocking track.
     Returns (crossing_x, crossing_y, track_being_crossed) or None.
+
+    Only considers tracks that are within the Y corridor between source and sink,
+    plus a small margin to account for tracks that might be just outside.
     """
-    # Simple heuristic: find the blocking track closest to the midpoint
     mid_x = (source[0] + sink[0]) / 2
     mid_y = (source[1] + sink[1]) / 2
+
+    # Define the Y corridor - tracks must be within this range to be relevant
+    route_min_y = min(source[1], sink[1])
+    route_max_y = max(source[1], sink[1])
+    # Add margin to catch tracks that are slightly outside the direct corridor
+    y_margin = 1.0  # 1mm margin
+    corridor_min_y = route_min_y - y_margin
+    corridor_max_y = route_max_y + y_margin
 
     best_track = None
     best_dist = float('inf')
@@ -171,6 +181,12 @@ def find_crossing_point(source, sink, blocking_tracks, layer):
 
         # Check for X overlap
         if track_max_x < route_min_x or track_min_x > route_max_x:
+            continue
+
+        # Check for Y corridor overlap - track must be in the Y corridor
+        track_min_y = min(start_y, end_y)
+        track_max_y = max(start_y, end_y)
+        if track_max_y < corridor_min_y or track_min_y > corridor_max_y:
             continue
 
         # Find crossing point - where our route's Y would intersect this track's X range
@@ -320,8 +336,19 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
 
     print("  Trying via crossing...")
 
-    # Find where we need to cross
-    cross_point, blocking_track = find_crossing_point(source, sink, all_routed_tracks, primary_layer)
+    # Find where we need to cross - include both session tracks AND existing PCB tracks
+    # Convert pcb_data.segments to the same format as all_routed_tracks
+    all_blocking_tracks = list(all_routed_tracks)  # Copy our session tracks
+    for seg in pcb_data.segments:
+        if seg.net_id != net.net_id:  # Don't consider our own net's tracks as blockers
+            all_blocking_tracks.append({
+                'start': (seg.start_x, seg.start_y),
+                'end': (seg.end_x, seg.end_y),
+                'layer': seg.layer,
+                'net_id': seg.net_id
+            })
+
+    cross_point, blocking_track = find_crossing_point(source, sink, all_blocking_tracks, primary_layer)
 
     if not cross_point:
         print("  Could not identify crossing point - no viable route")
@@ -577,6 +604,8 @@ Examples:
                         help='Input PCB file path')
     parser.add_argument('--output', '-o', type=str, default='routed.kicad_pcb',
                         help='Output PCB file path (default: routed.kicad_pcb)')
+    parser.add_argument('--incremental', '-i', action='store_true',
+                        help='Incremental mode: use output file as input if it exists, skip already-routed nets')
 
     args = parser.parse_args()
 
@@ -584,6 +613,13 @@ Examples:
     output_path = args.output
     net_patterns = args.nets
     allowed_layers = [l.strip() for l in args.layers.split(',')]
+    incremental = args.incremental
+
+    # In incremental mode, use output file as input if it exists
+    import os
+    if incremental and os.path.exists(output_path):
+        pcb_path = output_path
+        print(f"Incremental mode: using {output_path} as input")
 
     print(f"Parsing {pcb_path}...")
     print(f"Routing layers: {', '.join(allowed_layers)}")
@@ -606,14 +642,30 @@ Examples:
         print(f"No nets found matching patterns: {net_patterns}")
         return
 
-    print(f"Found {len(nets)} nets to route")
+    # In incremental mode, find which nets are already routed (have tracks)
+    already_routed_nets = set()
+    if incremental:
+        for segment in pcb_data.segments:
+            already_routed_nets.add(segment.net_id)
+
+    # Filter out already-routed nets
+    nets_to_route = []
+    skipped_count = 0
+    for net in nets:
+        if incremental and net.net_id in already_routed_nets:
+            print(f"Skipping {net.name} (already routed)")
+            skipped_count += 1
+        else:
+            nets_to_route.append(net)
+
+    print(f"Found {len(nets)} nets, {skipped_count} already routed, {len(nets_to_route)} to route")
 
     all_tracks = []
     all_vias = []
     success_count = 0
     fail_count = 0
 
-    for net in nets:
+    for net in nets_to_route:
         tracks, vias = route_net(pcb_data, net, all_tracks, all_vias, allowed_layers)
         if tracks:
             all_tracks.extend(tracks)
@@ -622,26 +674,31 @@ Examples:
         else:
             fail_count += 1
 
-    if all_tracks:
+    if all_tracks or (incremental and skipped_count > 0):
         print(f"\n{'='*50}")
         print(f"ROUTING SUMMARY")
         print(f"{'='*50}")
-        print(f"Successfully routed: {success_count}")
+        if skipped_count > 0:
+            print(f"Already routed (skipped): {skipped_count}")
+        print(f"Newly routed: {success_count}")
         print(f"Failed: {fail_count}")
-        print(f"Total track segments: {len(all_tracks)}")
-        print(f"Total vias: {len(all_vias)}")
+        print(f"New track segments: {len(all_tracks)}")
+        print(f"New vias: {len(all_vias)}")
 
-        # Count tracks per layer
-        layer_counts = {}
-        for track in all_tracks:
-            layer = track['layer']
-            layer_counts[layer] = layer_counts.get(layer, 0) + 1
-        for layer, count in sorted(layer_counts.items()):
-            print(f"  {layer}: {count} segments")
+        if all_tracks:
+            # Count tracks per layer
+            layer_counts = {}
+            for track in all_tracks:
+                layer = track['layer']
+                layer_counts[layer] = layer_counts.get(layer, 0) + 1
+            for layer, count in sorted(layer_counts.items()):
+                print(f"  {layer}: {count} segments")
 
-        print(f"\nWriting to {output_path}...")
-        add_tracks_and_vias_to_pcb(pcb_path, output_path, all_tracks, all_vias)
-        print(f"Saved routed PCB to {output_path}")
+            print(f"\nWriting to {output_path}...")
+            add_tracks_and_vias_to_pcb(pcb_path, output_path, all_tracks, all_vias)
+            print(f"Saved routed PCB to {output_path}")
+        elif incremental:
+            print(f"\nNo new routes needed - all requested nets already routed")
     else:
         print("No routes completed!")
 
