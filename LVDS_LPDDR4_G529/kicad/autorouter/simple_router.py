@@ -929,7 +929,18 @@ def optimize_path_45deg(
         obs_above_y = None
         obs_below_y = None
 
-        for obs in index.get_nearby((p1[0] + p2[0])/2, seg_y, 2.0):
+        # Search along the entire segment, not just at the midpoint
+        # Check at multiple X positions to find obstacles along the path
+        num_checks = max(3, int((seg_x_max - seg_x_min) / 2.0))  # Check every 2mm
+        all_nearby = set()
+        for j in range(num_checks + 1):
+            check_x = seg_x_min + (seg_x_max - seg_x_min) * j / num_checks
+            for obs in index.get_nearby(check_x, seg_y, 2.0):
+                all_nearby.add(id(obs))
+
+        for obs in obstacles:
+            if id(obs) not in all_nearby:
+                continue
             # Determine obstacle dimensions accounting for rotation
             # For 90-degree rotation, width and height swap
             rot_mod = obs.rotation % 180
@@ -987,7 +998,381 @@ def optimize_path_45deg(
         improvement = (initial_cost - best_cost) / initial_cost * 100
         print(f"    Optimized: cost {initial_cost:.2f} -> {best_cost:.2f} ({improvement:.1f}% improvement)")
 
+    # Try splitting long segments and re-centering
+    best_path = try_segment_splits(best_path, index, clearance, length_weight, clearance_weight)
+
+    # NOTE: Multi-zone centering should be called AFTER remove_kinks() since kink removal
+    # may undo the centering jogs. Call try_multi_zone_centering() separately.
+
     return best_path
+
+
+def find_optimal_y_at_x(x: float, y: float, obstacles: List[Obstacle], index: SpatialIndex,
+                        search_range: float = 2.0, x_tolerance: float = 0.5) -> Optional[float]:
+    """
+    Find the optimal Y position at a given X coordinate by centering between
+    obstacles above and below.
+
+    Args:
+        x: X coordinate to search at
+        y: Current Y position
+        obstacles: List of obstacles
+        index: Spatial index
+        search_range: Range to search for obstacles
+        x_tolerance: How far from the X coordinate an obstacle can be
+    """
+    obs_above_y = None  # Bottom edge of obstacle above
+    obs_below_y = None  # Top edge of obstacle below
+
+    for obs in index.get_nearby(x, y, search_range):
+        # Get effective dimensions accounting for rotation
+        rot_mod = obs.rotation % 180
+        if abs(rot_mod - 90) < 1:  # 90 or 270 degrees
+            eff_width = obs.height
+            eff_height = obs.width
+        else:
+            eff_width = obs.width
+            eff_height = obs.height
+
+        # Check if obstacle is near this X
+        if abs(obs.x - x) > eff_width / 2 + x_tolerance:
+            continue
+
+        half_h = eff_height / 2
+        obs_top = obs.y - half_h
+        obs_bottom = obs.y + half_h
+
+        if obs_bottom < y and (obs_above_y is None or obs_bottom > obs_above_y):
+            obs_above_y = obs_bottom
+        if obs_top > y and (obs_below_y is None or obs_top < obs_below_y):
+            obs_below_y = obs_top
+
+    if obs_above_y is not None and obs_below_y is not None:
+        return (obs_above_y + obs_below_y) / 2
+    return None
+
+
+def try_multi_zone_centering(
+    path: List[Tuple[float, float]],
+    obstacles: List[Obstacle],
+    index: SpatialIndex,
+    clearance: float,
+    length_weight: float,
+    clearance_weight: float
+) -> List[Tuple[float, float]]:
+    """
+    For each horizontal segment, check if the START and END portions need different Y positions.
+    If so, insert a 45-degree jog to transition between them.
+
+    This handles cases where:
+    - Left end should be centered between BGA pads
+    - Right end should be centered between connector pads
+    - The optimal Y values differ
+    """
+    if len(path) < 4:
+        return path
+
+    best_path = list(path)
+
+    for i in range(1, len(path) - 1):
+        if i + 1 >= len(best_path) - 1:
+            continue
+
+        p0 = best_path[i - 1]
+        p1 = best_path[i]
+        p2 = best_path[i + 1]
+        if i + 2 < len(best_path):
+            p3 = best_path[i + 2]
+        else:
+            continue
+
+        seg_dx = p2[0] - p1[0]
+        seg_dy = p2[1] - p1[1]
+        seg_len = math.sqrt(seg_dx * seg_dx + seg_dy * seg_dy)
+
+        # Only consider horizontal segments that are at least 4mm long
+        is_horizontal = abs(seg_dy) < 0.001 and seg_len > 4.0
+
+        if not is_horizontal:
+            continue
+
+        # Get incoming/outgoing directions
+        d_in = get_45_direction(p1[0] - p0[0], p1[1] - p0[1])
+        d_out = get_45_direction(p3[0] - p2[0], p3[1] - p2[1])
+
+        # Both must be diagonal for the jog to work
+        if abs(d_in[1]) <= 0.5 or abs(d_out[1]) <= 0.5:
+            continue
+
+        seg_x_min = min(p1[0], p2[0])
+        seg_x_max = max(p1[0], p2[0])
+        seg_y = p1[1]
+
+        # Find optimal Y near the START (left) of the segment
+        # Search with larger tolerance to find nearby BGA pads
+        left_optimal_y = find_optimal_y_at_x(seg_x_min, seg_y, obstacles, index,
+                                             search_range=3.0, x_tolerance=2.0)
+
+        # Find optimal Y near the END (right) of the segment
+        right_optimal_y = find_optimal_y_at_x(seg_x_max, seg_y, obstacles, index,
+                                              search_range=3.0, x_tolerance=2.0)
+
+        # Debug output
+        # print(f"    Multi-zone check: left_y={left_optimal_y}, right_y={right_optimal_y}")
+
+        if left_optimal_y is None or right_optimal_y is None:
+            continue
+
+        delta_y = right_optimal_y - left_optimal_y
+
+        # Only add jog if there's a significant difference (at least 0.05mm)
+        if abs(delta_y) < 0.05:
+            continue
+
+        # Insert a jog at the midpoint
+        # The jog needs to transition from left_optimal_y to right_optimal_y
+        mid_x = (seg_x_min + seg_x_max) / 2
+        jog_len = abs(delta_y)  # 45-degree jog length equals Y change
+
+        # Calculate jog corners
+        # Left portion at left_optimal_y, right portion at right_optimal_y
+        jog_start_x = mid_x - jog_len / 2
+        jog_end_x = mid_x + jog_len / 2
+
+        # Adjust p1, p2 positions for the new Y values
+        delta_y_left = left_optimal_y - seg_y
+        delta_y_right = right_optimal_y - seg_y
+
+        delta_x1 = delta_y_left * (1 if d_in[0] * d_in[1] > 0 else -1)
+        delta_x2 = delta_y_right * (1 if d_out[0] * d_out[1] > 0 else -1)
+
+        new_p1 = (round(p1[0] + delta_x1, 3), round(left_optimal_y, 3))
+        new_p2 = (round(p2[0] + delta_x2, 3), round(right_optimal_y, 3))
+
+        # The jog corners
+        corner1 = (round(jog_start_x, 3), round(left_optimal_y, 3))
+        corner2 = (round(jog_end_x, 3), round(right_optimal_y, 3))
+
+        # Verify all segments are 45-degree valid
+        if not is_exact_45_segment(p0[0], p0[1], new_p1[0], new_p1[1]):
+            continue
+        if not is_exact_45_segment(new_p1[0], new_p1[1], corner1[0], corner1[1]):
+            continue
+        if not is_exact_45_segment(corner1[0], corner1[1], corner2[0], corner2[1]):
+            continue
+        if not is_exact_45_segment(corner2[0], corner2[1], new_p2[0], new_p2[1]):
+            continue
+        if not is_exact_45_segment(new_p2[0], new_p2[1], p3[0], p3[1]):
+            continue
+
+        # Build candidate path
+        candidate = list(best_path[:i])  # Before p1
+        candidate.append(new_p1)
+        candidate.append(corner1)
+        candidate.append(corner2)
+        candidate.append(new_p2)
+        candidate.extend(best_path[i+2:])  # After p2
+
+        # Check collision
+        candidate_cost = fast_path_cost(candidate, index, clearance, length_weight, clearance_weight)
+
+        if candidate_cost < float('inf'):
+            print(f"    Added jog: y={left_optimal_y:.3f} -> y={right_optimal_y:.3f}")
+            best_path = candidate
+            # Path changed, restart loop
+            break
+
+    return best_path
+
+
+def try_segment_splits(
+    path: List[Tuple[float, float]],
+    index: SpatialIndex,
+    clearance: float,
+    length_weight: float,
+    clearance_weight: float
+) -> List[Tuple[float, float]]:
+    """
+    Try splitting long horizontal segments to allow better centering.
+    For each long horizontal segment, try inserting a jog pattern that
+    can be optimized to center between obstacles.
+    """
+    if len(path) < 4:
+        return path
+
+    best_path = list(path)
+    best_cost = fast_path_cost(best_path, index, clearance, length_weight, clearance_weight)
+
+    for i in range(1, len(path) - 2):
+        p0 = path[i - 1]
+        p1 = path[i]
+        p2 = path[i + 1]
+        p3 = path[i + 2] if i + 2 < len(path) else None
+
+        if p3 is None:
+            continue
+
+        # Check if p1-p2 is a horizontal segment
+        seg_dx = p2[0] - p1[0]
+        seg_dy = p2[1] - p1[1]
+        seg_len = math.sqrt(seg_dx * seg_dx + seg_dy * seg_dy)
+
+        is_horizontal = abs(seg_dy) < 0.001 and abs(seg_dx) > 2.0  # At least 2mm long
+
+        if not is_horizontal:
+            continue
+
+        # Get incoming/outgoing directions and check if they're diagonal
+        in_dx = p1[0] - p0[0]
+        in_dy = p1[1] - p0[1]
+        out_dx = p3[0] - p2[0]
+        out_dy = p3[1] - p2[1]
+
+        # Check if incoming is diagonal (both dx and dy are non-zero and roughly equal magnitude)
+        in_is_diagonal = abs(in_dx) > 0.01 and abs(in_dy) > 0.01 and 0.9 < abs(in_dx / in_dy) < 1.1 if abs(in_dy) > 0.01 else False
+        out_is_diagonal = abs(out_dx) > 0.01 and abs(out_dy) > 0.01 and 0.9 < abs(out_dx / out_dy) < 1.1 if abs(out_dy) > 0.01 else False
+
+        # Skip if neighbors aren't diagonal
+        if not in_is_diagonal or not out_is_diagonal:
+            continue
+
+        d_in = get_45_direction(in_dx, in_dy)
+        d_out = get_45_direction(out_dx, out_dy)
+
+        # Find the midpoint of the horizontal segment
+        mid_x = (p1[0] + p2[0]) / 2
+        mid_y = p1[1]
+
+        # Try creating a jog at the midpoint - up or down
+        for jog_dir in [1, -1]:  # +1 = up (smaller Y), -1 = down (larger Y)
+            for jog_size in [0.1, 0.2, 0.3, 0.5]:
+                jog_y = mid_y + jog_dir * jog_size
+
+                # Create new points: p1 -> jog_start -> jog_end -> p2
+                # The jog forms a 45-degree pattern
+                jog_start_x = mid_x - jog_size  # Start of jog
+                jog_end_x = mid_x + jog_size    # End of jog
+
+                # New path segment: p1 -> (jog_start_x, p1.y) -> (mid_x, jog_y) -> (jog_end_x, p2.y) -> p2
+                # But we need to maintain 45-degree angles
+
+                # For a proper 45-degree jog:
+                # p1 -> corner1 (horizontal) -> corner2 (diagonal up/down) -> corner3 (horizontal) -> p2
+                corner1 = (mid_x - jog_size, p1[1])
+                corner2 = (mid_x, jog_y)
+                corner3 = (mid_x + jog_size, p2[1])
+
+                # Check 45-degree constraints
+                if not is_exact_45_segment(p1[0], p1[1], corner1[0], corner1[1]):
+                    continue
+                if not is_exact_45_segment(corner1[0], corner1[1], corner2[0], corner2[1]):
+                    continue
+                if not is_exact_45_segment(corner2[0], corner2[1], corner3[0], corner3[1]):
+                    continue
+                if not is_exact_45_segment(corner3[0], corner3[1], p2[0], p2[1]):
+                    continue
+
+                # Build candidate path
+                candidate = list(path[:i+1])  # Up to and including p1
+                candidate.append(corner1)
+                candidate.append(corner2)
+                candidate.append(corner3)
+                candidate.extend(path[i+1:])  # From p2 onwards
+
+                candidate_cost = fast_path_cost(candidate, index, clearance,
+                                               length_weight, clearance_weight)
+
+                if candidate_cost < best_cost:
+                    # Found improvement - now try to optimize this path further
+                    # by centering the new segments
+                    optimized = try_center_jog(candidate, i+1, index, clearance)
+                    opt_cost = fast_path_cost(optimized, index, clearance,
+                                             length_weight, clearance_weight)
+                    if opt_cost < best_cost:
+                        best_path = optimized
+                        best_cost = opt_cost
+                        print(f"    Split segment improved cost to {opt_cost:.2f}")
+
+    return best_path
+
+
+def try_center_jog(
+    path: List[Tuple[float, float]],
+    jog_start_idx: int,
+    index: SpatialIndex,
+    clearance: float
+) -> List[Tuple[float, float]]:
+    """
+    Try to center a jog pattern between nearby obstacles.
+    The jog is at indices jog_start_idx, jog_start_idx+1, jog_start_idx+2.
+    """
+    if jog_start_idx + 2 >= len(path):
+        return path
+
+    result = list(path)
+
+    # The jog pattern: horizontal -> diagonal -> horizontal
+    # Try sliding the middle point (the peak/valley of the jog) up or down
+    p_before = path[jog_start_idx - 1] if jog_start_idx > 0 else None
+    corner1 = path[jog_start_idx]
+    corner2 = path[jog_start_idx + 1]  # The peak/valley
+    corner3 = path[jog_start_idx + 2]
+    p_after = path[jog_start_idx + 3] if jog_start_idx + 3 < len(path) else None
+
+    if p_before is None or p_after is None:
+        return path
+
+    # Find obstacles above and below the jog area
+    jog_x_min = min(corner1[0], corner3[0])
+    jog_x_max = max(corner1[0], corner3[0])
+    jog_y = corner2[1]
+
+    obs_above_y = None
+    obs_below_y = None
+
+    for obs in index.get_nearby(corner2[0], corner2[1], 2.0):
+        rot_mod = obs.rotation % 180
+        if abs(rot_mod - 90) < 1:
+            eff_height = obs.width
+        else:
+            eff_height = obs.height
+
+        if obs.x < jog_x_min - 0.5 or obs.x > jog_x_max + 0.5:
+            continue
+
+        half_h = eff_height / 2
+        obs_top = obs.y - half_h
+        obs_bottom = obs.y + half_h
+
+        if obs_bottom < jog_y and (obs_above_y is None or obs_bottom > obs_above_y):
+            obs_above_y = obs_bottom
+        if obs_top > jog_y and (obs_below_y is None or obs_top < obs_below_y):
+            obs_below_y = obs_top
+
+    if obs_above_y is not None and obs_below_y is not None:
+        # Center between obstacles
+        optimal_y = (obs_above_y + obs_below_y) / 2
+        delta_y = optimal_y - jog_y
+
+        if abs(delta_y) > 0.01:
+            # Adjust corner2's Y position
+            new_corner2 = (corner2[0], round(optimal_y, 3))
+            # Adjust corner1 and corner3 X positions to maintain 45-degree angles
+            new_corner1 = (round(corner1[0] + delta_y, 3), corner1[1])
+            new_corner3 = (round(corner3[0] - delta_y, 3), corner3[1])
+
+            # Verify 45-degree constraints
+            if (is_exact_45_segment(p_before[0], p_before[1], new_corner1[0], new_corner1[1]) and
+                is_exact_45_segment(new_corner1[0], new_corner1[1], new_corner2[0], new_corner2[1]) and
+                is_exact_45_segment(new_corner2[0], new_corner2[1], new_corner3[0], new_corner3[1]) and
+                is_exact_45_segment(new_corner3[0], new_corner3[1], p_after[0], p_after[1])):
+
+                result[jog_start_idx] = new_corner1
+                result[jog_start_idx + 1] = new_corner2
+                result[jog_start_idx + 2] = new_corner3
+                print(f"    Centered jog at y={optimal_y:.3f}")
+
+    return result
 
 
 def remove_kinks(

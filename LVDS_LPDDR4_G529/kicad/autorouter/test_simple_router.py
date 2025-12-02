@@ -6,7 +6,7 @@ Test the simple router on actual PCB data and output to KiCad.
 import sys
 import math
 from pathlib import Path
-from simple_router import route_single_net, route_bidirectional, simplify_path, simplify_path_safe, Obstacle, optimize_simplified_path, snap_to_45_degrees, verify_path, enforce_45_degree_path, remove_kinks
+from simple_router import route_single_net, route_bidirectional, simplify_path, simplify_path_safe, Obstacle, optimize_simplified_path, snap_to_45_degrees, verify_path, enforce_45_degree_path, remove_kinks, try_multi_zone_centering, SpatialIndex
 from kicad_parser import parse_kicad_pcb, get_nets_to_route
 from kicad_writer import add_tracks_to_pcb
 
@@ -170,6 +170,14 @@ def main():
         print("Removing kinks...")
         final_path = remove_kinks(optimized, obstacles, routing_clearance)
         print(f"After kink removal: {len(final_path)} points")
+
+        # Step 5: Multi-zone centering - add jogs where left/right of horizontal segment
+        # need different Y positions (e.g., BGA vs connector centering)
+        print("Multi-zone centering...")
+        index = SpatialIndex(obstacles)
+        final_path = try_multi_zone_centering(final_path, obstacles, index, routing_clearance,
+                                               length_weight=1.0, clearance_weight=1000.0)
+        print(f"After multi-zone centering: {len(final_path)} points")
 
         # Calculate path length
         total_length = 0
