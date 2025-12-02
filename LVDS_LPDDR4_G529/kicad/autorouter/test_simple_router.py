@@ -702,15 +702,19 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
             })
         return tracks, []
 
-    # Primary layer failed - first try other layers directly (no vias needed if source has via)
+    # Primary layer failed - try other layers only if BOTH source and sink have vias
     print(f"\nPrimary layer routing failed.")
 
-    # If source has a via, try routing entirely on alternate layers first
-    if source_via and alternate_layers:
+    # If BOTH source and sink have vias, we can route entirely on an alternate layer
+    # Both ends have layer transitions available
+    if source_via and sink_via and alternate_layers:
+        source_via_pos = (source_via.x, source_via.y)
+        sink_via_pos = (sink_via.x, sink_via.y)
         for alt_layer in alternate_layers:
-            print(f"  Trying direct route on {alt_layer}...")
+            print(f"  Trying route via-to-via on {alt_layer}...")
             alt_obstacles = build_obstacles(pcb_data, net, all_routed_tracks, alt_layer, all_vias)
-            alt_path = route_path(source, sink, alt_obstacles, max_time=0.5)
+            # Route from source via to sink via on alternate layer
+            alt_path = route_path(source_via_pos, sink_via_pos, alt_obstacles, max_time=0.5)
             if alt_path:
                 print(f"  Success on {alt_layer}!")
                 final_path = process_path(alt_path, alt_obstacles, routing_clearance)
@@ -727,7 +731,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
                     math.sqrt((t['end'][0] - t['start'][0])**2 + (t['end'][1] - t['start'][1])**2)
                     for t in tracks
                 )
-                print(f"  Path length: {total_length:.2f} mm (no new vias)")
+                print(f"  Path length: {total_length:.2f} mm (using existing vias)")
                 return tracks, []
 
     print("  Trying via crossing...")
