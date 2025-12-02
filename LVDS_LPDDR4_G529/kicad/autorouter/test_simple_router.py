@@ -6,7 +6,7 @@ Test the simple router on actual PCB data and output to KiCad.
 import sys
 import math
 from pathlib import Path
-from simple_router import route_single_net, route_bidirectional, simplify_path, simplify_path_safe, create_svg_visualization, Obstacle, optimize_simplified_path, snap_to_45_degrees, verify_path, enforce_45_degree_path
+from simple_router import route_single_net, route_bidirectional, simplify_path, simplify_path_safe, Obstacle, optimize_simplified_path, snap_to_45_degrees, verify_path, enforce_45_degree_path, remove_kinks
 from kicad_parser import parse_kicad_pcb, get_nets_to_route
 from kicad_writer import add_tracks_to_pcb
 
@@ -126,33 +126,50 @@ def main():
     print(f"  Bounds: ({bounds[0]:.1f}, {bounds[1]:.1f}) to ({bounds[2]:.1f}, {bounds[3]:.1f})")
 
     # Route!
-    clearance = 0.05  # Very tight clearance for BGA escape
+    clearance = 0.05  # Clearance from track edge to obstacle
     step_size = 0.1   # Small steps for precision
     track_width = 0.1
+    # For routing, use centerline clearance = edge_clearance + track_width/2
+    # But this may be too tight for BGA escape, so we use a smaller value
+    routing_clearance = 0.05  # Just enough to navigate
+    optimization_clearance = clearance + track_width / 2  # True clearance for optimization
 
-    print(f"\nRouting with step_size={step_size}, clearance={clearance}...")
+    print(f"\nRouting with step_size={step_size}, clearance={routing_clearance}...")
+    print(f"Optimization clearance (edge-to-edge): {optimization_clearance}")
     print("Using bidirectional routing (escape from both ends, meet in middle)...")
     path = route_bidirectional(
         source=(source_x, source_y),
         sink=(sink_x, sink_y),
         obstacles=obstacles,
         step_size=step_size,
-        clearance=clearance,
+        clearance=routing_clearance,
         max_time=10.0  # More time for complex routes
     )
 
     if path:
         print(f"Success! Path has {len(path)} points")
 
-        # Step 1: Simplify using collision-aware simplification
+        # Step 1: Simplify using collision-aware simplification (use routing clearance)
         print("Simplifying path (collision-aware)...")
-        simplified = simplify_path_safe(path, obstacles, clearance, tolerance=0.1)
+        simplified = simplify_path_safe(path, obstacles, routing_clearance, tolerance=0.1)
         print(f"Simplified to {len(simplified)} points")
 
         # Step 2: Enforce exact 45-degree angles
         print("Enforcing 45-degree angles...")
-        final_path = enforce_45_degree_path(simplified, obstacles, clearance)
-        print(f"After 45-deg enforcement: {len(final_path)} points")
+        path_45 = enforce_45_degree_path(simplified, obstacles, routing_clearance)
+        print(f"After 45-deg enforcement: {len(path_45)} points")
+
+        # Step 3: Optimize the path while maintaining 45-degree constraints
+        # Use routing clearance for collision checks, but optimize to maximize clearance
+        print("Optimizing path (45-deg constrained)...")
+        optimized = optimize_simplified_path(path_45, obstacles, routing_clearance,
+                                              iterations=50, initial_step=0.1)
+        print(f"After optimization: {len(optimized)} points")
+
+        # Step 4: Remove any kinks/zigzags that can be eliminated
+        print("Removing kinks...")
+        final_path = remove_kinks(optimized, obstacles, routing_clearance)
+        print(f"After kink removal: {len(final_path)} points")
 
         # Calculate path length
         total_length = 0
@@ -164,25 +181,6 @@ def main():
 
         # Use final_path instead of simplified
         simplified = final_path
-
-        # Create visualization
-        svg = create_svg_visualization(simplified, obstacles,
-                                       (source_x, source_y), (sink_x, sink_y),
-                                       bounds, clearance)
-
-        with open("route.svg", 'w') as f:
-            f.write(svg)
-        print(f"Saved visualization to route.svg")
-
-        # Write report
-        with open("route.txt", 'w') as f:
-            f.write(f"Net: {net.name}\n")
-            f.write(f"Source: ({source_x:.2f}, {source_y:.2f}) - {first_pad.component_ref}.{first_pad.pad_number}\n")
-            f.write(f"Sink: ({sink_x:.2f}, {sink_y:.2f}) - {second_pad.component_ref}.{second_pad.pad_number}\n")
-            f.write(f"Path points: {len(simplified)}\n")
-            f.write(f"Path length: {total_length:.2f} mm\n")
-            f.write(f"Obstacles: {len(obstacles)}\n")
-        print(f"Saved report to route.txt")
 
         # Output to KiCad
         # Convert path to track segments
@@ -203,14 +201,6 @@ def main():
 
     else:
         print("Failed to find path!")
-
-        # Create visualization anyway to see obstacles
-        svg = create_svg_visualization([], obstacles,
-                                       (source_x, source_y), (sink_x, sink_y),
-                                       bounds, clearance)
-        with open("route.svg", 'w') as f:
-            f.write(svg)
-        print("Saved obstacle visualization to route.svg")
 
 
 if __name__ == '__main__':

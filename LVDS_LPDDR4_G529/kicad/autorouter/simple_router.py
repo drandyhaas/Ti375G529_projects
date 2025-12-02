@@ -566,25 +566,135 @@ def path_cost(
     return cost
 
 
-def optimize_simplified_path(
+def get_segment_direction(x1: float, y1: float, x2: float, y2: float) -> Tuple[float, float]:
+    """Get normalized direction vector for a segment."""
+    dx = x2 - x1
+    dy = y2 - y1
+    length = math.sqrt(dx*dx + dy*dy)
+    if length < 0.0001:
+        return (0, 0)
+    return (dx / length, dy / length)
+
+
+def fast_path_cost(
+    path: List[Tuple[float, float]],
+    index: SpatialIndex,
+    clearance: float,
+    length_weight: float = 1.0,
+    clearance_weight: float = 5.0
+) -> float:
+    """
+    Fast path cost calculation for optimization.
+    Checks collisions and calculates a simple length + proximity penalty.
+    """
+    if len(path) < 2:
+        return float('inf')
+
+    # Quick collision check - just check segment endpoints and midpoints
+    for i in range(1, len(path)):
+        x1, y1 = path[i-1]
+        x2, y2 = path[i]
+
+        # Check endpoints
+        if is_blocked_indexed(x1, y1, index, clearance):
+            # Allow endpoints to be in obstacles (they're on pads)
+            if i > 1:
+                return float('inf')
+        if is_blocked_indexed(x2, y2, index, clearance):
+            if i < len(path) - 1:
+                return float('inf')
+
+        # Check midpoint
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        if is_blocked_indexed(mx, my, index, clearance):
+            return float('inf')
+
+        # Check quarter points for longer segments
+        dx = x2 - x1
+        dy = y2 - y1
+        seg_len = math.sqrt(dx*dx + dy*dy)
+        if seg_len > 1.0:
+            for t in [0.25, 0.75]:
+                px = x1 + t * dx
+                py = y1 + t * dy
+                if is_blocked_indexed(px, py, index, clearance):
+                    return float('inf')
+
+    # Calculate total length
+    total_length = 0.0
+    for i in range(1, len(path)):
+        dx = path[i][0] - path[i-1][0]
+        dy = path[i][1] - path[i-1][1]
+        total_length += math.sqrt(dx*dx + dy*dy)
+
+    # Simple proximity penalty - check only corner points
+    proximity_penalty = 0.0
+    for i in range(1, len(path) - 1):
+        x, y = path[i]
+        nearby = index.get_nearby(x, y, 1.0)
+        for obs in nearby:
+            dist = math.sqrt((x - obs.x)**2 + (y - obs.y)**2)
+            effective_dist = dist - obs.radius
+            if effective_dist > 0.01:
+                proximity_penalty += 1.0 / effective_dist
+
+    return length_weight * total_length + clearance_weight * proximity_penalty
+
+
+def get_45_direction(dx: float, dy: float) -> Tuple[float, float]:
+    """Snap a direction vector to the nearest 45-degree direction."""
+    if abs(dx) < 0.0001 and abs(dy) < 0.0001:
+        return (0, 0)
+
+    # Find closest 45-degree direction
+    best_dir = DIRECTIONS_45[0]
+    best_dot = -2
+    length = math.sqrt(dx*dx + dy*dy)
+    ndx, ndy = dx/length, dy/length
+
+    for dir_x, dir_y in DIRECTIONS_45:
+        dot = ndx * dir_x + ndy * dir_y
+        if dot > best_dot:
+            best_dot = dot
+            best_dir = (dir_x, dir_y)
+
+    return best_dir
+
+
+def is_exact_45_segment(x1: float, y1: float, x2: float, y2: float, tolerance: float = 0.002) -> bool:
+    """Check if segment is at an exact 45-degree multiple angle.
+
+    Args:
+        tolerance: Maximum allowed deviation from exact 45-degree. Default 0.002mm (2 microns).
+    """
+    dx = x2 - x1
+    dy = y2 - y1
+    if abs(dx) < tolerance and abs(dy) < tolerance:
+        return True  # Zero length is OK
+
+    # Check horizontal, vertical, or diagonal
+    is_horizontal = abs(dy) < tolerance
+    is_vertical = abs(dx) < tolerance
+    is_diagonal = abs(abs(dx) - abs(dy)) < tolerance
+
+    return is_horizontal or is_vertical or is_diagonal
+
+
+def optimize_path_45deg(
     path: List[Tuple[float, float]],
     obstacles: List[Obstacle],
     clearance: float,
-    iterations: int = 200,
-    initial_step: float = 0.05,
-    min_step: float = 0.005,
+    iterations: int = 20,
+    step_size: float = 0.1,
     length_weight: float = 1.0,
-    clearance_weight: float = 10.0
+    clearance_weight: float = 5.0
 ) -> List[Tuple[float, float]]:
     """
-    Optimize a simplified path using gradient descent with small, careful steps.
+    Optimize a path while strictly maintaining 45-degree angle constraints.
 
-    Uses multiple passes with decreasing step sizes to:
-    1. Push the path away from obstacles (maximize clearance)
-    2. Minimize path length
-    3. Never create collisions
-
-    Key: Uses SMALL steps to avoid overshooting into obstacles.
+    The optimization works in two ways:
+    1. Sliding individual corner points along segment directions
+    2. Sliding entire segments perpendicular to their direction (moves two corners together)
     """
     if len(path) < 3:
         return path
@@ -592,75 +702,379 @@ def optimize_simplified_path(
     # Build spatial index
     index = SpatialIndex(obstacles, cell_size=1.0)
 
-    best_path = list(path)
-    best_cost = path_cost(best_path, index, obstacles, clearance, length_weight, clearance_weight)
+    best_path = [pt for pt in path]
+    best_cost = fast_path_cost(best_path, index, clearance, length_weight, clearance_weight)
 
     if best_cost == float('inf'):
-        # Original path already has collisions, can't optimize
-        print("    Warning: Input path has collisions, skipping optimization")
         return path
 
     initial_cost = best_cost
-
-    # Use only 8 directions at 45-degree increments
-    directions = DIRECTIONS_45
-
-    step_size = initial_step
-    no_improve_count = 0
+    current_step = step_size
 
     for iteration in range(iterations):
-        improved_this_iter = False
+        improved = False
 
-        # Process each internal point
+        # === Strategy 1: Slide individual corner points along segment directions ===
         for i in range(1, len(best_path) - 1):
-            x, y = best_path[i]
-            point_improved = False
+            prev = best_path[i - 1]
+            curr = best_path[i]
+            next_pt = best_path[i + 1]
 
-            # Try all directions and find the best move
-            best_move_cost = best_cost
-            best_move_path = None
+            # Get incoming and outgoing segment directions (must be at 45-degree already)
+            d1 = get_45_direction(curr[0] - prev[0], curr[1] - prev[1])
+            d2 = get_45_direction(next_pt[0] - curr[0], next_pt[1] - curr[1])
 
-            for dx, dy in directions:
-                new_x = x + dx * step_size
-                new_y = y + dy * step_size
+            if d1 == (0, 0) or d2 == (0, 0):
+                continue
 
-                # Create candidate path
+            # Only move along the segment directions to maintain angles
+            move_directions = [d1, (-d1[0], -d1[1]), d2, (-d2[0], -d2[1])]
+
+            for move_dx, move_dy in move_directions:
+                new_x = curr[0] + move_dx * current_step
+                new_y = curr[1] + move_dy * current_step
+
                 candidate = list(best_path)
                 candidate[i] = (new_x, new_y)
 
-                # Evaluate - path_cost returns inf for collisions
-                candidate_cost = path_cost(candidate, index, obstacles, clearance,
-                                          length_weight, clearance_weight)
+                if not is_exact_45_segment(prev[0], prev[1], new_x, new_y):
+                    continue
+                if not is_exact_45_segment(new_x, new_y, next_pt[0], next_pt[1]):
+                    continue
 
-                # Only accept if strictly better (no collisions and lower cost)
-                if candidate_cost < best_move_cost:
-                    best_move_cost = candidate_cost
-                    best_move_path = candidate
-                    point_improved = True
+                candidate_cost = fast_path_cost(candidate, index, clearance,
+                                               length_weight, clearance_weight)
 
-            # Apply the best move for this point
-            if point_improved and best_move_path is not None:
-                best_path = best_move_path
-                best_cost = best_move_cost
-                improved_this_iter = True
+                if candidate_cost < best_cost:
+                    best_path = candidate
+                    best_cost = candidate_cost
+                    improved = True
 
-        if improved_this_iter:
-            no_improve_count = 0
+        # === Strategy 2: Slide horizontal/vertical segments perpendicular to their direction ===
+        # When sliding a H/V segment, we adjust its endpoints to maintain 45-deg with neighbors
+        for i in range(1, len(best_path) - 1):
+            if i + 1 >= len(best_path) - 1:
+                continue
+
+            p0 = best_path[i - 1]
+            p1 = best_path[i]
+            p2 = best_path[i + 1]
+            if i + 2 < len(best_path):
+                p3 = best_path[i + 2]
+            else:
+                continue
+
+            seg_dx = p2[0] - p1[0]
+            seg_dy = p2[1] - p1[1]
+
+            # Only apply to horizontal or vertical segments
+            is_horizontal = abs(seg_dy) < 0.001 and abs(seg_dx) > 0.001
+            is_vertical = abs(seg_dx) < 0.001 and abs(seg_dy) > 0.001
+
+            if not (is_horizontal or is_vertical):
+                continue
+
+            # Get neighbor segment directions
+            d_in = get_45_direction(p1[0] - p0[0], p1[1] - p0[1])
+            d_out = get_45_direction(p3[0] - p2[0], p3[1] - p2[1])
+
+            if d_in == (0, 0) or d_out == (0, 0):
+                continue
+
+            # For a horizontal segment:
+            #   - Slide up: move p1 by (+step if d_in going right-up, -step if going left-up, etc)
+            #   - The key is: to maintain 45-deg with p0, if we move p1 up by delta_y,
+            #     we need to move p1's x by delta_y * (d_in[0]/d_in[1]) IF d_in[1] != 0
+            # For vertical: similar logic with x/y swapped
+
+            if is_horizontal:
+                # Check incoming/outgoing can slide
+                if abs(d_in[1]) <= 0.5 or abs(d_out[1]) <= 0.5:
+                    continue  # Can't slide with vertical neighbors
+
+                # Slide up (+y) or down (-y)
+                for slide_dir in [1, -1]:
+                    delta_y = slide_dir * current_step
+
+                    # For 45-degree diagonals, delta_x = ±delta_y
+                    # d_in is normalized, so d_in[0]/d_in[1] is either +1 or -1 for diagonals
+                    delta_x1 = delta_y * (1 if d_in[0] * d_in[1] > 0 else -1)
+                    delta_x2 = delta_y * (1 if d_out[0] * d_out[1] > 0 else -1)
+
+                    new_p1 = (p1[0] + delta_x1, p1[1] + delta_y)
+                    new_p2 = (p2[0] + delta_x2, p2[1] + delta_y)
+
+                    # Round to avoid floating point drift (3 decimal places = 0.001mm precision)
+                    new_p1 = (round(new_p1[0], 3), round(new_p1[1], 3))
+                    new_p2 = (round(new_p2[0], 3), round(new_p2[1], 3))
+
+                    # Verify 45-degree constraints
+                    if not is_exact_45_segment(p0[0], p0[1], new_p1[0], new_p1[1]):
+                        continue
+                    if not is_exact_45_segment(new_p1[0], new_p1[1], new_p2[0], new_p2[1]):
+                        continue
+                    if not is_exact_45_segment(new_p2[0], new_p2[1], p3[0], p3[1]):
+                        continue
+
+                    candidate = list(best_path)
+                    candidate[i] = new_p1
+                    candidate[i + 1] = new_p2
+
+                    candidate_cost = fast_path_cost(candidate, index, clearance,
+                                                   length_weight, clearance_weight)
+
+                    if candidate_cost < best_cost:
+                        best_path = candidate
+                        best_cost = candidate_cost
+                        improved = True
+
+            elif is_vertical:
+                # Check incoming/outgoing can slide
+                if abs(d_in[0]) <= 0.5 or abs(d_out[0]) <= 0.5:
+                    continue  # Can't slide with horizontal neighbors
+
+                # Slide left (-x) or right (+x)
+                for slide_dir in [1, -1]:
+                    delta_x = slide_dir * current_step
+
+                    # For 45-degree diagonals, delta_y = ±delta_x
+                    delta_y1 = delta_x * (1 if d_in[0] * d_in[1] > 0 else -1)
+                    delta_y2 = delta_x * (1 if d_out[0] * d_out[1] > 0 else -1)
+
+                    new_p1 = (p1[0] + delta_x, p1[1] + delta_y1)
+                    new_p2 = (p2[0] + delta_x, p2[1] + delta_y2)
+
+                    # Round to avoid floating point drift
+                    new_p1 = (round(new_p1[0], 3), round(new_p1[1], 3))
+                    new_p2 = (round(new_p2[0], 3), round(new_p2[1], 3))
+
+                    if not is_exact_45_segment(p0[0], p0[1], new_p1[0], new_p1[1]):
+                        continue
+                    if not is_exact_45_segment(new_p1[0], new_p1[1], new_p2[0], new_p2[1]):
+                        continue
+                    if not is_exact_45_segment(new_p2[0], new_p2[1], p3[0], p3[1]):
+                        continue
+
+                    candidate = list(best_path)
+                    candidate[i] = new_p1
+                    candidate[i + 1] = new_p2
+
+                    candidate_cost = fast_path_cost(candidate, index, clearance,
+                                                   length_weight, clearance_weight)
+
+                    if candidate_cost < best_cost:
+                        best_path = candidate
+                        best_cost = candidate_cost
+                        improved = True
+
+        if not improved:
+            current_step *= 0.7
+            if current_step < 0.02:
+                break
+
+    # Final pass: Try to center horizontal segments between nearby obstacles
+    for i in range(1, len(best_path) - 1):
+        if i + 1 >= len(best_path) - 1:
+            continue
+
+        p0 = best_path[i - 1]
+        p1 = best_path[i]
+        p2 = best_path[i + 1]
+        if i + 2 < len(best_path):
+            p3 = best_path[i + 2]
         else:
-            no_improve_count += 1
-            # Reduce step size after consecutive non-improvements
-            if no_improve_count >= 3:
-                step_size *= 0.7
-                no_improve_count = 0
-                if step_size < min_step:
-                    break
+            continue
 
-    # Report improvement
+        seg_dx = p2[0] - p1[0]
+        seg_dy = p2[1] - p1[1]
+
+        is_horizontal = abs(seg_dy) < 0.001 and abs(seg_dx) > 0.001
+
+        if not is_horizontal:
+            continue
+
+        d_in = get_45_direction(p1[0] - p0[0], p1[1] - p0[1])
+        d_out = get_45_direction(p3[0] - p2[0], p3[1] - p2[1])
+
+        if abs(d_in[1]) <= 0.5 or abs(d_out[1]) <= 0.5:
+            continue
+
+        # Find obstacles above and below the segment
+        seg_y = p1[1]
+        seg_x_min = min(p1[0], p2[0])
+        seg_x_max = max(p1[0], p2[0])
+
+        obs_above_y = None
+        obs_below_y = None
+
+        for obs in index.get_nearby((p1[0] + p2[0])/2, seg_y, 2.0):
+            # Determine obstacle dimensions accounting for rotation
+            # For 90-degree rotation, width and height swap
+            rot_mod = obs.rotation % 180
+            if abs(rot_mod - 90) < 1:  # 90 or 270 degrees
+                eff_width = obs.height
+                eff_height = obs.width
+            else:
+                eff_width = obs.width
+                eff_height = obs.height
+
+            # Check if obstacle is in the x range of the segment
+            if obs.x < seg_x_min - eff_width/2 - 0.1 or obs.x > seg_x_max + eff_width/2 + 0.1:
+                continue
+
+            # Determine obstacle edge y positions
+            half_h = eff_height / 2
+            obs_top = obs.y - half_h  # smaller y = "above" in value
+            obs_bottom = obs.y + half_h  # larger y = "below" in value
+
+            if obs_bottom < seg_y and (obs_above_y is None or obs_bottom > obs_above_y):
+                obs_above_y = obs_bottom
+            if obs_top > seg_y and (obs_below_y is None or obs_top < obs_below_y):
+                obs_below_y = obs_top
+
+        if obs_above_y is not None and obs_below_y is not None:
+            # Calculate optimal centered y position
+            optimal_y = (obs_above_y + obs_below_y) / 2
+            delta_y = optimal_y - seg_y
+
+            if abs(delta_y) > 0.001:  # Only if not already centered
+                delta_x1 = delta_y * (1 if d_in[0] * d_in[1] > 0 else -1)
+                delta_x2 = delta_y * (1 if d_out[0] * d_out[1] > 0 else -1)
+
+                new_p1 = (round(p1[0] + delta_x1, 3), round(p1[1] + delta_y, 3))
+                new_p2 = (round(p2[0] + delta_x2, 3), round(p2[1] + delta_y, 3))
+
+                # Verify constraints
+                if (is_exact_45_segment(p0[0], p0[1], new_p1[0], new_p1[1]) and
+                    is_exact_45_segment(new_p1[0], new_p1[1], new_p2[0], new_p2[1]) and
+                    is_exact_45_segment(new_p2[0], new_p2[1], p3[0], p3[1])):
+
+                    # Check collision
+                    candidate = list(best_path)
+                    candidate[i] = new_p1
+                    candidate[i + 1] = new_p2
+
+                    candidate_cost = fast_path_cost(candidate, index, clearance,
+                                                   length_weight, clearance_weight)
+
+                    if candidate_cost < float('inf'):
+                        best_path = candidate
+                        print(f"    Centered segment at y={optimal_y:.3f}")
+
     if best_cost < initial_cost:
         improvement = (initial_cost - best_cost) / initial_cost * 100
         print(f"    Optimized: cost {initial_cost:.2f} -> {best_cost:.2f} ({improvement:.1f}% improvement)")
 
     return best_path
+
+
+def remove_kinks(
+    path: List[Tuple[float, float]],
+    obstacles: List[Obstacle],
+    clearance: float
+) -> List[Tuple[float, float]]:
+    """
+    Remove unnecessary kinks/zigzags from the path.
+    Tries multiple strategies:
+    1. Simple point skipping if result is still 45-degree
+    2. Replacing multiple segments with a diagonal+H/V or H/V+diagonal pair
+    """
+    if len(path) < 3:
+        return path
+
+    index = SpatialIndex(obstacles, cell_size=1.0)
+    result = list(path)
+    changed = True
+
+    while changed:
+        changed = False
+        i = 1
+        while i < len(result) - 1:
+            p_prev = result[i - 1]
+            p_curr = result[i]
+            p_next = result[i + 1]
+
+            # Strategy 1: Simple point skip if result is 45-degree
+            if is_exact_45_segment(p_prev[0], p_prev[1], p_next[0], p_next[1]):
+                if segment_is_clear(p_prev[0], p_prev[1], p_next[0], p_next[1], index, clearance):
+                    old_len = (math.sqrt((p_curr[0]-p_prev[0])**2 + (p_curr[1]-p_prev[1])**2) +
+                              math.sqrt((p_next[0]-p_curr[0])**2 + (p_next[1]-p_curr[1])**2))
+                    new_len = math.sqrt((p_next[0]-p_prev[0])**2 + (p_next[1]-p_prev[1])**2)
+                    if new_len <= old_len * 1.01:
+                        result.pop(i)
+                        changed = True
+                        continue
+
+            # Strategy 2: Try to replace 3 segments with 2 (diagonal + H/V or H/V + diagonal)
+            if i < len(result) - 2:
+                p_far = result[i + 2]
+
+                # Try diagonal-first: p_prev -> corner -> p_far
+                # Corner at 45-degree from p_prev, aligned with p_far
+                dx = p_far[0] - p_prev[0]
+                dy = p_far[1] - p_prev[1]
+
+                # Option A: diagonal then horizontal
+                # Go diagonally until same y as p_far, then horizontal
+                diag_dy = dy
+                diag_dx = diag_dy if diag_dy != 0 else 0  # 45-degree diagonal has |dx| = |dy|
+                if diag_dx != 0:
+                    diag_dx = diag_dx if (dx > 0) == (diag_dx > 0) else -diag_dx
+                corner_a = (p_prev[0] + diag_dx, p_prev[1] + diag_dy)
+                if (is_exact_45_segment(p_prev[0], p_prev[1], corner_a[0], corner_a[1]) and
+                    is_exact_45_segment(corner_a[0], corner_a[1], p_far[0], p_far[1])):
+                    if (segment_is_clear(p_prev[0], p_prev[1], corner_a[0], corner_a[1], index, clearance) and
+                        segment_is_clear(corner_a[0], corner_a[1], p_far[0], p_far[1], index, clearance)):
+                        # Check if shorter
+                        old_len = sum(math.sqrt((result[j+1][0]-result[j][0])**2 + (result[j+1][1]-result[j][1])**2)
+                                     for j in range(i-1, i+2))
+                        new_len = (math.sqrt((corner_a[0]-p_prev[0])**2 + (corner_a[1]-p_prev[1])**2) +
+                                  math.sqrt((p_far[0]-corner_a[0])**2 + (p_far[1]-corner_a[1])**2))
+                        if new_len <= old_len * 1.01:
+                            result[i] = corner_a
+                            result.pop(i + 1)
+                            changed = True
+                            continue
+
+                # Option B: horizontal then diagonal
+                # Go horizontally until diagonal path to p_far
+                horiz_dx = dx - dy if abs(dx) > abs(dy) else dx + dy if dx * dy < 0 else dx - dy
+                corner_b = (p_prev[0] + horiz_dx, p_prev[1])
+                if (is_exact_45_segment(p_prev[0], p_prev[1], corner_b[0], corner_b[1]) and
+                    is_exact_45_segment(corner_b[0], corner_b[1], p_far[0], p_far[1])):
+                    if (segment_is_clear(p_prev[0], p_prev[1], corner_b[0], corner_b[1], index, clearance) and
+                        segment_is_clear(corner_b[0], corner_b[1], p_far[0], p_far[1], index, clearance)):
+                        old_len = sum(math.sqrt((result[j+1][0]-result[j][0])**2 + (result[j+1][1]-result[j][1])**2)
+                                     for j in range(i-1, i+2))
+                        new_len = (math.sqrt((corner_b[0]-p_prev[0])**2 + (corner_b[1]-p_prev[1])**2) +
+                                  math.sqrt((p_far[0]-corner_b[0])**2 + (p_far[1]-corner_b[1])**2))
+                        if new_len <= old_len * 1.01:
+                            result[i] = corner_b
+                            result.pop(i + 1)
+                            changed = True
+                            continue
+
+            i += 1
+
+    return result
+
+
+def optimize_simplified_path(
+    path: List[Tuple[float, float]],
+    obstacles: List[Obstacle],
+    clearance: float,
+    iterations: int = 50,
+    initial_step: float = 0.1,
+    min_step: float = 0.01,
+    length_weight: float = 1.0,
+    clearance_weight: float = 10.0
+) -> List[Tuple[float, float]]:
+    """
+    Optimize path by adjusting corner positions while maintaining 45-degree constraints.
+    Wrapper that calls optimize_path_45deg.
+    """
+    return optimize_path_45deg(path, obstacles, clearance, iterations, initial_step,
+                               length_weight, clearance_weight)
 
 
 def snap_to_45_degrees(
