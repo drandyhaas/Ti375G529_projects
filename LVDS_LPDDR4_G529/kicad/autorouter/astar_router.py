@@ -26,6 +26,9 @@ class RouteConfig:
     # Escape zone parameters - for escaping congested stub areas
     escape_radius: float = 2.0  # mm - distance from start within which reduced clearance applies
     escape_clearance: float = 0.02  # mm - minimal clearance in escape zone (just avoid touching)
+    # Heuristic weight: 1.0 = standard A*, <1.0 = more Dijkstra-like (explores broader paths)
+    # Lower values help find paths around obstacles that require detours away from the goal
+    heuristic_weight: float = 0.5
 
 
 class State:
@@ -148,7 +151,8 @@ class ObstacleGrid:
         for via in self.pcb_data.vias:
             if via.net_id == self.exclude_net_id:
                 continue
-            radius = via.size / 2 + self.config.clearance
+            # Store just the physical radius - clearance is added during collision check
+            radius = via.size / 2
             # Vias block all layers
             for layer in self.config.layers:
                 self._add_circle_obstacle(layer, via.x, via.y, radius)
@@ -159,8 +163,8 @@ class ObstacleGrid:
             if net_id == self.exclude_net_id:
                 continue
             for pad in pads:
-                # Use average of size as radius approximation
-                radius = max(pad.size_x, pad.size_y) / 2 + self.config.clearance
+                # Store just the physical radius - clearance is added during collision check
+                radius = max(pad.size_x, pad.size_y) / 2
                 for layer in pad.layers:
                     if layer in self.config.layers:
                         self._add_circle_obstacle(layer, pad.global_x, pad.global_y, radius)
@@ -475,8 +479,10 @@ class AStarRouter:
         goal = State(*self._snap_to_grid(goal.x, goal.y), goal.layer)
 
         # Priority queue: (f_cost, counter, g_cost, state, parent)
+        # Use weighted heuristic to encourage broader exploration
+        h_weight = self.config.heuristic_weight
         counter = 0
-        open_set = [(self._heuristic(start, goal), counter, 0.0, start, None)]
+        open_set = [(self._heuristic(start, goal) * h_weight, counter, 0.0, start, None)]
 
         # Best g_cost to reach each state
         g_costs: Dict[State, float] = {start: 0.0}
@@ -538,7 +544,7 @@ class AStarRouter:
                 if neighbor not in g_costs or new_g < g_costs[neighbor]:
                     g_costs[neighbor] = new_g
                     parents[neighbor] = current
-                    f = new_g + self._heuristic(neighbor, goal)
+                    f = new_g + self._heuristic(neighbor, goal) * h_weight
                     counter += 1
                     heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
@@ -557,7 +563,7 @@ class AStarRouter:
                     if neighbor not in g_costs or new_g < g_costs[neighbor]:
                         g_costs[neighbor] = new_g
                         parents[neighbor] = current
-                        f = new_g + self._heuristic(neighbor, goal)
+                        f = new_g + self._heuristic(neighbor, goal) * h_weight
                         counter += 1
                         heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
@@ -580,10 +586,11 @@ class AStarRouter:
 
         via_radius = self.config.via_size / 2
         track_half_width = self.config.track_width / 2
+        h_weight = self.config.heuristic_weight
 
         # Priority queue: (f_cost, counter, g_cost, state, parent)
         counter = 0
-        open_set = [(self._heuristic_to_segments(start, target_segments), counter, 0.0, start, None)]
+        open_set = [(self._heuristic_to_segments(start, target_segments) * h_weight, counter, 0.0, start, None)]
 
         g_costs: Dict[State, float] = {start: 0.0}
         parents: Dict[State, Optional[State]] = {start: None}
@@ -643,7 +650,7 @@ class AStarRouter:
                 if neighbor not in g_costs or new_g < g_costs[neighbor]:
                     g_costs[neighbor] = new_g
                     parents[neighbor] = current
-                    f = new_g + self._heuristic_to_segments(neighbor, target_segments)
+                    f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
                     counter += 1
                     heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
@@ -662,7 +669,7 @@ class AStarRouter:
                     if neighbor not in g_costs or new_g < g_costs[neighbor]:
                         g_costs[neighbor] = new_g
                         parents[neighbor] = current
-                        f = new_g + self._heuristic_to_segments(neighbor, target_segments)
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
                         counter += 1
                         heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
@@ -686,6 +693,7 @@ class AStarRouter:
         via_radius = self.config.via_size / 2
         track_half_width = self.config.track_width / 2
         step = self.config.grid_step
+        h_weight = self.config.heuristic_weight
 
         # Escape zone parameters from config - for escaping congested stub areas
         escape_radius = self.config.escape_radius
@@ -730,7 +738,7 @@ class AStarRouter:
         closed: Set[State] = set()
 
         for state, source_pt in start_states:
-            h = self._heuristic_to_segments(state, target_segments)
+            h = self._heuristic_to_segments(state, target_segments) * h_weight
             heapq.heappush(open_set, (h, counter, 0.0, state, None))
             counter += 1
             g_costs[state] = 0.0
@@ -809,7 +817,7 @@ class AStarRouter:
                     parents[neighbor] = current
                     if current in source_points:
                         source_points[neighbor] = source_points[current]
-                    f = new_g + self._heuristic_to_segments(neighbor, target_segments)
+                    f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
                     counter += 1
                     heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
@@ -834,7 +842,7 @@ class AStarRouter:
                         parents[neighbor] = current
                         if current in source_points:
                             source_points[neighbor] = source_points[current]
-                        f = new_g + self._heuristic_to_segments(neighbor, target_segments)
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
                         counter += 1
                         heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
