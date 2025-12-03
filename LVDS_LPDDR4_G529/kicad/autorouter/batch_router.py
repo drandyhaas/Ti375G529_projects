@@ -167,11 +167,11 @@ def batch_route(input_file: str, output_file: str, net_names: List[str]) -> None
     print(f"Loading {input_file}...")
     pcb_data = parse_kicad_pcb(input_file)
 
-    # Configure routing
+    # Configure routing - use same via size as BGA (0.3/0.2)
     config = RouteConfig(
         track_width=0.1,
         clearance=0.1,
-        via_size=0.4,
+        via_size=0.3,
         via_drill=0.2,
         grid_step=0.1,
         via_cost=0.5,

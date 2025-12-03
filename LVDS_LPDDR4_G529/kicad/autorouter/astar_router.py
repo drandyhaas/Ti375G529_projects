@@ -300,6 +300,70 @@ class AStarRouter:
 
         return h
 
+    def _heuristic_to_segments(self, state: State, target_segments: List[Segment]) -> float:
+        """Heuristic: minimum distance to any target segment + via cost if needed."""
+        min_dist = float('inf')
+        needs_via = True
+
+        for seg in target_segments:
+            # Distance from point to segment
+            dist = self._point_to_segment_distance(state.x, state.y,
+                                                    seg.start_x, seg.start_y,
+                                                    seg.end_x, seg.end_y)
+            if dist < min_dist:
+                min_dist = dist
+                needs_via = (state.layer != seg.layer)
+
+        if needs_via:
+            min_dist += self.config.via_cost
+
+        return min_dist
+
+    def _point_to_segment_distance(self, px: float, py: float,
+                                    x1: float, y1: float, x2: float, y2: float) -> float:
+        """Calculate distance from point to line segment."""
+        dx, dy = x2 - x1, y2 - y1
+        seg_len_sq = dx * dx + dy * dy
+
+        if seg_len_sq < 0.0001:  # Degenerate segment
+            return math.sqrt((px - x1)**2 + (py - y1)**2)
+
+        # Project point onto line, clamped to segment
+        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / seg_len_sq))
+        closest_x = x1 + t * dx
+        closest_y = y1 + t * dy
+
+        return math.sqrt((px - closest_x)**2 + (py - closest_y)**2)
+
+    def _can_connect_to_segment(self, state: State, seg: Segment,
+                                 via_radius: float, track_half_width: float) -> Optional[Tuple[float, float]]:
+        """
+        Check if current position can connect to the segment via copper overlap.
+        Returns the connection point on the segment, or None if no connection.
+
+        IMPORTANT: Connection is only possible if on the SAME LAYER as the segment.
+        A via connects layers at the via location, not to tracks on other layers.
+        """
+        # Must be on the same layer to connect!
+        if state.layer != seg.layer:
+            return None
+
+        # Same layer - check if we're close enough to the track
+        dist = self._point_to_segment_distance(state.x, state.y,
+                                               seg.start_x, seg.start_y,
+                                               seg.end_x, seg.end_y)
+        # Can connect if copper overlaps (via/track radius + track half width)
+        if dist <= via_radius + track_half_width + 0.01:
+            # Find the closest point on segment
+            dx, dy = seg.end_x - seg.start_x, seg.end_y - seg.start_y
+            seg_len_sq = dx * dx + dy * dy
+            if seg_len_sq < 0.0001:
+                return (seg.start_x, seg.start_y)
+            t = max(0, min(1, ((state.x - seg.start_x) * dx + (state.y - seg.start_y) * dy) / seg_len_sq))
+            return (seg.start_x + t * dx, seg.start_y + t * dy)
+
+        return None
+
     def _is_goal(self, state: State, goal: State, tolerance: float = 0.05) -> bool:
         """Check if state is close enough to goal."""
         dx = abs(state.x - goal.x)
@@ -409,6 +473,244 @@ class AStarRouter:
                         g_costs[neighbor] = new_g
                         parents[neighbor] = current
                         f = new_g + self._heuristic(neighbor, goal)
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+
+        print(f"No route found after {iterations} iterations")
+        return None
+
+    def route_to_segments(self, start: State, target_segments: List[Segment],
+                          max_iterations: int = 100000) -> Optional[Tuple[List[State], Tuple[float, float]]]:
+        """
+        Find a path from start to any point on the target segments.
+        Allows connecting via copper overlap (via pad touching track).
+
+        Returns (path, connection_point) or None if no path found.
+        The connection_point is where the route connects to the target segment.
+        """
+        original_start = start
+        start = State(*self._snap_to_grid(start.x, start.y), start.layer)
+
+        via_radius = self.config.via_size / 2
+        track_half_width = self.config.track_width / 2
+
+        # Priority queue: (f_cost, counter, g_cost, state, parent)
+        counter = 0
+        open_set = [(self._heuristic_to_segments(start, target_segments), counter, 0.0, start, None)]
+
+        g_costs: Dict[State, float] = {start: 0.0}
+        parents: Dict[State, Optional[State]] = {start: None}
+        closed: Set[State] = set()
+
+        iterations = 0
+
+        while open_set and iterations < max_iterations:
+            iterations += 1
+
+            f, _, g, current, parent = heapq.heappop(open_set)
+
+            if current in closed:
+                continue
+
+            closed.add(current)
+
+            # Check if we can connect to any target segment from here
+            for seg in target_segments:
+                conn_point = self._can_connect_to_segment(current, seg, via_radius, track_half_width)
+                if conn_point is not None:
+                    # Found connection! Reconstruct path
+                    path = [current]
+                    while parents[path[-1]] is not None:
+                        path.append(parents[path[-1]])
+                    path.reverse()
+
+                    # Replace snapped start with original
+                    path[0] = original_start
+
+                    # Add the connection point to the path to ensure explicit segment
+                    # from route endpoint to the stub
+                    conn_state = State(conn_point[0], conn_point[1], seg.layer)
+                    path.append(conn_state)
+
+                    print(f"Route found in {iterations} iterations, path length: {len(path)}")
+                    print(f"  Connecting to segment at ({conn_point[0]:.3f}, {conn_point[1]:.3f})")
+                    return (path, conn_point)
+
+            # Expand neighbors - 8 directions on same layer
+            step = self.config.grid_step
+
+            for dx, dy in self.DIRECTIONS:
+                nx = current.x + dx * step
+                ny = current.y + dy * step
+
+                if self.obstacles.segment_collides(current.x, current.y, nx, ny, current.layer):
+                    continue
+
+                neighbor = State(nx, ny, current.layer)
+                move_cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
+                new_g = g + move_cost
+
+                if neighbor in closed:
+                    continue
+
+                if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                    g_costs[neighbor] = new_g
+                    parents[neighbor] = current
+                    f = new_g + self._heuristic_to_segments(neighbor, target_segments)
+                    counter += 1
+                    heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+
+            # Try via to other layers
+            if not self.obstacles.via_collides(current.x, current.y):
+                for layer in self.config.layers:
+                    if layer == current.layer:
+                        continue
+
+                    neighbor = State(current.x, current.y, layer)
+                    new_g = g + self.config.via_cost
+
+                    if neighbor in closed:
+                        continue
+
+                    if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                        g_costs[neighbor] = new_g
+                        parents[neighbor] = current
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments)
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+
+        print(f"No route found after {iterations} iterations")
+        return None
+
+    def route_segments_to_segments(self, source_segments: List[Segment],
+                                    target_segments: List[Segment],
+                                    max_iterations: int = 100000) -> Optional[Tuple[List[State], Tuple[float, float], Tuple[float, float]]]:
+        """
+        Find a path from any point on source segments to any point on target segments.
+        This allows escaping from congested stub areas.
+
+        Returns (path, source_connection_point, target_connection_point) or None.
+        """
+        via_radius = self.config.via_size / 2
+        track_half_width = self.config.track_width / 2
+        step = self.config.grid_step
+
+        # Generate starting points along source segments (sample every grid step)
+        start_states = []
+        for seg in source_segments:
+            dx = seg.end_x - seg.start_x
+            dy = seg.end_y - seg.start_y
+            length = math.sqrt(dx*dx + dy*dy)
+            if length < 0.001:
+                continue
+            num_points = max(2, int(length / step) + 1)
+            for i in range(num_points):
+                t = i / (num_points - 1)
+                x = seg.start_x + t * dx
+                y = seg.start_y + t * dy
+                # Snap to grid
+                x, y = self._snap_to_grid(x, y)
+                start_states.append((State(x, y, seg.layer), (seg.start_x + t*dx, seg.start_y + t*dy)))
+
+        if not start_states:
+            return None
+
+        # Initialize A* with all starting points
+        counter = 0
+        open_set = []
+        g_costs: Dict[State, float] = {}
+        parents: Dict[State, Optional[State]] = {}
+        source_points: Dict[State, Tuple[float, float]] = {}  # Track which source point each state came from
+        closed: Set[State] = set()
+
+        for state, source_pt in start_states:
+            h = self._heuristic_to_segments(state, target_segments)
+            heapq.heappush(open_set, (h, counter, 0.0, state, None))
+            counter += 1
+            g_costs[state] = 0.0
+            parents[state] = None
+            source_points[state] = source_pt
+
+        iterations = 0
+
+        while open_set and iterations < max_iterations:
+            iterations += 1
+
+            f, _, g, current, parent = heapq.heappop(open_set)
+
+            if current in closed:
+                continue
+
+            closed.add(current)
+
+            # Propagate source point info
+            if current not in source_points and parent in source_points:
+                source_points[current] = source_points[parent]
+
+            # Check if we can connect to any target segment
+            for seg in target_segments:
+                conn_point = self._can_connect_to_segment(current, seg, via_radius, track_half_width)
+                if conn_point is not None:
+                    # Found connection! Reconstruct path
+                    path = [current]
+                    while parents[path[-1]] is not None:
+                        path.append(parents[path[-1]])
+                    path.reverse()
+
+                    # Add connection point to path
+                    conn_state = State(conn_point[0], conn_point[1], seg.layer)
+                    path.append(conn_state)
+
+                    # Get source connection point
+                    src_pt = source_points.get(path[0], (path[0].x, path[0].y))
+
+                    print(f"Route found in {iterations} iterations, path length: {len(path)}")
+                    print(f"  From source at ({src_pt[0]:.3f}, {src_pt[1]:.3f})")
+                    print(f"  To target at ({conn_point[0]:.3f}, {conn_point[1]:.3f})")
+                    return (path, src_pt, conn_point)
+
+            # Expand neighbors
+            for dx, dy in self.DIRECTIONS:
+                nx = current.x + dx * step
+                ny = current.y + dy * step
+
+                if self.obstacles.segment_collides(current.x, current.y, nx, ny, current.layer):
+                    continue
+
+                neighbor = State(nx, ny, current.layer)
+                move_cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
+                new_g = g + move_cost
+
+                if neighbor in closed:
+                    continue
+
+                if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                    g_costs[neighbor] = new_g
+                    parents[neighbor] = current
+                    if current in source_points:
+                        source_points[neighbor] = source_points[current]
+                    f = new_g + self._heuristic_to_segments(neighbor, target_segments)
+                    counter += 1
+                    heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+
+            # Try via to other layers
+            if not self.obstacles.via_collides(current.x, current.y):
+                for layer in self.config.layers:
+                    if layer == current.layer:
+                        continue
+
+                    neighbor = State(current.x, current.y, layer)
+                    new_g = g + self.config.via_cost
+
+                    if neighbor in closed:
+                        continue
+
+                    if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                        g_costs[neighbor] = new_g
+                        parents[neighbor] = current
+                        if current in source_points:
+                            source_points[neighbor] = source_points[current]
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments)
                         counter += 1
                         heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
@@ -901,6 +1203,41 @@ def find_segments_beyond_intersection(segments: List[Segment], intersected_seg: 
     return to_remove
 
 
+def get_stub_segments_for_endpoint(pcb_data: PCBData, net_id: int,
+                                    endpoint: Tuple[float, float, str]) -> List[Segment]:
+    """Get all segments of a stub that contains the given endpoint."""
+    ex, ey, elayer = endpoint
+    endpoint_key = (round(ex, 3), round(ey, 3))
+
+    # Get all segments for this net
+    net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+
+    # Find segments connected to this endpoint and trace the stub
+    stub_segments = []
+    visited = set()
+    queue = [endpoint_key]
+
+    while queue:
+        current_key = queue.pop(0)
+
+        for seg in net_segments:
+            if id(seg) in visited:
+                continue
+
+            start_key = (round(seg.start_x, 3), round(seg.start_y, 3))
+            end_key = (round(seg.end_x, 3), round(seg.end_y, 3))
+
+            if start_key == current_key or end_key == current_key:
+                visited.add(id(seg))
+                stub_segments.append(seg)
+                # Add the other end to explore
+                other_key = end_key if start_key == current_key else start_key
+                if other_key not in [q for q in queue]:
+                    queue.append(other_key)
+
+    return stub_segments
+
+
 def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[RouteResult]:
     """
     Route a single net from its stub endpoints.
@@ -928,11 +1265,38 @@ def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[R
     # Create router
     router = AStarRouter(obstacles, config)
 
+    # Get target stub segments (allows connecting anywhere along them)
+    target_segments = get_stub_segments_for_endpoint(pcb_data, net_id, endpoints[1])
+
     # Route
     start = State(start_x, start_y, start_layer)
     goal = State(end_x, end_y, end_layer)
 
-    path = router.route(start, goal)
+    # Get source stub segments too (for segment-to-segment routing)
+    source_segments = get_stub_segments_for_endpoint(pcb_data, net_id, endpoints[0])
+
+    # Try routing to any point on the target stub segments first
+    path = None
+    connection_point = None
+    source_connection_point = None
+
+    if target_segments:
+        print(f"  Target stub has {len(target_segments)} segments, allowing mid-segment connection")
+        result = router.route_to_segments(start, target_segments)
+        if result:
+            path, connection_point = result
+
+    # Fall back to endpoint-to-endpoint routing
+    if path is None:
+        print("  Trying endpoint-to-endpoint routing...")
+        path = router.route(start, goal)
+
+    # Fall back to segment-to-segment routing (can escape from blocked endpoints)
+    if path is None and source_segments and target_segments:
+        print("  Trying segment-to-segment routing (escape from congested area)...")
+        result = router.route_segments_to_segments(source_segments, target_segments)
+        if result:
+            path, source_connection_point, connection_point = result
 
     if path is None:
         return None
