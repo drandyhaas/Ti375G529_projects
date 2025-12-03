@@ -317,7 +317,11 @@ class AStarRouter:
 
         Returns list of States forming the path, or None if no path found.
         """
-        # Snap start and goal to grid
+        # Save original endpoints before snapping
+        original_start = start
+        original_goal = goal
+
+        # Snap start and goal to grid for A* search
         start = State(*self._snap_to_grid(start.x, start.y), start.layer)
         goal = State(*self._snap_to_grid(goal.x, goal.y), goal.layer)
 
@@ -353,6 +357,11 @@ class AStarRouter:
                 while parents[path[-1]] is not None:
                     path.append(parents[path[-1]])
                 path.reverse()
+
+                # Replace snapped endpoints with original exact coordinates
+                path[0] = original_start
+                path[-1] = original_goal
+
                 print(f"Route found in {iterations} iterations, path length: {len(path)}")
                 return path
 
