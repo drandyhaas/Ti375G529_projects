@@ -52,6 +52,11 @@ class Segment:
     layer: str
     net_id: int
     uuid: str = ""
+    # Original string representations for exact file matching
+    start_x_str: str = ""
+    start_y_str: str = ""
+    end_x_str: str = ""
+    end_y_str: str = ""
 
 
 @dataclass
@@ -402,7 +407,12 @@ def extract_segments(content: str) -> List[Segment]:
             width=float(m.group(5)),
             layer=m.group(6),
             net_id=int(m.group(7)),
-            uuid=m.group(8)
+            uuid=m.group(8),
+            # Store original strings for exact file matching
+            start_x_str=m.group(1),
+            start_y_str=m.group(2),
+            end_x_str=m.group(3),
+            end_y_str=m.group(4)
         )
         segments.append(segment)
 

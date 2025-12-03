@@ -1065,12 +1065,15 @@ def apply_route_result_to_pcb(input_path: str, output_path: str, result: RouteRe
 
     # First, handle segment removals
     for seg in result.segments_to_remove:
-        # Build a regex pattern to match this specific segment
-        # We need to match the segment by its coordinates
+        # Use original string coordinates if available, otherwise format floats
+        sx_str = seg.start_x_str if seg.start_x_str else f"{seg.start_x:.6f}"
+        sy_str = seg.start_y_str if seg.start_y_str else f"{seg.start_y:.6f}"
+        ex_str = seg.end_x_str if seg.end_x_str else f"{seg.end_x:.6f}"
+        ey_str = seg.end_y_str if seg.end_y_str else f"{seg.end_y:.6f}"
         pattern = (
             rf'\(segment\s+'
-            rf'\(start\s+{re.escape(f"{seg.start_x:.6f}")}\s+{re.escape(f"{seg.start_y:.6f}")}\)\s+'
-            rf'\(end\s+{re.escape(f"{seg.end_x:.6f}")}\s+{re.escape(f"{seg.end_y:.6f}")}\)\s+'
+            rf'\(start\s+{re.escape(sx_str)}\s+{re.escape(sy_str)}\)\s+'
+            rf'\(end\s+{re.escape(ex_str)}\s+{re.escape(ey_str)}\)\s+'
             rf'\(width\s+[\d.]+\)\s+'
             rf'\(layer\s+"{re.escape(seg.layer)}"\)\s+'
             rf'\(net\s+{seg.net_id}\)\s+'
@@ -1083,11 +1086,15 @@ def apply_route_result_to_pcb(input_path: str, output_path: str, result: RouteRe
 
     shortened_segments = []
     for seg, new_start_x, new_start_y, new_end_x, new_end_y in result.segments_to_shorten:
-        # Remove the original segment
+        # Use original string coordinates if available
+        sx_str = seg.start_x_str if seg.start_x_str else f"{seg.start_x:.6f}"
+        sy_str = seg.start_y_str if seg.start_y_str else f"{seg.start_y:.6f}"
+        ex_str = seg.end_x_str if seg.end_x_str else f"{seg.end_x:.6f}"
+        ey_str = seg.end_y_str if seg.end_y_str else f"{seg.end_y:.6f}"
         pattern = (
             rf'\(segment\s+'
-            rf'\(start\s+{re.escape(f"{seg.start_x:.6f}")}\s+{re.escape(f"{seg.start_y:.6f}")}\)\s+'
-            rf'\(end\s+{re.escape(f"{seg.end_x:.6f}")}\s+{re.escape(f"{seg.end_y:.6f}")}\)\s+'
+            rf'\(start\s+{re.escape(sx_str)}\s+{re.escape(sy_str)}\)\s+'
+            rf'\(end\s+{re.escape(ex_str)}\s+{re.escape(ey_str)}\)\s+'
             rf'\(width\s+[\d.]+\)\s+'
             rf'\(layer\s+"{re.escape(seg.layer)}"\)\s+'
             rf'\(net\s+{seg.net_id}\)\s+'
