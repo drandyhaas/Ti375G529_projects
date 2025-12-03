@@ -184,7 +184,7 @@ def analyze_pad(pad: Pad, layout: QFNLayout) -> PadInfo:
 
 
 def calculate_fanout_stub(pad_info: PadInfo, layout: QFNLayout,
-                          stub_length: float, min_straight: float,
+                          straight_length: float, max_diagonal_length: float,
                           fan_factor: float) -> Tuple[Tuple[float, float], Tuple[float, float]]:
     """
     Calculate fanout stub with two segments: straight then 45°.
@@ -193,12 +193,15 @@ def calculate_fanout_stub(pad_info: PadInfo, layout: QFNLayout,
     - corner_pos: where straight segment ends and 45° begins
     - end_pos: final fanned-out endpoint
 
-    The straight segment extends perpendicular to the chip edge.
-    The 45° segment fans outward (away from center) at true 45° angle.
+    The straight segment extends perpendicular to the chip edge (uniform for all pads).
+    The 45° diagonal length varies by position:
+    - Center pads: diagonal length = 0
+    - Corner pads: diagonal length = max_diagonal_length
+    - Linear interpolation in between
 
-    To maximize endpoint separation:
-    - Edge pads: short straight (early corner), long 45° to fan outward
-    - Center pads: full straight (no 45°), since already separated
+    Args:
+        straight_length: Length of straight stub (pad_length / 2, uniform for all)
+        max_diagonal_length: Max diagonal length for corner pads (chip_width / 3)
     """
     pad = pad_info.pad
     pad_x, pad_y = pad.global_x, pad.global_y
@@ -207,7 +210,14 @@ def calculate_fanout_stub(pad_info: PadInfo, layout: QFNLayout,
     if side == 'center':
         return ((pad_x, pad_y), (pad_x, pad_y))
 
-    # Calculate position along edge (0 = center, 1 = edge)
+    # Escape direction perpendicular to edge
+    esc_x, esc_y = pad_info.escape_direction
+
+    # Corner point: end of straight segment
+    corner_x = pad_x + esc_x * straight_length
+    corner_y = pad_y + esc_y * straight_length
+
+    # Calculate position along edge (0 = center, 1 = corner)
     if side in ('top', 'bottom'):
         half_width = layout.width / 2
         offset_from_center = abs(pad_x - layout.center_x)
@@ -217,28 +227,16 @@ def calculate_fanout_stub(pad_info: PadInfo, layout: QFNLayout,
         offset_from_center = abs(pad_y - layout.center_y)
         edge_position = offset_from_center / half_height if half_height > 0 else 0
 
-    # Edge pads (edge_position ~1): short straight (min_straight), early corner
-    # Center pads (edge_position ~0): full straight (stub_length), no 45°
-    straight_length = stub_length - edge_position * (stub_length - min_straight)
+    # Diagonal length: 0 at center, max_diagonal_length at corners
+    diagonal_length = edge_position * max_diagonal_length
 
-    # Escape direction perpendicular to edge
-    esc_x, esc_y = pad_info.escape_direction
-
-    # Corner point: end of straight segment
-    corner_x = pad_x + esc_x * straight_length
-    corner_y = pad_y + esc_y * straight_length
-
-    # Calculate fan direction (45° away from center)
-    # The remaining distance after straight segment
-    remaining_length = stub_length - straight_length
-
-    if remaining_length < 0.01:
-        # No 45° segment needed
+    if diagonal_length < 0.01:
+        # No 45° segment needed (center pads)
         return ((corner_x, corner_y), (corner_x, corner_y))
 
     # True 45° means equal movement in escape direction and fan direction
-    # Distance along 45° line = remaining_length, so each component = remaining_length / sqrt(2)
-    diag_component = remaining_length / math.sqrt(2)
+    # Distance along 45° line = diagonal_length, so each component = diagonal_length / sqrt(2)
+    diag_component = diagonal_length / math.sqrt(2)
 
     if side in ('top', 'bottom'):
         # Horizontal edge - fan left/right based on position
@@ -310,18 +308,13 @@ def generate_qfn_fanout(footprint: Footprint,
         print(f"Warning: {footprint.reference} doesn't appear to be a QFN/QFP")
         return [], []
 
-    # Default stub length to half chip dimension
-    if stub_length is None:
-        stub_length = max(layout.width, layout.height) / 2
-
     print(f"QFN/QFP Layout Analysis for {footprint.reference}:")
     print(f"  Center: ({layout.center_x:.2f}, {layout.center_y:.2f})")
     print(f"  Bounding box: X[{layout.min_x:.2f}, {layout.max_x:.2f}], Y[{layout.min_y:.2f}, {layout.max_y:.2f}]")
     print(f"  Size: {layout.width:.2f} x {layout.height:.2f} mm")
     print(f"  Detected pad pitch: {layout.pad_pitch:.2f} mm")
     print(f"  Edge tolerance: {layout.edge_tolerance:.2f} mm")
-    print(f"  Stub length: {stub_length:.2f} mm")
-    print(f"  Fan factor: {fan_factor}")
+    print(f"  Stub length: pad_length / 2 (uniform for all pads)")
     print(f"  Layer: {layer}")
 
     # Analyze all pads
@@ -359,11 +352,14 @@ def generate_qfn_fanout(footprint: Footprint,
     # Build stubs
     stubs: List[FanoutStub] = []
 
+    # Max diagonal length for corner pads = chip_width / 3
+    max_diagonal_length = max(layout.width, layout.height) / 3
+
     for pad_info in pad_infos:
-        # Min straight = just past the pad (pad width)
-        min_straight = pad_info.pad_width
+        # Straight stub length = pad_length / 2 (uniform for all pads)
+        straight_length = pad_info.pad_length / 2
         corner_pos, stub_end = calculate_fanout_stub(
-            pad_info, layout, stub_length, min_straight, fan_factor
+            pad_info, layout, straight_length, max_diagonal_length, fan_factor
         )
 
         stub = FanoutStub(
