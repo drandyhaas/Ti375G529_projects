@@ -362,6 +362,25 @@ def check_via_collision(x, y, via_size, pcb_data, all_routed_tracks, net_id, cle
         if dist < min_dist:
             return True
 
+    # Check against pads (vias go through all layers so must avoid all pads)
+    # Use bounding box check first for speed
+    max_pad_radius = 0.5  # Approximate max pad radius in mm
+    search_radius = via_radius + max_pad_radius + clearance
+    for pad_net_id, pads in pcb_data.pads_by_net.items():
+        if pad_net_id == net_id:
+            continue  # Don't check our own net's pads
+        for pad in pads:
+            pad_x = pad.global_x
+            pad_y = pad.global_y
+            # Quick bounding box check
+            if abs(x - pad_x) > search_radius or abs(y - pad_y) > search_radius:
+                continue
+            pad_radius = max(pad.size_x, pad.size_y) / 2
+            dist = math.sqrt((x - pad_x)**2 + (y - pad_y)**2)
+            min_dist = via_radius + pad_radius
+            if dist < min_dist:
+                return True
+
     return False
 
 
@@ -675,7 +694,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
     print(f"  Total obstacles on {primary_layer}: {len(obstacles)}")
 
     print(f"\nRouting on {primary_layer}...")
-    path = route_path(source, sink, obstacles)
+    path = route_path(source, sink, obstacles, max_time=0.3)
 
     if path:
         print(f"Success! Path has {len(path)} points")
@@ -714,7 +733,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
             print(f"  Trying route via-to-via on {alt_layer}...")
             alt_obstacles = build_obstacles(pcb_data, net, all_routed_tracks, alt_layer, all_vias)
             # Route from source via to sink via on alternate layer
-            alt_path = route_path(source_via_pos, sink_via_pos, alt_obstacles, max_time=0.5)
+            alt_path = route_path(source_via_pos, sink_via_pos, alt_obstacles, max_time=0.25)
             if alt_path:
                 print(f"  Success on {alt_layer}!")
                 final_path = process_path(alt_path, alt_obstacles, routing_clearance)
@@ -805,89 +824,122 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
 
     # Check if source already has a via - can start on alternate layer
     if source_via and alternate_layers:
-        # Try each alternate layer until one works
+        # Build list of via positions to try
+        # Prioritize positions closer to sink for easier segment 2 routing
+        via_positions_to_try = []
+
+        # Add positions along route toward sink (50%, 75% of the way)
+        route_dx = sink[0] - cross_point[0]
+        route_dy = sink[1] - cross_point[1]
+        for fraction in [0.75, 0.5]:  # Closer to sink first
+            pos_x = cross_point[0] + route_dx * fraction
+            pos_y = cross_point[1] + route_dy * fraction
+            via_positions_to_try.append((pos_x, pos_y))
+
+        # Add clear channel positions (limit to first 2)
+        if clear_channels:
+            for pos, gap_size in clear_channels[:2]:
+                # Avoid duplicating similar positions
+                is_duplicate = False
+                for existing_pos in via_positions_to_try:
+                    if abs(existing_pos[0] - pos[0]) < 0.5 and abs(existing_pos[1] - pos[1]) < 0.5:
+                        is_duplicate = True
+                        break
+                if not is_duplicate:
+                    via_positions_to_try.append(pos)
+
+        if not via_positions_to_try:
+            via_positions_to_try.append((via2_x, via2_y))
+
+        # Limit total positions to try (each position tries 1 layer with 2 layers = 2 attempts per position)
+        via_positions_to_try = via_positions_to_try[:2]
+
         route_success = False
-        for alternate_layer in alternate_layers:
-            print(f"  Trying existing source via - routing on {alternate_layer}")
+        # Try each via position, then each alternate layer for that position
+        for via_pos_idx, try_via_pos in enumerate(via_positions_to_try):
+            if route_success:
+                break
 
-            # Only need one via - place it on the sink side of the crossing
-            # Find a valid position that doesn't collide with existing tracks
-            valid_pos = find_valid_via_position(via2_x, via2_y, VIA_SIZE, pcb_data,
-                                                all_routed_tracks, net.net_id, source, sink)
-            if valid_pos is None:
-                print(f"    Could not find valid via position near ({via2_x:.2f}, {via2_y:.2f})")
-                continue
+            for alternate_layer in alternate_layers:
+                print(f"  Trying via position {via_pos_idx+1}/{len(via_positions_to_try)} at ({try_via_pos[0]:.2f}, {try_via_pos[1]:.2f}) on {alternate_layer}")
 
-            new_via_x, new_via_y = valid_pos
-            if abs(new_via_x - via2_x) > 0.01 or abs(new_via_y - via2_y) > 0.01:
-                print(f"    Via position adjusted from ({via2_x:.2f}, {via2_y:.2f}) to ({new_via_x:.2f}, {new_via_y:.2f})")
+                # Find a valid position that doesn't collide with existing tracks
+                valid_pos = find_valid_via_position(try_via_pos[0], try_via_pos[1], VIA_SIZE, pcb_data,
+                                                    all_routed_tracks, net.net_id, source, sink)
+                if valid_pos is None:
+                    print(f"    Could not find valid via position near ({try_via_pos[0]:.2f}, {try_via_pos[1]:.2f})")
+                    continue
 
-            # Segment 1: Source via to new via on alternate layer
-            print(f"\n  Routing segment 1: Source via to new via on {alternate_layer}...")
-            obstacles1 = build_obstacles(pcb_data, net, all_routed_tracks, alternate_layer, all_vias)
-            source_via_pos = (source_via.x, source_via.y)
-            path1 = route_path(source_via_pos, (new_via_x, new_via_y), obstacles1, max_time=0.5)
+                new_via_x, new_via_y = valid_pos
+                if abs(new_via_x - try_via_pos[0]) > 0.01 or abs(new_via_y - try_via_pos[1]) > 0.01:
+                    print(f"    Via position adjusted to ({new_via_x:.2f}, {new_via_y:.2f})")
 
-            if not path1:
-                print(f"    Failed to route on {alternate_layer}, trying next layer...")
-                continue
+                # Segment 1: Source via to new via on alternate layer
+                print(f"\n  Routing segment 1: Source via to new via on {alternate_layer}...")
+                obstacles1 = build_obstacles(pcb_data, net, all_routed_tracks, alternate_layer, all_vias)
+                source_via_pos = (source_via.x, source_via.y)
+                path1 = route_path(source_via_pos, (new_via_x, new_via_y), obstacles1, max_time=0.25)
 
-            # Found a working layer for segment 1
-            print(f"  Single new via at ({new_via_x:.2f}, {new_via_y:.2f})")
-            temp_tracks = []
-            temp_vias = []
+                if not path1:
+                    print(f"    Failed to route on {alternate_layer}, trying next...")
+                    continue
 
-            final_path1 = process_path(path1, obstacles1, routing_clearance)
-            print(f"    Segment 1: {len(final_path1)} points")
+                # Found a working layer for segment 1
+                print(f"  Single new via at ({new_via_x:.2f}, {new_via_y:.2f})")
+                temp_tracks = []
+                temp_vias = []
 
-            for i in range(1, len(final_path1)):
-                temp_tracks.append({
-                    'start': final_path1[i-1],
-                    'end': final_path1[i],
-                    'width': track_width,
-                    'layer': alternate_layer,
+                final_path1 = process_path(path1, obstacles1, routing_clearance)
+                print(f"    Segment 1: {len(final_path1)} points")
+
+                for i in range(1, len(final_path1)):
+                    temp_tracks.append({
+                        'start': final_path1[i-1],
+                        'end': final_path1[i],
+                        'width': track_width,
+                        'layer': alternate_layer,
+                        'net_id': net.net_id
+                    })
+
+                # Add the single new via
+                temp_vias.append({
+                    'x': new_via_x,
+                    'y': new_via_y,
+                    'size': VIA_SIZE,
+                    'drill': VIA_DRILL,
+                    'layers': via_layers,
                     'net_id': net.net_id
                 })
 
-            # Add the single new via
-            temp_vias.append({
-                'x': new_via_x,
-                'y': new_via_y,
-                'size': VIA_SIZE,
-                'drill': VIA_DRILL,
-                'layers': via_layers,
-                'net_id': net.net_id
-            })
+                # Segment 2: New via to sink on primary layer
+                print(f"\n  Routing segment 2: New via to Sink on {primary_layer}...")
+                obstacles2 = build_obstacles(pcb_data, net, all_routed_tracks + temp_tracks, primary_layer, all_vias)
+                path2 = route_path((new_via_x, new_via_y), sink, obstacles2, max_time=0.25)
 
-            # Segment 2: New via to sink on primary layer
-            print(f"\n  Routing segment 2: New via to Sink on {primary_layer}...")
-            obstacles2 = build_obstacles(pcb_data, net, all_routed_tracks + temp_tracks, primary_layer, all_vias)
-            path2 = route_path((new_via_x, new_via_y), sink, obstacles2, max_time=0.5)
+                if not path2:
+                    print(f"    Failed to route to sink on {primary_layer}, trying next via position...")
+                    continue
 
-            if not path2:
-                print(f"    Failed to route to sink on {primary_layer}, trying next layer...")
-                continue
+                final_path2 = process_path(path2, obstacles2, routing_clearance)
+                print(f"    Segment 2: {len(final_path2)} points")
 
-            final_path2 = process_path(path2, obstacles2, routing_clearance)
-            print(f"    Segment 2: {len(final_path2)} points")
+                for i in range(1, len(final_path2)):
+                    temp_tracks.append({
+                        'start': final_path2[i-1],
+                        'end': final_path2[i],
+                        'width': track_width,
+                        'layer': primary_layer,
+                        'net_id': net.net_id
+                    })
 
-            for i in range(1, len(final_path2)):
-                temp_tracks.append({
-                    'start': final_path2[i-1],
-                    'end': final_path2[i],
-                    'width': track_width,
-                    'layer': primary_layer,
-                    'net_id': net.net_id
-                })
-
-            # Success! Copy temp to final
-            all_tracks.extend(temp_tracks)
-            new_vias.extend(temp_vias)
-            route_success = True
-            break
+                # Success! Copy temp to final
+                all_tracks.extend(temp_tracks)
+                new_vias.extend(temp_vias)
+                route_success = True
+                break
 
         if not route_success:
-            print("  All alternate layers failed, falling back to two-via approach")
+            print("  All via positions and alternate layers failed, falling back to two-via approach")
             source_via = None  # Force two-via approach
 
     # Standard two-via approach if no source via or fallback needed
@@ -916,7 +968,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
         # Route segment 1 first (on primary layer) - same for all attempts
         print(f"\n  Routing segment 1: Source to Via1 on {primary_layer}...")
         obstacles1 = build_obstacles(pcb_data, net, all_routed_tracks, primary_layer, all_vias)
-        path1 = route_path(source, (via1_x, via1_y), obstacles1, max_time=0.5)
+        path1 = route_path(source, (via1_x, via1_y), obstacles1, max_time=0.25)
 
         if not path1:
             print("    Failed to route to Via1")
@@ -940,7 +992,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
         for alternate_layer in alternate_layers:
             print(f"\n  Trying segment 2 on {alternate_layer}...")
             obstacles2 = build_obstacles(pcb_data, net, all_routed_tracks, alternate_layer, all_vias)
-            path2 = route_path((via1_x, via1_y), (via2_x, via2_y), obstacles2, max_time=0.5)
+            path2 = route_path((via1_x, via1_y), (via2_x, via2_y), obstacles2, max_time=0.25)
 
             if not path2:
                 # Try direct connection
@@ -965,7 +1017,7 @@ def route_net(pcb_data, net, all_routed_tracks, all_vias, allowed_layers=None):
             # Segment 3: Via2 to Sink on primary layer
             print(f"\n  Routing segment 3: Via2 to Sink on {primary_layer}...")
             obstacles3 = build_obstacles(pcb_data, net, all_routed_tracks + seg1_tracks + seg2_tracks, primary_layer, all_vias)
-            path3 = route_path((via2_x, via2_y), sink, obstacles3, max_time=0.5)
+            path3 = route_path((via2_x, via2_y), sink, obstacles3, max_time=0.25)
 
             if not path3:
                 print(f"    Failed to route to sink, trying next layer...")
