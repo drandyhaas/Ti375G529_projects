@@ -758,9 +758,12 @@ class AStarRouter:
                     counter += 1
                     heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
-            # Try via to other layers - also use relaxed clearance in escape zone
+            # Try via to other layers
+            # Note: Do NOT bypass via collision check in escape zone - we only relax
+            # clearance for track routing, not for via placement which could collide
+            # with existing vias/pads on other nets
             via_check_result = self.obstacles.via_collides(current.x, current.y)
-            if not via_check_result or in_escape:
+            if not via_check_result:
                 for layer in self.config.layers:
                     if layer == current.layer:
                         continue
@@ -1104,6 +1107,69 @@ def find_stub_intersection_and_trim(pcb_data: PCBData, net_id: int, path: List[S
     # Get pad locations to know which end of stub connects to pad
     pad_locs = {(round(p.global_x, 3), round(p.global_y, 3)) for p in pads}
 
+    # First, check if first/last path points are near segment endpoints
+    # (handles grid-snapped paths that don't exactly lie on segments)
+    near_endpoint_tolerance = 0.15  # mm - larger than grid step to catch snapped points
+
+    for state in [path[0], path[-1]]:
+        px, py, layer = state.x, state.y, state.layer
+
+        for seg in existing_segments:
+            if seg.layer != layer:
+                continue
+
+            # Check if path point is near segment start or end
+            near_start = (abs(px - seg.start_x) < near_endpoint_tolerance and
+                         abs(py - seg.start_y) < near_endpoint_tolerance)
+            near_end = (abs(px - seg.end_x) < near_endpoint_tolerance and
+                       abs(py - seg.end_y) < near_endpoint_tolerance)
+
+            if not near_start and not near_end:
+                continue
+
+            # Found a nearby endpoint! Determine pad direction
+            start_key = (round(seg.start_x, 3), round(seg.start_y, 3))
+            end_key = (round(seg.end_x, 3), round(seg.end_y, 3))
+
+            start_is_pad = start_key in pad_locs
+            end_is_pad = end_key in pad_locs
+
+            if not start_is_pad and not end_is_pad:
+                start_is_pad = trace_to_pad(existing_segments, seg, 'start', pad_locs)
+                end_is_pad = trace_to_pad(existing_segments, seg, 'end', pad_locs)
+
+            # Handle the four cases based on which endpoint we're near
+            if near_start and start_is_pad:
+                # Connection near pad end - remove this segment and beyond
+                if seg not in segments_to_remove:
+                    segments_to_remove.append(seg)
+                removed = find_segments_beyond_intersection(
+                    existing_segments, seg, seg.end_x, seg.end_y, pad_locs, True
+                )
+                segments_to_remove.extend(removed)
+            elif near_end and end_is_pad:
+                # Connection near pad end - remove this segment and beyond
+                if seg not in segments_to_remove:
+                    segments_to_remove.append(seg)
+                removed = find_segments_beyond_intersection(
+                    existing_segments, seg, seg.start_x, seg.start_y, pad_locs, False
+                )
+                segments_to_remove.extend(removed)
+            elif near_end and not end_is_pad:
+                # Connection at far end - remove segments beyond
+                removed = find_segments_beyond_intersection(
+                    existing_segments, seg, seg.end_x, seg.end_y, pad_locs, True
+                )
+                segments_to_remove.extend(removed)
+            elif near_start and not start_is_pad:
+                # Connection at far end - remove this segment and beyond
+                if seg not in segments_to_remove:
+                    segments_to_remove.append(seg)
+                removed = find_segments_beyond_intersection(
+                    existing_segments, seg, seg.end_x, seg.end_y, pad_locs, True
+                )
+                segments_to_remove.extend(removed)
+
     # Check each point in the new path for intersection with existing segments
     for state in path:
         px, py, layer = state.x, state.y, state.layer
@@ -1135,17 +1201,46 @@ def find_stub_intersection_and_trim(pcb_data: PCBData, net_id: int, path: List[S
 
                 if at_start or at_end:
                     # Intersection at endpoint - segments beyond may need removal
-                    # But this specific segment doesn't need shortening
-                    if at_end and not end_is_pad:
-                        # The new route connects at the far end of stub
-                        # Find and remove segments beyond
+                    # Also, this segment itself may need removal depending on which
+                    # side of the intersection is toward the pad
+
+                    if at_start and start_is_pad:
+                        # Connection is at the pad end of this segment
+                        # This segment extends AWAY from the pad - remove it and
+                        # anything beyond its far end
+                        if seg not in segments_to_remove:
+                            segments_to_remove.append(seg)
+                        removed = find_segments_beyond_intersection(
+                            existing_segments, seg, seg.end_x, seg.end_y, pad_locs, True
+                        )
+                        segments_to_remove.extend(removed)
+                    elif at_end and end_is_pad:
+                        # Connection is at the pad end of this segment
+                        # This segment extends AWAY from the pad - remove it and
+                        # anything beyond its far end (the start)
+                        if seg not in segments_to_remove:
+                            segments_to_remove.append(seg)
+                        removed = find_segments_beyond_intersection(
+                            existing_segments, seg, seg.start_x, seg.start_y, pad_locs, False
+                        )
+                        segments_to_remove.extend(removed)
+                    elif at_end and not end_is_pad:
+                        # The new route connects at the end of this segment
+                        # This segment stays (it connects path to the stub toward pad)
+                        # Find and remove segments beyond the end
                         removed = find_segments_beyond_intersection(
                             existing_segments, seg, seg.end_x, seg.end_y, pad_locs, True
                         )
                         segments_to_remove.extend(removed)
                     elif at_start and not start_is_pad:
+                        # The new route connects at the start of this segment
+                        # If start is NOT toward pad, this whole segment is beyond
+                        # the connection point and should be removed
+                        if seg not in segments_to_remove:
+                            segments_to_remove.append(seg)
+                        # Also find and remove segments connected at the END of this segment
                         removed = find_segments_beyond_intersection(
-                            existing_segments, seg, seg.start_x, seg.start_y, pad_locs, False
+                            existing_segments, seg, seg.end_x, seg.end_y, pad_locs, True
                         )
                         segments_to_remove.extend(removed)
                     continue
@@ -1396,6 +1491,46 @@ def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[R
     simplified = router.simplify_path(smoothed)
     print(f"Simplified to {len(simplified)} waypoints")
 
+    # Snap first/last path points to nearby stub endpoints or pads
+    # This ensures new route segments connect properly to stubs
+    existing_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+    pads = pcb_data.pads_by_net.get(net_id, [])
+
+    # Collect all connection points (segment endpoints and pads on same layer)
+    snap_tolerance = 0.15  # mm - same as near_endpoint_tolerance
+
+    for idx in [0, -1]:  # First and last path point
+        state = simplified[idx]
+
+        # Check all segment endpoints on same layer
+        best_dist = snap_tolerance
+        best_point = None
+
+        for seg in existing_segments:
+            if seg.layer != state.layer:
+                continue
+
+            for sx, sy in [(seg.start_x, seg.start_y), (seg.end_x, seg.end_y)]:
+                dist = math.sqrt((state.x - sx)**2 + (state.y - sy)**2)
+                if dist < best_dist:
+                    best_dist = dist
+                    best_point = (sx, sy)
+
+        # Also check pad locations
+        for pad in pads:
+            dist = math.sqrt((state.x - pad.global_x)**2 + (state.y - pad.global_y)**2)
+            if dist < best_dist:
+                best_dist = dist
+                best_point = (pad.global_x, pad.global_y)
+
+        if best_point is not None:
+            simplified[idx] = State(best_point[0], best_point[1], state.layer)
+
+    # Debug: print first few path points
+    if len(simplified) >= 1:
+        s = simplified[0]
+        print(f"  First point: ({s.x}, {s.y}) on {s.layer}")
+
     # Convert path to segments and vias
     new_segments = path_to_segments(simplified, net_id, config.track_width)
     new_vias = path_to_vias(simplified, net_id, config.via_size, config.via_drill)
@@ -1408,30 +1543,45 @@ def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[R
 
     # If we shortened a stub, also trim the new route segments that go beyond
     # the intersection point (toward the old stub endpoint)
+    # IMPORTANT: Only do this for DESTINATION-side intersections (path end), not
+    # source-side intersections (path start). The source intersection is where
+    # the route BEGINS, so segments starting there are part of the route and must be kept.
     if segments_to_shorten:
-        # Get all intersection points from shortened segments
-        intersection_points = set()
+        # Get the path endpoint (destination) location
+        path_end = simplified[-1] if simplified else None
+        path_start = simplified[0] if simplified else None
+
+        # Get intersection points only from DESTINATION-side shortened segments
+        destination_intersection_points = set()
         for seg, new_sx, new_sy, new_ex, new_ey in segments_to_shorten:
             # The intersection point is the NEW endpoint (not the original)
             if (abs(new_sx - seg.start_x) < 0.01 and abs(new_sy - seg.start_y) < 0.01):
                 # Kept start, so intersection is at new end
-                intersection_points.add((round(new_ex, 3), round(new_ey, 3)))
+                intersection_pt = (round(new_ex, 3), round(new_ey, 3))
             else:
                 # Kept end, so intersection is at new start
-                intersection_points.add((round(new_sx, 3), round(new_sy, 3)))
+                intersection_pt = (round(new_sx, 3), round(new_sy, 3))
 
-        # Remove new segments that go beyond intersection points
+            # Only add if this intersection is near the path END (destination), not the start (source)
+            if path_end is not None:
+                dist_to_end = math.sqrt((intersection_pt[0] - path_end.x)**2 + (intersection_pt[1] - path_end.y)**2)
+                dist_to_start = math.sqrt((intersection_pt[0] - path_start.x)**2 + (intersection_pt[1] - path_start.y)**2) if path_start else float('inf')
+
+                # Only consider this a destination intersection if it's closer to path end than path start
+                if dist_to_end < dist_to_start and dist_to_end < 0.2:  # Within tolerance of path end
+                    destination_intersection_points.add(intersection_pt)
+
+        # Remove new segments that go beyond DESTINATION intersection points
         filtered_new_segments = []
         for seg in new_segments:
             start_key = (round(seg.start_x, 3), round(seg.start_y, 3))
             end_key = (round(seg.end_x, 3), round(seg.end_y, 3))
 
-            # Check if this segment starts at an intersection and goes toward
+            # Check if this segment starts at a DESTINATION intersection and goes toward
             # what was the original stub endpoint (goal)
-            if start_key in intersection_points:
-                # This segment starts at intersection - check if it goes away from pad
-                # We want to REMOVE this segment since the stub is now shortened
-                print(f"Removing new segment beyond intersection: ({seg.start_x:.3f}, {seg.start_y:.3f}) -> ({seg.end_x:.3f}, {seg.end_y:.3f})")
+            if start_key in destination_intersection_points:
+                # This segment starts at destination intersection - remove it
+                print(f"Removing new segment beyond destination intersection: ({seg.start_x:.3f}, {seg.start_y:.3f}) -> ({seg.end_x:.3f}, {seg.end_y:.3f})")
                 continue
 
             filtered_new_segments.append(seg)
