@@ -28,21 +28,30 @@ class RouteConfig:
     escape_clearance: float = 0.02  # mm - minimal clearance in escape zone (just avoid touching)
 
 
-@dataclass(frozen=True)
 class State:
-    """A state in the A* search: position + layer."""
-    x: float
-    y: float
-    layer: str
+    """A state in the A* search: position + layer.
+
+    Uses pre-computed grid key for fast hashing/equality.
+    Coordinates are stored as-is but compared via grid key.
+    """
+    __slots__ = ('x', 'y', 'layer', '_grid_key')
+
+    def __init__(self, x: float, y: float, layer: str):
+        self.x = x
+        self.y = y
+        self.layer = layer
+        # Pre-compute grid key: convert to integer grid units (0.0001mm precision)
+        # This avoids repeated round() calls in __hash__ and __eq__
+        self._grid_key = (int(x * 10000), int(y * 10000), layer)
 
     def __hash__(self):
-        # Round to grid for hashing
-        return hash((round(self.x, 4), round(self.y, 4), self.layer))
+        return hash(self._grid_key)
 
     def __eq__(self, other):
-        return (round(self.x, 4) == round(other.x, 4) and
-                round(self.y, 4) == round(other.y, 4) and
-                self.layer == other.layer)
+        return self._grid_key == other._grid_key
+
+    def __repr__(self):
+        return f"State({self.x}, {self.y}, {self.layer})"
 
 
 class ObstacleGrid:
@@ -156,42 +165,73 @@ class ObstacleGrid:
                     if layer in self.config.layers:
                         self._add_circle_obstacle(layer, pad.global_x, pad.global_y, radius)
 
-    def _point_to_segment_distance(self, px: float, py: float,
-                                    x1: float, y1: float, x2: float, y2: float) -> float:
-        """Calculate minimum distance from point to line segment."""
+    def _point_to_segment_distance_sq(self, px: float, py: float,
+                                        x1: float, y1: float, x2: float, y2: float) -> float:
+        """Calculate squared minimum distance from point to line segment.
+        Returns squared distance to avoid sqrt overhead."""
         dx = x2 - x1
         dy = y2 - y1
+        len_sq = dx * dx + dy * dy
 
-        if dx == 0 and dy == 0:
-            return math.sqrt((px - x1)**2 + (py - y1)**2)
+        if len_sq == 0:
+            dpx = px - x1
+            dpy = py - y1
+            return dpx * dpx + dpy * dpy
 
-        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+        t = ((px - x1) * dx + (py - y1) * dy) / len_sq
+        if t < 0:
+            t = 0
+        elif t > 1:
+            t = 1
 
         closest_x = x1 + t * dx
         closest_y = y1 + t * dy
+        dpx = px - closest_x
+        dpy = py - closest_y
 
-        return math.sqrt((px - closest_x)**2 + (py - closest_y)**2)
+        return dpx * dpx + dpy * dpy
+
+    def _point_to_segment_distance(self, px: float, py: float,
+                                    x1: float, y1: float, x2: float, y2: float) -> float:
+        """Calculate minimum distance from point to line segment."""
+        return math.sqrt(self._point_to_segment_distance_sq(px, py, x1, y1, x2, y2))
+
+    @staticmethod
+    def _ccw(ax: float, ay: float, bx: float, by: float, cx: float, cy: float) -> bool:
+        """Counter-clockwise test for three points."""
+        return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax)
+
+    def _segment_to_segment_distance_sq(self, ax1: float, ay1: float, ax2: float, ay2: float,
+                                         bx1: float, by1: float, bx2: float, by2: float) -> float:
+        """Calculate squared minimum distance between two line segments.
+        Returns squared distance to avoid sqrt overhead."""
+        # Check if segments intersect using inlined ccw tests
+        ccw = self._ccw
+        if ccw(ax1, ay1, bx1, by1, bx2, by2) != ccw(ax2, ay2, bx1, by1, bx2, by2) and \
+           ccw(ax1, ay1, ax2, ay2, bx1, by1) != ccw(ax1, ay1, ax2, ay2, bx2, by2):
+            return 0.0  # Segments intersect
+
+        # Otherwise, find minimum squared distance between endpoints and segments
+        d1 = self._point_to_segment_distance_sq(ax1, ay1, bx1, by1, bx2, by2)
+        d2 = self._point_to_segment_distance_sq(ax2, ay2, bx1, by1, bx2, by2)
+        d3 = self._point_to_segment_distance_sq(bx1, by1, ax1, ay1, ax2, ay2)
+        d4 = self._point_to_segment_distance_sq(bx2, by2, ax1, ay1, ax2, ay2)
+
+        # Use if/elif chain - often faster than min() for 4 values
+        result = d1
+        if d2 < result:
+            result = d2
+        if d3 < result:
+            result = d3
+        if d4 < result:
+            result = d4
+        return result
 
     def _segment_to_segment_distance(self, ax1: float, ay1: float, ax2: float, ay2: float,
                                       bx1: float, by1: float, bx2: float, by2: float) -> float:
         """Calculate minimum distance between two line segments."""
-        # Check if segments intersect
-        def ccw(A, B, C):
-            return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
-
-        A, B = (ax1, ay1), (ax2, ay2)
-        C, D = (bx1, by1), (bx2, by2)
-
-        if ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D):
-            return 0.0  # Segments intersect
-
-        # Otherwise, find minimum distance between endpoints and segments
-        d1 = self._point_to_segment_distance(ax1, ay1, bx1, by1, bx2, by2)
-        d2 = self._point_to_segment_distance(ax2, ay2, bx1, by1, bx2, by2)
-        d3 = self._point_to_segment_distance(bx1, by1, ax1, ay1, ax2, ay2)
-        d4 = self._point_to_segment_distance(bx2, by2, ax1, ay1, ax2, ay2)
-
-        return min(d1, d2, d3, d4)
+        return math.sqrt(self._segment_to_segment_distance_sq(
+            ax1, ay1, ax2, ay2, bx1, by1, bx2, by2))
 
     def segment_collides(self, x1: float, y1: float, x2: float, y2: float,
                          layer: str, reduced_clearance: float = None) -> bool:
@@ -214,34 +254,49 @@ class ObstacleGrid:
             expansion = self.expansion
 
         # Find cells this segment passes through
-        min_x = min(x1, x2) - expansion
-        max_x = max(x1, x2) + expansion
-        min_y = min(y1, y2) - expansion
-        max_y = max(y1, y2) + expansion
+        if x1 < x2:
+            min_x = x1 - expansion
+            max_x = x2 + expansion
+        else:
+            min_x = x2 - expansion
+            max_x = x1 + expansion
+        if y1 < y2:
+            min_y = y1 - expansion
+            max_y = y2 + expansion
+        else:
+            min_y = y2 - expansion
+            max_y = y1 + expansion
 
         cell_min = self._grid_cell(min_x, min_y)
         cell_max = self._grid_cell(max_x, max_y)
 
+        obstacles_by_layer = self.obstacles_by_layer[layer]
+        half_track = self.config.track_width / 2
+
         for cx in range(cell_min[0], cell_max[0] + 1):
             for cy in range(cell_min[1], cell_max[1] + 1):
                 cell = (cx, cy)
-                if cell not in self.obstacles_by_layer[layer]:
+                if cell not in obstacles_by_layer:
                     continue
 
-                for obs_type, obs_data in self.obstacles_by_layer[layer][cell]:
+                for obs_type, obs_data in obstacles_by_layer[cell]:
                     if obs_type == 'segment':
                         ox1, oy1, ox2, oy2, obs_exp = obs_data
                         # Also reduce obstacle expansion if using reduced clearance
                         if reduced_clearance is not None:
-                            obs_exp = self.config.track_width / 2 + reduced_clearance
-                        dist = self._segment_to_segment_distance(
+                            obs_exp = half_track + reduced_clearance
+                        threshold = expansion + obs_exp
+                        threshold_sq = threshold * threshold
+                        dist_sq = self._segment_to_segment_distance_sq(
                             x1, y1, x2, y2, ox1, oy1, ox2, oy2)
-                        if dist < expansion + obs_exp:
+                        if dist_sq < threshold_sq:
                             return True
                     elif obs_type == 'circle':
                         cx_, cy_, radius = obs_data
-                        dist = self._point_to_segment_distance(cx_, cy_, x1, y1, x2, y2)
-                        if dist < expansion + radius:
+                        threshold = expansion + radius
+                        threshold_sq = threshold * threshold
+                        dist_sq = self._point_to_segment_distance_sq(cx_, cy_, x1, y1, x2, y2)
+                        if dist_sq < threshold_sq:
                             return True
 
         return False
