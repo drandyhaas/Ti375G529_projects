@@ -22,6 +22,10 @@ class RouteConfig:
     grid_step: float = 0.1  # mm grid resolution
     via_cost: float = 0.5  # cost penalty for via (in mm equivalent)
     layers: List[str] = field(default_factory=lambda: ['F.Cu', 'B.Cu'])
+    max_iterations: int = 100000  # max A* iterations before giving up
+    # Escape zone parameters - for escaping congested stub areas
+    escape_radius: float = 2.0  # mm - distance from start within which reduced clearance applies
+    escape_clearance: float = 0.02  # mm - minimal clearance in escape zone (just avoid touching)
 
 
 @dataclass(frozen=True)
@@ -190,16 +194,30 @@ class ObstacleGrid:
         return min(d1, d2, d3, d4)
 
     def segment_collides(self, x1: float, y1: float, x2: float, y2: float,
-                         layer: str) -> bool:
-        """Check if a new segment would collide with obstacles."""
+                         layer: str, reduced_clearance: float = None) -> bool:
+        """Check if a new segment would collide with obstacles.
+
+        Args:
+            x1, y1: Start point of segment
+            x2, y2: End point of segment
+            layer: Layer name
+            reduced_clearance: If provided, use this clearance instead of config.clearance
+                             (for escaping from congested stub areas)
+        """
         if layer not in self.obstacles_by_layer:
             return False
 
+        # Use reduced clearance if provided (for escape from stub areas)
+        if reduced_clearance is not None:
+            expansion = self.config.track_width / 2 + reduced_clearance
+        else:
+            expansion = self.expansion
+
         # Find cells this segment passes through
-        min_x = min(x1, x2) - self.expansion
-        max_x = max(x1, x2) + self.expansion
-        min_y = min(y1, y2) - self.expansion
-        max_y = max(y1, y2) + self.expansion
+        min_x = min(x1, x2) - expansion
+        max_x = max(x1, x2) + expansion
+        min_y = min(y1, y2) - expansion
+        max_y = max(y1, y2) + expansion
 
         cell_min = self._grid_cell(min_x, min_y)
         cell_max = self._grid_cell(max_x, max_y)
@@ -213,14 +231,17 @@ class ObstacleGrid:
                 for obs_type, obs_data in self.obstacles_by_layer[layer][cell]:
                     if obs_type == 'segment':
                         ox1, oy1, ox2, oy2, obs_exp = obs_data
+                        # Also reduce obstacle expansion if using reduced clearance
+                        if reduced_clearance is not None:
+                            obs_exp = self.config.track_width / 2 + reduced_clearance
                         dist = self._segment_to_segment_distance(
                             x1, y1, x2, y2, ox1, oy1, ox2, oy2)
-                        if dist < self.expansion + obs_exp:
+                        if dist < expansion + obs_exp:
                             return True
                     elif obs_type == 'circle':
-                        cx, cy, radius = obs_data
-                        dist = self._point_to_segment_distance(cx, cy, x1, y1, x2, y2)
-                        if dist < self.expansion + radius:
+                        cx_, cy_, radius = obs_data
+                        dist = self._point_to_segment_distance(cx_, cy_, x1, y1, x2, y2)
+                        if dist < expansion + radius:
                             return True
 
         return False
@@ -284,6 +305,13 @@ class AStarRouter:
     ]
 
     def __init__(self, obstacles: ObstacleGrid, config: RouteConfig):
+        """
+        Initialize A* router.
+
+        Args:
+            obstacles: Obstacle grid for collision detection
+            config: Routing configuration
+        """
         self.obstacles = obstacles
         self.config = config
         self.sqrt2 = math.sqrt(2)
@@ -375,12 +403,14 @@ class AStarRouter:
         step = self.config.grid_step
         return (round(x / step) * step, round(y / step) * step)
 
-    def route(self, start: State, goal: State, max_iterations: int = 100000) -> Optional[List[State]]:
+    def route(self, start: State, goal: State, max_iterations: int = None) -> Optional[List[State]]:
         """
         Find a path from start to goal using A*.
 
         Returns list of States forming the path, or None if no path found.
         """
+        if max_iterations is None:
+            max_iterations = self.config.max_iterations
         # Save original endpoints before snapping
         original_start = start
         original_goal = goal
@@ -480,7 +510,7 @@ class AStarRouter:
         return None
 
     def route_to_segments(self, start: State, target_segments: List[Segment],
-                          max_iterations: int = 100000) -> Optional[Tuple[List[State], Tuple[float, float]]]:
+                          max_iterations: int = None) -> Optional[Tuple[List[State], Tuple[float, float]]]:
         """
         Find a path from start to any point on the target segments.
         Allows connecting via copper overlap (via pad touching track).
@@ -488,6 +518,8 @@ class AStarRouter:
         Returns (path, connection_point) or None if no path found.
         The connection_point is where the route connects to the target segment.
         """
+        if max_iterations is None:
+            max_iterations = self.config.max_iterations
         original_start = start
         start = State(*self._snap_to_grid(start.x, start.y), start.layer)
 
@@ -584,19 +616,29 @@ class AStarRouter:
 
     def route_segments_to_segments(self, source_segments: List[Segment],
                                     target_segments: List[Segment],
-                                    max_iterations: int = 100000) -> Optional[Tuple[List[State], Tuple[float, float], Tuple[float, float]]]:
+                                    max_iterations: int = None) -> Optional[Tuple[List[State], Tuple[float, float], Tuple[float, float]]]:
         """
         Find a path from any point on source segments to any point on target segments.
         This allows escaping from congested stub areas.
 
+        Uses reduced clearance within an "escape zone" near starting points, since
+        stub segments are tightly packed but already validated in the design.
+
         Returns (path, source_connection_point, target_connection_point) or None.
         """
+        if max_iterations is None:
+            max_iterations = self.config.max_iterations
         via_radius = self.config.via_size / 2
         track_half_width = self.config.track_width / 2
         step = self.config.grid_step
 
+        # Escape zone parameters from config - for escaping congested stub areas
+        escape_radius = self.config.escape_radius
+        escape_clearance = self.config.escape_clearance
+
         # Generate starting points along source segments (sample every grid step)
         start_states = []
+        start_positions = set()  # Track starting positions for escape zone detection
         for seg in source_segments:
             dx = seg.end_x - seg.start_x
             dy = seg.end_y - seg.start_y
@@ -611,9 +653,18 @@ class AStarRouter:
                 # Snap to grid
                 x, y = self._snap_to_grid(x, y)
                 start_states.append((State(x, y, seg.layer), (seg.start_x + t*dx, seg.start_y + t*dy)))
+                start_positions.add((round(x, 3), round(y, 3)))
 
         if not start_states:
             return None
+
+        def is_in_escape_zone(x: float, y: float) -> bool:
+            """Check if point is within escape radius of any starting point."""
+            for sx, sy in start_positions:
+                dist = math.sqrt((x - sx)**2 + (y - sy)**2)
+                if dist < escape_radius:
+                    return True
+            return False
 
         # Initialize A* with all starting points
         counter = 0
@@ -669,12 +720,26 @@ class AStarRouter:
                     print(f"  To target at ({conn_point[0]:.3f}, {conn_point[1]:.3f})")
                     return (path, src_pt, conn_point)
 
+            # Check if current position is in escape zone
+            in_escape = is_in_escape_zone(current.x, current.y)
+
             # Expand neighbors
             for dx, dy in self.DIRECTIONS:
                 nx = current.x + dx * step
                 ny = current.y + dy * step
 
-                if self.obstacles.segment_collides(current.x, current.y, nx, ny, current.layer):
+                # Use reduced clearance if BOTH current and neighbor are in escape zone
+                if in_escape and is_in_escape_zone(nx, ny):
+                    collides = self.obstacles.segment_collides(
+                        current.x, current.y, nx, ny, current.layer,
+                        reduced_clearance=escape_clearance
+                    )
+                else:
+                    collides = self.obstacles.segment_collides(
+                        current.x, current.y, nx, ny, current.layer
+                    )
+
+                if collides:
                     continue
 
                 neighbor = State(nx, ny, current.layer)
@@ -693,8 +758,9 @@ class AStarRouter:
                     counter += 1
                     heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
-            # Try via to other layers
-            if not self.obstacles.via_collides(current.x, current.y):
+            # Try via to other layers - also use relaxed clearance in escape zone
+            via_check_result = self.obstacles.via_collides(current.x, current.y)
+            if not via_check_result or in_escape:
                 for layer in self.config.layers:
                     if layer == current.layer:
                         continue
@@ -1238,9 +1304,54 @@ def get_stub_segments_for_endpoint(pcb_data: PCBData, net_id: int,
     return stub_segments
 
 
+def _try_route_direction(router: AStarRouter, pcb_data: PCBData, net_id: int,
+                          start_endpoint: Tuple[float, float, str],
+                          end_endpoint: Tuple[float, float, str]) -> Optional[List[State]]:
+    """
+    Try routing from start_endpoint to end_endpoint.
+    Returns the path if successful, None otherwise.
+    """
+    start_x, start_y, start_layer = start_endpoint
+    end_x, end_y, end_layer = end_endpoint
+
+    print(f"Routing from ({start_x:.3f}, {start_y:.3f}) on {start_layer}")
+    print(f"       to   ({end_x:.3f}, {end_y:.3f}) on {end_layer}")
+
+    # Get stub segments for both endpoints
+    target_segments = get_stub_segments_for_endpoint(pcb_data, net_id, end_endpoint)
+    source_segments = get_stub_segments_for_endpoint(pcb_data, net_id, start_endpoint)
+
+    start = State(start_x, start_y, start_layer)
+    goal = State(end_x, end_y, end_layer)
+
+    path = None
+
+    # Try routing to any point on the target stub segments first
+    if target_segments:
+        print(f"  Target stub has {len(target_segments)} segments, allowing mid-segment connection")
+        result = router.route_to_segments(start, target_segments)
+        if result:
+            path, _ = result
+
+    # Fall back to endpoint-to-endpoint routing
+    if path is None:
+        print("  Trying endpoint-to-endpoint routing...")
+        path = router.route(start, goal)
+
+    # Fall back to segment-to-segment routing (can escape from blocked endpoints)
+    if path is None and source_segments and target_segments:
+        print("  Trying segment-to-segment routing (escape from congested area)...")
+        result = router.route_segments_to_segments(source_segments, target_segments)
+        if result:
+            path, _, _ = result
+
+    return path
+
+
 def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[RouteResult]:
     """
     Route a single net from its stub endpoints.
+    Tries both directions if the first attempt fails.
 
     Returns RouteResult with path, new segments/vias.
     """
@@ -1253,11 +1364,12 @@ def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[R
     if len(endpoints) > 2:
         print(f"Net {net_id}: Multiple endpoints ({len(endpoints)}), routing first two")
 
-    start_x, start_y, start_layer = endpoints[0]
-    end_x, end_y, end_layer = endpoints[1]
-
-    print(f"Routing from ({start_x:.3f}, {start_y:.3f}) on {start_layer}")
-    print(f"       to   ({end_x:.3f}, {end_y:.3f}) on {end_layer}")
+    # Randomly choose starting direction to distribute routes more evenly
+    # Use net_id as seed for reproducibility
+    import random
+    rng = random.Random(net_id)
+    if rng.random() < 0.5:
+        endpoints = endpoints[::-1]  # Reverse order
 
     # Build obstacles excluding this net
     obstacles = ObstacleGrid(pcb_data, config, exclude_net_id=net_id)
@@ -1265,38 +1377,13 @@ def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[R
     # Create router
     router = AStarRouter(obstacles, config)
 
-    # Get target stub segments (allows connecting anywhere along them)
-    target_segments = get_stub_segments_for_endpoint(pcb_data, net_id, endpoints[1])
+    # Try routing in the first direction
+    path = _try_route_direction(router, pcb_data, net_id, endpoints[0], endpoints[1])
 
-    # Route
-    start = State(start_x, start_y, start_layer)
-    goal = State(end_x, end_y, end_layer)
-
-    # Get source stub segments too (for segment-to-segment routing)
-    source_segments = get_stub_segments_for_endpoint(pcb_data, net_id, endpoints[0])
-
-    # Try routing to any point on the target stub segments first
-    path = None
-    connection_point = None
-    source_connection_point = None
-
-    if target_segments:
-        print(f"  Target stub has {len(target_segments)} segments, allowing mid-segment connection")
-        result = router.route_to_segments(start, target_segments)
-        if result:
-            path, connection_point = result
-
-    # Fall back to endpoint-to-endpoint routing
+    # If first direction failed, try the reverse direction
     if path is None:
-        print("  Trying endpoint-to-endpoint routing...")
-        path = router.route(start, goal)
-
-    # Fall back to segment-to-segment routing (can escape from blocked endpoints)
-    if path is None and source_segments and target_segments:
-        print("  Trying segment-to-segment routing (escape from congested area)...")
-        result = router.route_segments_to_segments(source_segments, target_segments)
-        if result:
-            path, source_connection_point, connection_point = result
+        print("  First direction failed, trying reverse direction...")
+        path = _try_route_direction(router, pcb_data, net_id, endpoints[1], endpoints[0])
 
     if path is None:
         return None

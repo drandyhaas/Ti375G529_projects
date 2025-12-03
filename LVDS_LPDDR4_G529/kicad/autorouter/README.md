@@ -18,7 +18,7 @@ A Python-based A* autorouter for KiCad PCB files. Routes nets between existing s
 |------|-------------|
 | `astar_router.py` | Core A* routing engine with obstacle detection and path optimization |
 | `batch_router.py` | Routes multiple nets sequentially with collision avoidance |
-| `route_data_nets.py` | Example script routing DATA_0-DATA_11 with optimized ordering |
+| `route_data_nets.py` | Example script routing DATA_0-DATA_31 with optimized ordering |
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 
@@ -36,7 +36,7 @@ python astar_router.py input.kicad_pcb "Net-(U2A-DATA_0)" output.kicad_pcb
 python batch_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)" "Net-(U2A-DATA_2)"
 ```
 
-### Route DATA_0 through DATA_11 (Optimized Order)
+### Route DATA_0 through DATA_31 (Optimized Order)
 
 ```bash
 python route_data_nets.py
@@ -102,15 +102,27 @@ Default routing parameters in `RouteConfig`:
 
 ```python
 RouteConfig(
-    track_width=0.1,    # mm - width of new tracks
-    clearance=0.1,      # mm - minimum spacing between tracks
-    via_size=0.3,       # mm - via outer diameter
-    via_drill=0.2,      # mm - via drill size
-    grid_step=0.1,      # mm - routing grid resolution
-    via_cost=0.5,       # penalty for via (in mm equivalent)
-    layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu']  # available layers
+    track_width=0.1,       # mm - width of new tracks
+    clearance=0.1,         # mm - minimum spacing between tracks
+    via_size=0.3,          # mm - via outer diameter
+    via_drill=0.2,         # mm - via drill size
+    grid_step=0.1,         # mm - routing grid resolution
+    via_cost=0.5,          # penalty for via (in mm equivalent)
+    layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],  # available layers
+    max_iterations=100000, # max A* iterations before giving up
+    escape_radius=2.0,     # mm - escape zone radius (see below)
+    escape_clearance=0.02  # mm - reduced clearance in escape zone
 )
 ```
+
+### Escape Zone
+
+When routing from congested stub fanout areas (like BGA breakouts), the normal clearance rules can block all movement from the starting point. The **escape zone** feature solves this by allowing reduced clearance near the route's starting points:
+
+- **escape_radius**: Distance from starting points where reduced clearance applies (default 2.0mm)
+- **escape_clearance**: Minimal clearance used in escape zone (default 0.02mm - just avoid touching)
+
+This allows routes to escape tight fanout areas while maintaining full clearance in open areas. Both the current position AND next position must be within the escape zone for reduced clearance to apply.
 
 ## Routing Order Matters
 

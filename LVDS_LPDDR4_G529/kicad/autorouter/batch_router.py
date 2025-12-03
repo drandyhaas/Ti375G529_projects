@@ -173,9 +173,13 @@ def batch_route(input_file: str, output_file: str, net_names: List[str]) -> None
         clearance=0.1,
         via_size=0.3,
         via_drill=0.2,
-        grid_step=0.1,
+        grid_step=0.1,  # 0.1mm grid - 0.2mm was too coarse for narrow gaps
         via_cost=0.5,
-        layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu']
+        layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
+        max_iterations=100000,  # max A* iterations per route attempt
+        # Escape zone - allows escaping from congested stub areas with reduced clearance
+        escape_radius=2.0,  # mm - distance from start within which reduced clearance applies
+        escape_clearance=0.02  # mm - minimal clearance in escape zone (just avoid touching)
     )
 
     # Find net IDs
