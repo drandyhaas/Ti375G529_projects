@@ -48,13 +48,14 @@ class Channel:
 
 @dataclass
 class FanoutRoute:
-    """Complete fanout: pad -> 45° stub -> channel -> exit."""
+    """Complete fanout: pad -> 45° stub -> channel -> exit -> jog."""
     pad: Pad
     pad_pos: Tuple[float, float]
     stub_end: Tuple[float, float]  # Where stub meets channel (or exit for edge pads)
     exit_pos: Tuple[float, float]  # Where route exits BGA
-    channel: Optional[Channel]  # None for edge pads with direct escape
-    escape_dir: str  # 'left', 'right', 'up', 'down'
+    jog_end: Tuple[float, float] = None  # End of 45° jog after exit
+    channel: Optional[Channel] = None  # None for edge pads with direct escape
+    escape_dir: str = ''  # 'left', 'right', 'up', 'down'
     is_edge: bool = False  # True for outer row/column pads
     layer: str = "F.Cu"
 
@@ -233,6 +234,66 @@ def calculate_exit_point(stub_end: Tuple[float, float],
             return (channel.position, grid.max_y + margin)
         else:
             return (channel.position, grid.min_y - margin)
+
+
+def calculate_jog_end(exit_pos: Tuple[float, float],
+                      escape_dir: str,
+                      layer: str,
+                      layers: List[str],
+                      jog_length: float) -> Tuple[float, float]:
+    """
+    Calculate the end position of the 45° jog at the exit.
+
+    Jog direction depends on layer:
+    - Top layer (F.Cu): 45° to the left (from perspective walking towards BGA edge)
+    - Bottom layer (B.Cu): 45° to the right
+    - Middle layers: linear interpolation
+
+    Args:
+        exit_pos: Starting point of jog
+        escape_dir: Direction of escape ('left', 'right', 'up', 'down')
+        layer: Current layer
+        layers: List of all available layers
+        jog_length: Length of the jog (distance from BGA edge to first pad row/col)
+
+    Returns:
+        End position of the jog
+    """
+    # Calculate layer position: 0 = top (left jog), 1 = bottom (right jog)
+    try:
+        layer_idx = layers.index(layer)
+    except ValueError:
+        layer_idx = 0
+
+    num_layers = len(layers)
+    if num_layers <= 1:
+        layer_factor = 0.0  # Default to left jog
+    else:
+        layer_factor = layer_idx / (num_layers - 1)  # 0 to 1
+
+    # Jog angle: -1 = left, +1 = right (from perspective of walking towards edge)
+    # layer_factor 0 (top) -> -1 (left)
+    # layer_factor 1 (bottom) -> +1 (right)
+    jog_direction = 2 * layer_factor - 1  # Maps 0->-1, 1->+1
+
+    # Calculate jog components based on escape direction
+    # At 45°, both components equal jog_length / sqrt(2)
+    diag = jog_length / math.sqrt(2)
+
+    ex, ey = exit_pos
+
+    if escape_dir == 'right':
+        # Walking right, left is up (-Y), right is down (+Y)
+        return (ex + diag, ey + jog_direction * diag)
+    elif escape_dir == 'left':
+        # Walking left, left is down (+Y), right is up (-Y)
+        return (ex - diag, ey - jog_direction * diag)
+    elif escape_dir == 'down':
+        # Walking down, left is right (+X), right is left (-X)
+        return (ex - jog_direction * diag, ey + diag)
+    else:  # up
+        # Walking up, left is left (-X), right is right (+X)
+        return (ex + jog_direction * diag, ey - diag)
 
 
 def segments_overlap_on_channel(route1: FanoutRoute, route2: FanoutRoute,
@@ -481,6 +542,21 @@ def generate_bga_fanout(footprint: Footprint,
     # Smart layer assignment
     assign_layers_smart(routes, layers, track_width, clearance)
 
+    # Calculate jog length = distance from BGA edge to first pad row/col
+    # This is half the pitch (since edge is pitch/2 from first pad)
+    jog_length = min(grid.pitch_x, grid.pitch_y) / 2
+    print(f"  Jog length: {jog_length:.2f} mm")
+
+    # Calculate jog_end for each route based on layer
+    for route in routes:
+        route.jog_end = calculate_jog_end(
+            route.exit_pos,
+            route.escape_dir,
+            route.layer,
+            layers,
+            jog_length
+        )
+
     # Generate tracks
     tracks = []
     edge_count = 0
@@ -488,7 +564,7 @@ def generate_bga_fanout(footprint: Footprint,
 
     for route in routes:
         if route.is_edge:
-            # Edge pad: single direct segment to exit (horizontal or vertical)
+            # Edge pad: direct segment to exit + jog
             tracks.append({
                 'start': route.pad_pos,
                 'end': route.exit_pos,
@@ -496,9 +572,18 @@ def generate_bga_fanout(footprint: Footprint,
                 'layer': route.layer,
                 'net_id': route.net_id
             })
+            # Add jog segment
+            if route.jog_end:
+                tracks.append({
+                    'start': route.exit_pos,
+                    'end': route.jog_end,
+                    'width': track_width,
+                    'layer': route.layer,
+                    'net_id': route.net_id
+                })
             edge_count += 1
         else:
-            # Inner pad: 45° stub + channel segment
+            # Inner pad: 45° stub + channel segment + jog
             # Skip zero-length stubs
             dx = abs(route.stub_end[0] - route.pad_pos[0])
             dy = abs(route.stub_end[1] - route.pad_pos[1])
@@ -522,6 +607,16 @@ def generate_bga_fanout(footprint: Footprint,
                 'layer': route.layer,
                 'net_id': route.net_id
             })
+
+            # Jog segment: exit -> jog_end
+            if route.jog_end:
+                tracks.append({
+                    'start': route.exit_pos,
+                    'end': route.jog_end,
+                    'width': track_width,
+                    'layer': route.layer,
+                    'net_id': route.net_id
+                })
             inner_count += 1
 
     print(f"  Generated {len(tracks)} track segments")
