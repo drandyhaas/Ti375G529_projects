@@ -7,6 +7,7 @@ Usage:
 """
 
 import sys
+import time
 from typing import List, Optional
 from kicad_parser import parse_kicad_pcb, PCBData, Segment, Via
 from astar_router import (
@@ -176,10 +177,20 @@ def batch_route(input_file: str, output_file: str, net_names: List[str]) -> None
         grid_step=0.1,  # 0.1mm grid - 0.2mm was too coarse for narrow gaps
         via_cost=0.5,
         layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
-        max_iterations=100000,  # max A* iterations per route attempt
+        max_iterations=5000,  # max A* iterations per route attempt
         # Escape zone - allows escaping from congested stub areas with reduced clearance
         escape_radius=2.0,  # mm - distance from start within which reduced clearance applies
-        escape_clearance=0.02  # mm - minimal clearance in escape zone (just avoid touching)
+        escape_clearance=0.02,  # mm - minimal clearance in escape zone (just avoid touching)
+        # Coarse-to-fine routing disabled - fine grid only for now
+        use_coarse_first=False,
+        coarse_grid_step=0.5,  # mm - not used when use_coarse_first=False
+        # BGA exclusion zone - Ti375 G529 FPGA outline (19x19mm at 195.4, 103)
+        bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),
+        # A* heuristic weight - higher values make search more goal-directed
+        heuristic_weight=1.5,
+        # Obstacle repulsion - keeps routes away from obstacles
+        repulsion_distance=2.0,  # mm - repulsion field radius
+        repulsion_cost=2.0,  # mm equivalent cost at clearance boundary
     )
 
     # Find net IDs
@@ -212,17 +223,19 @@ def batch_route(input_file: str, output_file: str, net_names: List[str]) -> None
         print("-" * 40)
 
         # Route this net (pcb_data now includes previously routed tracks as obstacles)
+        start_time = time.time()
         result = route_net(pcb_data, net_id, config)
+        elapsed = time.time() - start_time
 
         if result:
-            print(f"  SUCCESS: {len(result.new_segments)} segments, {len(result.new_vias)} vias")
+            print(f"  SUCCESS: {len(result.new_segments)} segments, {len(result.new_vias)} vias ({elapsed:.2f}s)")
             results.append(result)
             successful += 1
 
             # Update pcb_data with new route so next iteration sees it as obstacle
             add_route_to_pcb_data(pcb_data, result)
         else:
-            print(f"  FAILED: Could not find route")
+            print(f"  FAILED: Could not find route ({elapsed:.2f}s)")
             failed += 1
 
     print("\n" + "=" * 60)

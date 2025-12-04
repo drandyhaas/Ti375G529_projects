@@ -28,7 +28,22 @@ class RouteConfig:
     escape_clearance: float = 0.02  # mm - minimal clearance in escape zone (just avoid touching)
     # Heuristic weight: 1.0 = standard A*, <1.0 = more Dijkstra-like (explores broader paths)
     # Lower values help find paths around obstacles that require detours away from the goal
-    heuristic_weight: float = 0.5
+    heuristic_weight: float = 0.1
+    # Jump Point Search: dramatically speeds up A* by jumping over empty space
+    use_jps: bool = True
+    # Coarse-to-fine routing: first find path with larger grid, then refine
+    use_coarse_first: bool = True
+    coarse_grid_step: float = 0.5  # mm - coarse grid for initial pathfinding
+    # BGA exclusion zone - vias inside this box are ignored (they're fanout vias)
+    # and routing is blocked from entering this area (hard wall at boundary)
+    # Format: (min_x, min_y, max_x, max_y) or None to disable
+    bga_exclusion_zone: Optional[Tuple[float, float, float, float]] = None
+    # Obstacle repulsion - adds cost when routing near obstacles to leave space for future routes
+    # repulsion_distance: distance (mm) within which repulsion applies (beyond clearance)
+    # repulsion_cost: maximum cost penalty (in mm equivalent) when touching the clearance boundary
+    # Cost falls off linearly from repulsion_cost at clearance to 0 at repulsion_distance
+    repulsion_distance: float = 2.0  # mm - repulsion field extends this far beyond clearance
+    repulsion_cost: float = 2.0  # mm equivalent cost at clearance boundary
 
 
 class State:
@@ -146,10 +161,57 @@ class ObstacleGrid:
             self._add_obstacle(seg.layer, seg.start_x, seg.start_y,
                              seg.end_x, seg.end_y, expansion)
 
+    def _in_bga_zone(self, x: float, y: float) -> bool:
+        """Check if a point is inside the BGA exclusion zone."""
+        zone = self.config.bga_exclusion_zone
+        if zone is None:
+            return False
+        min_x, min_y, max_x, max_y = zone
+        return min_x <= x <= max_x and min_y <= y <= max_y
+
+    def _segment_crosses_bga_zone(self, x1: float, y1: float, x2: float, y2: float) -> bool:
+        """Check if a segment crosses into the BGA exclusion zone."""
+        zone = self.config.bga_exclusion_zone
+        if zone is None:
+            return False
+
+        min_x, min_y, max_x, max_y = zone
+
+        # If both endpoints are outside the zone, check if segment crosses it
+        # Use line-box intersection test
+        # Check intersection with each edge of the BGA zone
+
+        # Parametric line: P = P1 + t*(P2-P1) where t in [0,1]
+        dx = x2 - x1
+        dy = y2 - y1
+
+        # Check intersection with vertical edges (x = min_x and x = max_x)
+        for edge_x in [min_x, max_x]:
+            if abs(dx) > 0.0001:
+                t = (edge_x - x1) / dx
+                if 0 <= t <= 1:
+                    y_at_t = y1 + t * dy
+                    if min_y <= y_at_t <= max_y:
+                        return True  # Segment crosses into zone
+
+        # Check intersection with horizontal edges (y = min_y and y = max_y)
+        for edge_y in [min_y, max_y]:
+            if abs(dy) > 0.0001:
+                t = (edge_y - y1) / dy
+                if 0 <= t <= 1:
+                    x_at_t = x1 + t * dx
+                    if min_x <= x_at_t <= max_x:
+                        return True  # Segment crosses into zone
+
+        return False
+
     def _build_from_vias(self):
         """Add existing vias as obstacles on all layers."""
         for via in self.pcb_data.vias:
             if via.net_id == self.exclude_net_id:
+                continue
+            # Skip vias inside BGA exclusion zone - they're fanout vias, not obstacles
+            if self._in_bga_zone(via.x, via.y):
                 continue
             # Store just the physical radius - clearance is added during collision check
             radius = via.size / 2
@@ -248,6 +310,13 @@ class ObstacleGrid:
             reduced_clearance: If provided, use this clearance instead of config.clearance
                              (for escaping from congested stub areas)
         """
+        # BGA exclusion zone is a HARD BLOCK - never route inside it
+        # Check if either endpoint is inside the zone, or if segment crosses into it
+        if self._in_bga_zone(x1, y1) or self._in_bga_zone(x2, y2):
+            return True  # Blocked - inside BGA zone
+        if self._segment_crosses_bga_zone(x1, y1, x2, y2):
+            return True  # Blocked - crosses into BGA zone
+
         if layer not in self.obstacles_by_layer:
             return False
 
@@ -346,6 +415,72 @@ class ObstacleGrid:
         radius = self.config.via_size / 2 + self.config.clearance
         for layer in self.config.layers:
             self._add_circle_obstacle(layer, x, y, radius)
+
+    def min_distance_to_obstacle(self, x: float, y: float, layer: str) -> float:
+        """
+        Calculate minimum distance from point (x, y) to any obstacle on the given layer.
+        Returns distance to obstacle edge (not center), accounting for obstacle expansion.
+        Returns float('inf') if no obstacles nearby.
+        """
+        if layer not in self.obstacles_by_layer:
+            return float('inf')
+
+        # Search radius - look for obstacles within repulsion distance
+        search_radius = self.config.repulsion_distance + self.expansion + 1.0
+
+        cell_min = self._grid_cell(x - search_radius, y - search_radius)
+        cell_max = self._grid_cell(x + search_radius, y + search_radius)
+
+        min_dist = float('inf')
+        half_track = self.config.track_width / 2
+
+        for cx in range(cell_min[0], cell_max[0] + 1):
+            for cy in range(cell_min[1], cell_max[1] + 1):
+                cell = (cx, cy)
+                if cell not in self.obstacles_by_layer[layer]:
+                    continue
+
+                for obs_type, obs_data in self.obstacles_by_layer[layer][cell]:
+                    if obs_type == 'segment':
+                        ox1, oy1, ox2, oy2, obs_exp = obs_data
+                        # Distance from point to segment, minus the expansion (obstacle radius)
+                        dist = self._point_to_segment_distance(x, y, ox1, oy1, ox2, oy2)
+                        # Subtract our track half-width and obstacle expansion to get edge-to-edge
+                        edge_dist = dist - half_track - obs_exp + self.config.clearance
+                        if edge_dist < min_dist:
+                            min_dist = edge_dist
+                    elif obs_type == 'circle':
+                        cx_, cy_, radius = obs_data
+                        dist = math.sqrt((x - cx_)**2 + (y - cy_)**2)
+                        # Subtract our track half-width and obstacle radius to get edge-to-edge
+                        edge_dist = dist - half_track - radius
+                        if edge_dist < min_dist:
+                            min_dist = edge_dist
+
+        return min_dist
+
+    def repulsion_cost(self, x: float, y: float, layer: str) -> float:
+        """
+        Calculate repulsion cost at point (x, y) on the given layer.
+        Returns 0 if far from obstacles, up to repulsion_cost if at clearance boundary.
+        Linear falloff from clearance to repulsion_distance.
+        """
+        if self.config.repulsion_cost <= 0 or self.config.repulsion_distance <= 0:
+            return 0.0
+
+        min_dist = self.min_distance_to_obstacle(x, y, layer)
+
+        # If beyond repulsion distance, no cost
+        if min_dist >= self.config.repulsion_distance:
+            return 0.0
+
+        # If at or below clearance (shouldn't happen, but handle it), max cost
+        if min_dist <= 0:
+            return self.config.repulsion_cost
+
+        # Linear falloff: max cost at dist=0, zero cost at dist=repulsion_distance
+        fraction = 1.0 - (min_dist / self.config.repulsion_distance)
+        return self.config.repulsion_cost * fraction
 
 
 class AStarRouter:
@@ -462,9 +597,171 @@ class AStarRouter:
         step = self.config.grid_step
         return (round(x / step) * step, round(y / step) * step)
 
-    def route(self, start: State, goal: State, max_iterations: int = None) -> Optional[List[State]]:
+    # ==================== Jump Point Search (JPS) Methods ====================
+    # JPS dramatically speeds up A* by "jumping" over empty space instead of
+    # expanding every grid cell. It identifies "jump points" where direction
+    # changes are forced due to obstacles.
+
+    def _is_blocked(self, x: float, y: float, layer: str,
+                    reduced_clearance: float = None) -> bool:
+        """Check if a position is blocked (can't move there)."""
+        step = self.config.grid_step
+        # Check a tiny segment at this point to see if position is valid
+        return self.obstacles.segment_collides(x, y, x + step * 0.01, y + step * 0.01,
+                                                layer, reduced_clearance)
+
+    def _jump_horizontal(self, x: float, y: float, dx: int, layer: str,
+                         goal_x: float, goal_y: float,
+                         reduced_clearance: float = None,
+                         max_jump: int = 200) -> Optional[Tuple[float, float]]:
+        """
+        Jump horizontally until we hit an obstacle or find a jump point.
+        Returns jump point coordinates or None if blocked.
+        """
+        step = self.config.grid_step
+        for _ in range(max_jump):
+            nx = x + dx * step
+            # Check if we can move there
+            if self.obstacles.segment_collides(x, y, nx, y, layer, reduced_clearance):
+                return None  # Blocked
+            x = nx
+
+            # Check if we reached goal
+            if abs(x - goal_x) < step * 0.5 and abs(y - goal_y) < step * 0.5:
+                return (x, y)
+
+            # Check for forced neighbors (obstacles that create turning points)
+            # If there's an obstacle above/below and open diagonal, it's a jump point
+            blocked_above = self.obstacles.segment_collides(x, y, x, y - step, layer, reduced_clearance)
+            blocked_below = self.obstacles.segment_collides(x, y, x, y + step, layer, reduced_clearance)
+
+            if blocked_above:
+                # Check if diagonal (dx, -1) is open - forced neighbor
+                if not self.obstacles.segment_collides(x, y, x + dx * step, y - step, layer, reduced_clearance):
+                    return (x, y)
+            if blocked_below:
+                # Check if diagonal (dx, +1) is open - forced neighbor
+                if not self.obstacles.segment_collides(x, y, x + dx * step, y + step, layer, reduced_clearance):
+                    return (x, y)
+
+        return (x, y)  # Return current position if max jump reached
+
+    def _jump_vertical(self, x: float, y: float, dy: int, layer: str,
+                       goal_x: float, goal_y: float,
+                       reduced_clearance: float = None,
+                       max_jump: int = 200) -> Optional[Tuple[float, float]]:
+        """
+        Jump vertically until we hit an obstacle or find a jump point.
+        """
+        step = self.config.grid_step
+        for _ in range(max_jump):
+            ny = y + dy * step
+            if self.obstacles.segment_collides(x, y, x, ny, layer, reduced_clearance):
+                return None
+            y = ny
+
+            if abs(x - goal_x) < step * 0.5 and abs(y - goal_y) < step * 0.5:
+                return (x, y)
+
+            blocked_left = self.obstacles.segment_collides(x, y, x - step, y, layer, reduced_clearance)
+            blocked_right = self.obstacles.segment_collides(x, y, x + step, y, layer, reduced_clearance)
+
+            if blocked_left:
+                if not self.obstacles.segment_collides(x, y, x - step, y + dy * step, layer, reduced_clearance):
+                    return (x, y)
+            if blocked_right:
+                if not self.obstacles.segment_collides(x, y, x + step, y + dy * step, layer, reduced_clearance):
+                    return (x, y)
+
+        return (x, y)
+
+    def _jump_diagonal(self, x: float, y: float, dx: int, dy: int, layer: str,
+                       goal_x: float, goal_y: float,
+                       reduced_clearance: float = None,
+                       max_jump: int = 200) -> Optional[Tuple[float, float]]:
+        """
+        Jump diagonally, checking horizontal and vertical jumps at each step.
+        """
+        step = self.config.grid_step
+        for _ in range(max_jump):
+            nx = x + dx * step
+            ny = y + dy * step
+
+            if self.obstacles.segment_collides(x, y, nx, ny, layer, reduced_clearance):
+                return None
+            x, y = nx, ny
+
+            if abs(x - goal_x) < step * 0.5 and abs(y - goal_y) < step * 0.5:
+                return (x, y)
+
+            # Check for forced neighbors on diagonal
+            # Blocked perpendicular + open diagonal = forced neighbor
+            blocked_horiz = self.obstacles.segment_collides(x, y, x - dx * step, y, layer, reduced_clearance)
+            blocked_vert = self.obstacles.segment_collides(x, y, x, y - dy * step, layer, reduced_clearance)
+
+            if blocked_horiz:
+                if not self.obstacles.segment_collides(x, y, x - dx * step, y + dy * step, layer, reduced_clearance):
+                    return (x, y)
+            if blocked_vert:
+                if not self.obstacles.segment_collides(x, y, x + dx * step, y - dy * step, layer, reduced_clearance):
+                    return (x, y)
+
+            # Check if horizontal or vertical jumps find anything interesting
+            h_jump = self._jump_horizontal(x, y, dx, layer, goal_x, goal_y, reduced_clearance, 50)
+            if h_jump is not None:
+                return (x, y)
+
+            v_jump = self._jump_vertical(x, y, dy, layer, goal_x, goal_y, reduced_clearance, 50)
+            if v_jump is not None:
+                return (x, y)
+
+        return (x, y)
+
+    def _get_jps_successors(self, state: State, goal: State,
+                            reduced_clearance: float = None) -> List[Tuple[State, float]]:
+        """
+        Get JPS successors for a state. Instead of returning all 8 neighbors,
+        returns only jump points which are much fewer in open areas.
+        """
+        successors = []
+        step = self.config.grid_step
+        x, y, layer = state.x, state.y, state.layer
+        goal_x, goal_y = goal.x, goal.y
+
+        # Try all 8 directions with jumping
+        for dx, dy in self.DIRECTIONS:
+            if dx == 0:
+                # Vertical movement
+                result = self._jump_vertical(x, y, dy, layer, goal_x, goal_y, reduced_clearance)
+            elif dy == 0:
+                # Horizontal movement
+                result = self._jump_horizontal(x, y, dx, layer, goal_x, goal_y, reduced_clearance)
+            else:
+                # Diagonal movement
+                result = self._jump_diagonal(x, y, dx, dy, layer, goal_x, goal_y, reduced_clearance)
+
+            if result is not None:
+                jx, jy = result
+                # Calculate actual distance traveled
+                dist = math.sqrt((jx - x)**2 + (jy - y)**2)
+                if dist > 0.001:  # Only add if we actually moved
+                    successors.append((State(jx, jy, layer), dist))
+
+        return successors
+
+    # ==================== End JPS Methods ====================
+
+    def route(self, start: State, goal: State, max_iterations: int = None,
+              use_escape_zone: bool = False) -> Optional[List[State]]:
         """
         Find a path from start to goal using A*.
+
+        Args:
+            start: Starting state
+            goal: Goal state
+            max_iterations: Maximum A* iterations before giving up
+            use_escape_zone: If True, use reduced clearance near start/goal points
+                           to escape from congested stub areas
 
         Returns list of States forming the path, or None if no path found.
         """
@@ -477,6 +774,21 @@ class AStarRouter:
         # Snap start and goal to grid for A* search
         start = State(*self._snap_to_grid(start.x, start.y), start.layer)
         goal = State(*self._snap_to_grid(goal.x, goal.y), goal.layer)
+
+        # Escape zone parameters - for escaping congested stub areas
+        escape_radius = self.config.escape_radius
+        escape_clearance = self.config.escape_clearance
+        start_x, start_y = start.x, start.y
+        goal_x, goal_y = goal.x, goal.y
+
+        def is_in_escape_zone(x: float, y: float) -> bool:
+            """Check if point is within escape radius of start or goal."""
+            if not use_escape_zone:
+                return False
+            dist_start_sq = (x - start_x)**2 + (y - start_y)**2
+            dist_goal_sq = (x - goal_x)**2 + (y - goal_y)**2
+            return dist_start_sq < escape_radius * escape_radius or \
+                   dist_goal_sq < escape_radius * escape_radius
 
         # Priority queue: (f_cost, counter, g_cost, state, parent)
         # Use weighted heuristic to encourage broader exploration
@@ -520,6 +832,9 @@ class AStarRouter:
                 print(f"Route found in {iterations} iterations, path length: {len(path)}")
                 return path
 
+            # Check if current position is in escape zone
+            in_escape = is_in_escape_zone(current.x, current.y)
+
             # Expand neighbors
             step = self.config.grid_step
 
@@ -528,14 +843,26 @@ class AStarRouter:
                 nx = current.x + dx * step
                 ny = current.y + dy * step
 
-                # Check collision
-                if self.obstacles.segment_collides(current.x, current.y, nx, ny, current.layer):
+                # Use reduced clearance if BOTH current and neighbor are in escape zone
+                if in_escape and is_in_escape_zone(nx, ny):
+                    collides = self.obstacles.segment_collides(
+                        current.x, current.y, nx, ny, current.layer,
+                        reduced_clearance=escape_clearance
+                    )
+                else:
+                    collides = self.obstacles.segment_collides(
+                        current.x, current.y, nx, ny, current.layer
+                    )
+
+                if collides:
                     continue
 
                 neighbor = State(nx, ny, current.layer)
 
                 # Calculate move cost (diagonal is sqrt(2) * step)
                 move_cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
+                # Add repulsion cost to discourage routing near obstacles
+                move_cost += self.obstacles.repulsion_cost(nx, ny, current.layer)
                 new_g = g + move_cost
 
                 if neighbor in closed:
@@ -587,6 +914,17 @@ class AStarRouter:
         via_radius = self.config.via_size / 2
         track_half_width = self.config.track_width / 2
         h_weight = self.config.heuristic_weight
+        step = self.config.grid_step
+
+        # Escape zone parameters - for escaping congested stub areas
+        escape_radius = self.config.escape_radius
+        escape_clearance = self.config.escape_clearance
+        start_x, start_y = start.x, start.y
+
+        def is_in_escape_zone(x: float, y: float) -> bool:
+            """Check if point is within escape radius of starting point."""
+            dist_sq = (x - start_x)**2 + (y - start_y)**2
+            return dist_sq < escape_radius * escape_radius
 
         # Priority queue: (f_cost, counter, g_cost, state, parent)
         counter = 0
@@ -630,18 +968,32 @@ class AStarRouter:
                     print(f"  Connecting to segment at ({conn_point[0]:.3f}, {conn_point[1]:.3f})")
                     return (path, conn_point)
 
-            # Expand neighbors - 8 directions on same layer
-            step = self.config.grid_step
+            # Check if current position is in escape zone
+            in_escape = is_in_escape_zone(current.x, current.y)
 
+            # Expand neighbors - 8 directions on same layer
             for dx, dy in self.DIRECTIONS:
                 nx = current.x + dx * step
                 ny = current.y + dy * step
 
-                if self.obstacles.segment_collides(current.x, current.y, nx, ny, current.layer):
+                # Use reduced clearance if BOTH current and neighbor are in escape zone
+                if in_escape and is_in_escape_zone(nx, ny):
+                    collides = self.obstacles.segment_collides(
+                        current.x, current.y, nx, ny, current.layer,
+                        reduced_clearance=escape_clearance
+                    )
+                else:
+                    collides = self.obstacles.segment_collides(
+                        current.x, current.y, nx, ny, current.layer
+                    )
+
+                if collides:
                     continue
 
                 neighbor = State(nx, ny, current.layer)
                 move_cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
+                # Add repulsion cost to discourage routing near obstacles
+                move_cost += self.obstacles.repulsion_cost(nx, ny, current.layer)
                 new_g = g + move_cost
 
                 if neighbor in closed:
@@ -701,8 +1053,13 @@ class AStarRouter:
 
         # Generate starting points along source segments (sample every grid step)
         start_states = []
-        start_positions = set()  # Track starting positions for escape zone detection
+        # Track the stub endpoint(s) for escape zone - just the segment endpoints, not all samples
+        escape_zone_centers = set()
         for seg in source_segments:
+            # Add segment endpoints as escape zone centers (these are the actual stub tips)
+            escape_zone_centers.add((round(seg.start_x, 3), round(seg.start_y, 3)))
+            escape_zone_centers.add((round(seg.end_x, 3), round(seg.end_y, 3)))
+
             dx = seg.end_x - seg.start_x
             dy = seg.end_y - seg.start_y
             length = math.sqrt(dx*dx + dy*dy)
@@ -716,16 +1073,20 @@ class AStarRouter:
                 # Snap to grid
                 x, y = self._snap_to_grid(x, y)
                 start_states.append((State(x, y, seg.layer), (seg.start_x + t*dx, seg.start_y + t*dy)))
-                start_positions.add((round(x, 3), round(y, 3)))
 
         if not start_states:
             return None
 
+        # Pre-compute escape zone centers as a list for faster iteration
+        escape_centers_list = list(escape_zone_centers)
+        escape_radius_sq = escape_radius * escape_radius
+
         def is_in_escape_zone(x: float, y: float) -> bool:
-            """Check if point is within escape radius of any starting point."""
-            for sx, sy in start_positions:
-                dist = math.sqrt((x - sx)**2 + (y - sy)**2)
-                if dist < escape_radius:
+            """Check if point is within escape radius of stub endpoints (not all samples)."""
+            for sx, sy in escape_centers_list:
+                dx = x - sx
+                dy = y - sy
+                if dx*dx + dy*dy < escape_radius_sq:
                     return True
             return False
 
@@ -786,40 +1147,68 @@ class AStarRouter:
             # Check if current position is in escape zone
             in_escape = is_in_escape_zone(current.x, current.y)
 
-            # Expand neighbors
-            for dx, dy in self.DIRECTIONS:
-                nx = current.x + dx * step
-                ny = current.y + dy * step
+            # Expand neighbors - use JPS when enabled and outside escape zone
+            use_jps_here = self.config.use_jps and not in_escape
 
-                # Use reduced clearance if BOTH current and neighbor are in escape zone
-                if in_escape and is_in_escape_zone(nx, ny):
-                    collides = self.obstacles.segment_collides(
-                        current.x, current.y, nx, ny, current.layer,
-                        reduced_clearance=escape_clearance
-                    )
-                else:
-                    collides = self.obstacles.segment_collides(
-                        current.x, current.y, nx, ny, current.layer
-                    )
+            if use_jps_here:
+                # Use Jump Point Search for faster exploration
+                # Create a dummy goal from target segment centroid for JPS direction
+                target_cx = sum((s.start_x + s.end_x) / 2 for s in target_segments) / len(target_segments)
+                target_cy = sum((s.start_y + s.end_y) / 2 for s in target_segments) / len(target_segments)
+                dummy_goal = State(target_cx, target_cy, current.layer)
 
-                if collides:
-                    continue
+                jps_successors = self._get_jps_successors(current, dummy_goal, reduced_clearance=None)
+                for neighbor, move_cost in jps_successors:
+                    new_g = g + move_cost
 
-                neighbor = State(nx, ny, current.layer)
-                move_cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
-                new_g = g + move_cost
+                    if neighbor in closed:
+                        continue
 
-                if neighbor in closed:
-                    continue
+                    if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                        g_costs[neighbor] = new_g
+                        parents[neighbor] = current
+                        if current in source_points:
+                            source_points[neighbor] = source_points[current]
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+            else:
+                # Standard A* neighbor expansion (used in escape zone or when JPS disabled)
+                for dx, dy in self.DIRECTIONS:
+                    nx = current.x + dx * step
+                    ny = current.y + dy * step
 
-                if neighbor not in g_costs or new_g < g_costs[neighbor]:
-                    g_costs[neighbor] = new_g
-                    parents[neighbor] = current
-                    if current in source_points:
-                        source_points[neighbor] = source_points[current]
-                    f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
-                    counter += 1
-                    heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+                    # Use reduced clearance if BOTH current and neighbor are in escape zone
+                    if in_escape and is_in_escape_zone(nx, ny):
+                        collides = self.obstacles.segment_collides(
+                            current.x, current.y, nx, ny, current.layer,
+                            reduced_clearance=escape_clearance
+                        )
+                    else:
+                        collides = self.obstacles.segment_collides(
+                            current.x, current.y, nx, ny, current.layer
+                        )
+
+                    if collides:
+                        continue
+
+                    neighbor = State(nx, ny, current.layer)
+                    move_cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
+                    # Add repulsion cost to discourage routing near obstacles
+                    move_cost += self.obstacles.repulsion_cost(nx, ny, current.layer)
+                    new_g = g + move_cost
+
+                    if neighbor in closed:
+                        continue
+
+                    if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                        g_costs[neighbor] = new_g
+                        parents[neighbor] = current
+                        if current in source_points:
+                            source_points[neighbor] = source_points[current]
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
 
             # Try via to other layers
             # Note: Do NOT bypass via collision check in escape zone - we only relax
@@ -842,6 +1231,161 @@ class AStarRouter:
                         parents[neighbor] = current
                         if current in source_points:
                             source_points[neighbor] = source_points[current]
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+
+        print(f"No route found after {iterations} iterations")
+        return None
+
+    def route_endpoint_to_segments(self, start: State, target_segments: List[Segment],
+                                    max_iterations: int = None) -> Optional[Tuple[List[State], Tuple[float, float]]]:
+        """
+        Find a path from a single endpoint to any point on target segments.
+        Used for BGA fanout (fixed endpoint) to QFN stub (flexible target).
+
+        Uses reduced clearance in an "escape zone" near the starting point to help
+        escape from congested stub areas.
+
+        Returns (path, target_connection_point) or None.
+        """
+        if max_iterations is None:
+            max_iterations = self.config.max_iterations
+        via_radius = self.config.via_size / 2
+        track_half_width = self.config.track_width / 2
+        step = self.config.grid_step
+        h_weight = self.config.heuristic_weight
+
+        # Escape zone parameters from config
+        escape_radius = self.config.escape_radius
+        escape_clearance = self.config.escape_clearance
+        escape_radius_sq = escape_radius * escape_radius
+        start_x, start_y = start.x, start.y
+
+        def is_in_escape_zone(x: float, y: float) -> bool:
+            """Check if point is within escape radius of starting point."""
+            dx = x - start_x
+            dy = y - start_y
+            return dx*dx + dy*dy < escape_radius_sq
+
+        # Initialize A* with single starting point
+        counter = 0
+        open_set = []
+        g_costs: Dict[State, float] = {}
+        parents: Dict[State, Optional[State]] = {}
+        closed: Set[State] = set()
+
+        h = self._heuristic_to_segments(start, target_segments) * h_weight
+        heapq.heappush(open_set, (h, counter, 0.0, start, None))
+        counter += 1
+        g_costs[start] = 0.0
+        parents[start] = None
+
+        iterations = 0
+
+        while open_set and iterations < max_iterations:
+            iterations += 1
+
+            f, _, g, current, parent = heapq.heappop(open_set)
+
+            if current in closed:
+                continue
+
+            closed.add(current)
+
+            # Check if we can connect to any target segment
+            for seg in target_segments:
+                conn_point = self._can_connect_to_segment(current, seg, via_radius, track_half_width)
+                if conn_point is not None:
+                    # Found connection! Reconstruct path
+                    path = [current]
+                    while parents[path[-1]] is not None:
+                        path.append(parents[path[-1]])
+                    path.reverse()
+
+                    # Add connection point to path
+                    conn_state = State(conn_point[0], conn_point[1], seg.layer)
+                    path.append(conn_state)
+
+                    print(f"Route found in {iterations} iterations, path length: {len(path)}")
+                    print(f"  Connecting to segment at ({conn_point[0]:.3f}, {conn_point[1]:.3f})")
+                    return (path, conn_point)
+
+            # Expand neighbors using JPS when enabled
+            if self.config.use_jps:
+                # Create a dummy goal from target segment centroid for JPS direction
+                target_cx = sum((s.start_x + s.end_x) / 2 for s in target_segments) / len(target_segments)
+                target_cy = sum((s.start_y + s.end_y) / 2 for s in target_segments) / len(target_segments)
+                dummy_goal = State(target_cx, target_cy, current.layer)
+
+                # Use reduced clearance in escape zone near starting point
+                in_escape = is_in_escape_zone(current.x, current.y)
+                jps_reduced_clearance = escape_clearance if in_escape else None
+                jps_successors = self._get_jps_successors(current, dummy_goal, reduced_clearance=jps_reduced_clearance)
+                for neighbor, move_cost in jps_successors:
+                    new_g = g + move_cost
+
+                    if neighbor in closed:
+                        continue
+
+                    if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                        g_costs[neighbor] = new_g
+                        parents[neighbor] = current
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+            else:
+                # Standard A* neighbor expansion
+                for dx, dy in self.DIRECTIONS:
+                    nx = current.x + dx * step
+                    ny = current.y + dy * step
+
+                    # Use reduced clearance in escape zone near starting point
+                    # Use reduced clearance if EITHER endpoint is in escape zone (to allow escaping)
+                    in_escape = is_in_escape_zone(current.x, current.y) or is_in_escape_zone(nx, ny)
+                    if in_escape:
+                        collides = self.obstacles.segment_collides(
+                            current.x, current.y, nx, ny, current.layer,
+                            reduced_clearance=escape_clearance
+                        )
+                    else:
+                        collides = self.obstacles.segment_collides(current.x, current.y, nx, ny, current.layer)
+
+                    if collides:
+                        continue
+
+                    neighbor = State(nx, ny, current.layer)
+                    move_cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
+                    # Add repulsion cost to discourage routing near obstacles
+                    move_cost += self.obstacles.repulsion_cost(nx, ny, current.layer)
+                    new_g = g + move_cost
+
+                    if neighbor in closed:
+                        continue
+
+                    if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                        g_costs[neighbor] = new_g
+                        parents[neighbor] = current
+                        f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
+
+            # Try via to other layers
+            via_check_result = self.obstacles.via_collides(current.x, current.y)
+            if not via_check_result:
+                for layer in self.config.layers:
+                    if layer == current.layer:
+                        continue
+
+                    neighbor = State(current.x, current.y, layer)
+                    new_g = g + self.config.via_cost
+
+                    if neighbor in closed:
+                        continue
+
+                    if neighbor not in g_costs or new_g < g_costs[neighbor]:
+                        g_costs[neighbor] = new_g
+                        parents[neighbor] = current
                         f = new_g + self._heuristic_to_segments(neighbor, target_segments) * h_weight
                         counter += 1
                         heapq.heappush(open_set, (f, counter, new_g, neighbor, current))
@@ -1475,33 +2019,26 @@ def _try_route_direction(router: AStarRouter, pcb_data: PCBData, net_id: int,
     print(f"Routing from ({start_x:.3f}, {start_y:.3f}) on {start_layer}")
     print(f"       to   ({end_x:.3f}, {end_y:.3f}) on {end_layer}")
 
-    # Get stub segments for both endpoints
+    # Get target stub segments (QFN side - we can connect anywhere on these)
     target_segments = get_stub_segments_for_endpoint(pcb_data, net_id, end_endpoint)
-    source_segments = get_stub_segments_for_endpoint(pcb_data, net_id, start_endpoint)
 
+    # Start from BGA endpoint (fixed point, outside BGA exclusion zone)
     start = State(start_x, start_y, start_layer)
     goal = State(end_x, end_y, end_layer)
 
     path = None
 
-    # Try routing to any point on the target stub segments first
+    # Use endpoint-to-segment routing: from BGA endpoint to any point on QFN stub
     if target_segments:
-        print(f"  Target stub has {len(target_segments)} segments, allowing mid-segment connection")
-        result = router.route_to_segments(start, target_segments)
+        print(f"  Endpoint-to-segment routing (start -> {len(target_segments)} target segments)...")
+        result = router.route_endpoint_to_segments(start, target_segments)
         if result:
             path, _ = result
 
-    # Fall back to endpoint-to-endpoint routing
-    if path is None:
+    # Fall back to endpoint-to-endpoint if no target stub segments available
+    if path is None and not target_segments:
         print("  Trying endpoint-to-endpoint routing...")
-        path = router.route(start, goal)
-
-    # Fall back to segment-to-segment routing (can escape from blocked endpoints)
-    if path is None and source_segments and target_segments:
-        print("  Trying segment-to-segment routing (escape from congested area)...")
-        result = router.route_segments_to_segments(source_segments, target_segments)
-        if result:
-            path, _, _ = result
+        path = router.route(start, goal, use_escape_zone=True)
 
     return path
 
@@ -1532,19 +2069,48 @@ def route_net(pcb_data: PCBData, net_id: int, config: RouteConfig) -> Optional[R
     # Build obstacles excluding this net
     obstacles = ObstacleGrid(pcb_data, config, exclude_net_id=net_id)
 
-    # Create router
-    router = AStarRouter(obstacles, config)
+    path = None
 
-    # Try routing in the first direction
-    path = _try_route_direction(router, pcb_data, net_id, endpoints[0], endpoints[1])
+    # Coarse-to-fine routing: first try with larger grid step for speed
+    if config.use_coarse_first and config.coarse_grid_step > config.grid_step:
+        from dataclasses import replace
+        coarse_config = replace(config,
+                                grid_step=config.coarse_grid_step,
+                                max_iterations=config.max_iterations // 5,  # Fewer iterations for coarse
+                                heuristic_weight=0.5)  # More directed search for coarse
+        coarse_obstacles = ObstacleGrid(pcb_data, coarse_config, exclude_net_id=net_id)
+        coarse_router = AStarRouter(coarse_obstacles, coarse_config)
 
-    # If first direction failed, try the reverse direction
+        print(f"  Trying coarse routing (grid={config.coarse_grid_step}mm)...")
+        coarse_path = _try_route_direction(coarse_router, pcb_data, net_id, endpoints[0], endpoints[1])
+        if coarse_path is None:
+            coarse_path = _try_route_direction(coarse_router, pcb_data, net_id, endpoints[1], endpoints[0])
+
+        if coarse_path:
+            print(f"  Coarse path found with {len(coarse_path)} points, refining...")
+            # Use the coarse path - the smoothing step later will clean it up
+            # and collision checks during segment generation will catch issues
+            path = coarse_path
+
+    # If coarse routing didn't find a path (or isn't enabled), use fine routing
     if path is None:
-        print("  First direction failed, trying reverse direction...")
-        path = _try_route_direction(router, pcb_data, net_id, endpoints[1], endpoints[0])
+        print(f"  Fine routing (grid={config.grid_step}mm)...")
+        # Create router with fine grid
+        router = AStarRouter(obstacles, config)
+
+        # Try routing in the first direction
+        path = _try_route_direction(router, pcb_data, net_id, endpoints[0], endpoints[1])
+
+        # If first direction failed, try the reverse direction
+        if path is None:
+            print("  First direction failed, trying reverse direction...")
+            path = _try_route_direction(router, pcb_data, net_id, endpoints[1], endpoints[0])
 
     if path is None:
         return None
+
+    # Create fine router for smoothing (even if coarse path was used)
+    router = AStarRouter(obstacles, config)
 
     # Smooth path first (removes zigzag staircase patterns)
     smoothed = router.smooth_path(path)
