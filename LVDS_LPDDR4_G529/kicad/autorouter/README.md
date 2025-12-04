@@ -19,6 +19,7 @@ A fast Python-based A* autorouter for KiCad PCB files using integer grid coordin
 | `batch_grid_router.py` | Batch routing for multiple nets |
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
+| `check_drc.py` | DRC checker for detecting clearance violations |
 
 ## Quick Start
 
@@ -95,7 +96,7 @@ GridRouteConfig(
     grid_step=0.1,          # mm - routing grid resolution
     via_cost=500,           # integer cost penalty (1000 = 1 grid step)
     layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
-    max_iterations=25000,   # max A* iterations per route
+    max_iterations=100000,  # max A* iterations per route
     heuristic_weight=1.5,   # A* greediness (1.0=optimal, >1.0=faster)
     bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),  # no vias in this rectangle
 )
@@ -118,17 +119,22 @@ Tested on 32 DATA nets with BGA fanout:
 | 4 | 100% | 116ms | 160-893 iterations |
 | 8 | 100% | 908ms | 160-12873 iterations |
 | 16 | 56% | 2.6s | Some routes blocked |
-| 32 (inside-out) | **97%** | **12s** | 31/32 successful |
+| 32 (inside-out) | **84%** | **76s** | 27/32 successful |
 | 32 (outside-in) | 88% | 28s | 28/32 successful |
 
-### Routing Order Comparison
-
-| Order | Success | Time | Failed Nets |
-|-------|---------|------|-------------|
-| Inside-out | 31/32 (97%) | 12s | DATA_5 |
-| Outside-in | 28/32 (88%) | 28s | DATA_9, DATA_12, DATA_14, DATA_20 |
-
 **Inside-out is recommended** for BGA breakout routing. Inner nets route first and establish clear escape paths before outer nets can block them.
+
+### Iterative Retry Strategy
+
+When some nets fail, retry routing just the failed nets on the already-routed output file. This often succeeds because the routing order changes:
+
+```bash
+# Initial routing
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-A" "Net-B" "Net-C"
+
+# Retry failed nets
+python batch_grid_router.py output.kicad_pcb output.kicad_pcb "Net-B"
+```
 
 ## How It Works
 
@@ -144,6 +150,7 @@ Before routing, all obstacles are rasterized to grid cells:
 - Existing tracks (expanded by half-width + clearance)
 - Existing vias (all layers blocked)
 - Component pads
+- Via placement zones (tracks block via placement with via_radius + track_half_width + clearance)
 
 The net being routed is excluded from obstacles.
 
@@ -166,6 +173,21 @@ The grid path is simplified (collinear points merged) and converted back to mm c
 - No length matching or differential pair support
 - No push-and-shove (routes around obstacles, doesn't move them)
 - No rip-up and reroute (failed nets stay failed)
+
+## DRC Checking
+
+Verify routed output has no clearance violations:
+
+```bash
+python check_drc.py routed_output.kicad_pcb 0.1
+```
+
+The checker reports:
+- **Segment-to-segment** violations (tracks too close on same layer)
+- **Via-to-segment** violations (via too close to track)
+- **Via-to-via** violations (vias too close together)
+
+Note: Pre-existing differential pair routing (e.g., LVDS signals) may intentionally have tight spacing and will show as violations.
 
 ## Dependencies
 
