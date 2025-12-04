@@ -99,6 +99,8 @@ GridRouteConfig(
     max_iterations=100000,  # max A* iterations per route
     heuristic_weight=1.5,   # A* greediness (1.0=optimal, >1.0=faster)
     bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),  # no vias in this rectangle
+    stub_proximity_radius=1.0,  # mm - penalize routes near unrouted stubs
+    stub_proximity_cost=3.0,    # mm equivalent cost at stub center
 )
 ```
 
@@ -108,6 +110,7 @@ GridRouteConfig(
 - **heuristic_weight**: Values > 1.0 make the search greedier (faster but potentially suboptimal). 1.5 is a good balance.
 - **max_iterations**: Increase for complex routes. Easy routes need ~200 iterations, hard routes may need 10,000+.
 - **via_cost**: Higher values discourage layer changes. 500 means a via costs as much as 0.5 grid steps of travel.
+- **stub_proximity_radius/cost**: Routes passing near unrouted stub endpoints incur extra cost. This prevents early routes from blocking later ones. Vias near stubs are penalized 2x.
 
 ## Performance
 
@@ -119,10 +122,9 @@ Tested on 32 DATA nets with BGA fanout:
 | 4 | 100% | 116ms | 160-893 iterations |
 | 8 | 100% | 908ms | 160-12873 iterations |
 | 16 | 56% | 2.6s | Some routes blocked |
-| 32 (inside-out) | **84%** | **76s** | 27/32 successful |
-| 32 (outside-in) | 88% | 28s | 28/32 successful |
+| 32 (with stub avoidance) | **100%** | **65s** | 32/32 successful |
 
-**Inside-out is recommended** for BGA breakout routing. Inner nets route first and establish clear escape paths before outer nets can block them.
+**Stub proximity avoidance** is the key feature for high success rates. Routes are penalized for passing near unrouted stub endpoints, preventing early routes from blocking later ones.
 
 ### Iterative Retry Strategy
 
@@ -151,6 +153,7 @@ Before routing, all obstacles are rasterized to grid cells:
 - Existing vias (all layers blocked)
 - Component pads
 - Via placement zones (tracks block via placement with via_radius + track_half_width + clearance)
+- **Stub proximity cost field** (unrouted stub locations have decaying cost penalty)
 
 The net being routed is excluded from obstacles.
 
@@ -160,7 +163,7 @@ States are `(grid_x, grid_y, layer_index)` tuples. Moves include:
 - 8 directions on same layer (orthogonal + diagonal)
 - Via transitions to adjacent layers
 
-Cost = manhattan/diagonal distance + via penalty. Heuristic = octile distance to goal.
+Cost = distance + via penalty + **stub proximity penalty**. Heuristic = octile distance to goal.
 
 ### 4. Path Output
 

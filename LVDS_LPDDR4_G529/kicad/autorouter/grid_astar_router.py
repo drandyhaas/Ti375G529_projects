@@ -35,9 +35,9 @@ class GridRouteConfig:
     heuristic_weight: float = 0.1
     # BGA exclusion zone
     bga_exclusion_zone: Optional[Tuple[float, float, float, float]] = None
-    # Repulsion parameters
-    repulsion_distance: float = 2.0  # mm
-    repulsion_cost: float = 2.0  # mm equivalent
+    # Stub proximity cost - discourages blocking unrouted nets
+    stub_proximity_radius: float = 1.0  # mm - radius around stubs to penalize
+    stub_proximity_cost: float = 3.0  # mm equivalent cost at stub center (decays with distance)
 
 
 class GridCoord:
@@ -149,7 +149,8 @@ class GridObstacleMap:
     """
 
     def __init__(self, pcb_data: PCBData, config: GridRouteConfig,
-                 exclude_net_id: Optional[int] = None):
+                 exclude_net_id: Optional[int] = None,
+                 unrouted_stubs: Optional[List[Tuple[float, float]]] = None):
         self.config = config
         self.pcb_data = pcb_data
         self.exclude_net_id = exclude_net_id
@@ -174,6 +175,12 @@ class GridObstacleMap:
         # Blocked via locations: set of (gx, gy)
         self.blocked_vias: Set[Tuple[int, int]] = set()
 
+        # Stub proximity cost map: (gx, gy) -> cost multiplier (0.0 to 1.0)
+        # 1.0 at stub center, decaying to 0.0 at radius edge
+        self.stub_proximity: Dict[Tuple[int, int], float] = {}
+        self._stub_radius_grid = self.coord.to_grid_dist(config.stub_proximity_radius)
+        self._stub_cost_grid = int(config.stub_proximity_cost * 1000 / config.grid_step)
+
         # BGA zone in grid coordinates
         self.bga_zone_grid: Optional[Tuple[int, int, int, int]] = None
         if config.bga_exclusion_zone:
@@ -186,6 +193,10 @@ class GridObstacleMap:
         self._build_from_segments()
         self._build_from_vias()
         self._build_from_pads()
+
+        # Build stub proximity map
+        if unrouted_stubs:
+            self._build_stub_proximity(unrouted_stubs)
 
     def _in_bga_zone(self, gx: int, gy: int) -> bool:
         """Check if grid point is in BGA exclusion zone."""
@@ -316,6 +327,35 @@ class GridObstacleMap:
                     if layer_idx is not None:
                         self._mark_circle_blocked(pad.global_x, pad.global_y,
                                                    radius, layer_idx)
+
+    def _build_stub_proximity(self, stubs: List[Tuple[float, float]]):
+        """Build proximity cost map around unrouted stub endpoints.
+
+        Creates a cost field that decays linearly from stub center to radius edge.
+        This discourages routes from passing too close to unrouted stubs.
+        """
+        radius = self._stub_radius_grid
+        for stub_x, stub_y in stubs:
+            gcx, gcy = self.coord.to_grid(stub_x, stub_y)
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+                    dist_sq = dx * dx + dy * dy
+                    if dist_sq <= radius * radius:
+                        gx, gy = gcx + dx, gcy + dy
+                        # Linear decay: 1.0 at center, 0.0 at edge
+                        dist = math.sqrt(dist_sq)
+                        proximity = 1.0 - (dist / radius) if radius > 0 else 1.0
+                        # Keep max proximity if multiple stubs overlap
+                        if (gx, gy) in self.stub_proximity:
+                            self.stub_proximity[(gx, gy)] = max(
+                                self.stub_proximity[(gx, gy)], proximity)
+                        else:
+                            self.stub_proximity[(gx, gy)] = proximity
+
+    def get_stub_proximity_cost(self, gx: int, gy: int) -> int:
+        """Get the stub proximity cost for a grid cell (integer cost units)."""
+        proximity = self.stub_proximity.get((gx, gy), 0.0)
+        return int(proximity * self._stub_cost_grid)
 
     def is_blocked(self, gx: int, gy: int, layer_idx: int) -> bool:
         """Check if a grid cell is blocked. O(1) lookup."""
@@ -789,6 +829,8 @@ class GridAStarRouter:
                     continue
 
                 move_cost = self.DIAG_COST if (dx != 0 and dy != 0) else self.ORTHO_COST
+                # Add stub proximity cost to discourage blocking unrouted nets
+                move_cost += self.obstacles.get_stub_proximity_cost(ngx, ngy)
                 new_g = g + move_cost
 
                 if neighbor_key not in g_costs or new_g < g_costs[neighbor_key]:
@@ -813,7 +855,9 @@ class GridAStarRouter:
                     if neighbor_key in closed:
                         continue
 
-                    new_g = g + self.via_cost
+                    # Via cost plus stub proximity cost (vias near stubs are extra bad)
+                    via_proximity_cost = self.obstacles.get_stub_proximity_cost(current.gx, current.gy) * 2
+                    new_g = g + self.via_cost + via_proximity_cost
 
                     if neighbor_key not in g_costs or new_g < g_costs[neighbor_key]:
                         g_costs[neighbor_key] = new_g

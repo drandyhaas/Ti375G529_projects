@@ -68,7 +68,32 @@ def find_connected_groups(segments: List[Segment], tolerance: float = 0.01) -> L
     return list(groups.values())
 
 
-def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> Optional[dict]:
+def get_stub_endpoints(pcb_data: PCBData, net_ids: List[int]) -> List[Tuple[float, float]]:
+    """Get centroid positions of unrouted net stubs for proximity avoidance."""
+    stubs = []
+    for net_id in net_ids:
+        net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+        if len(net_segments) < 2:
+            continue
+        # Find disconnected groups
+        groups = find_connected_groups(net_segments)
+        if len(groups) < 2:
+            continue  # Already connected
+        # Add centroid of each disconnected group as a stub position
+        for group in groups:
+            points = []
+            for seg in group:
+                points.append((seg.start_x, seg.start_y))
+                points.append((seg.end_x, seg.end_y))
+            if points:
+                cx = sum(p[0] for p in points) / len(points)
+                cy = sum(p[1] for p in points) / len(points)
+                stubs.append((cx, cy))
+    return stubs
+
+
+def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
+                   unrouted_stubs: Optional[List[Tuple[float, float]]] = None) -> Optional[dict]:
     """Route a single net using the grid-based router."""
     # Find segments belonging to this net
     net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
@@ -76,8 +101,9 @@ def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> O
         print(f"  Net has only {len(net_segments)} segments, need at least 2")
         return None
 
-    # Build obstacle map excluding this net
-    obstacles = GridObstacleMap(pcb_data, config, exclude_net_id=net_id)
+    # Build obstacle map excluding this net, with stub proximity costs
+    obstacles = GridObstacleMap(pcb_data, config, exclude_net_id=net_id,
+                                unrouted_stubs=unrouted_stubs)
     router = GridAStarRouter(obstacles, config)
 
     # Find disconnected groups of segments
@@ -225,6 +251,8 @@ def batch_route_grid(input_file: str, output_file: str, net_names: List[str]) ->
         max_iterations=100000,
         heuristic_weight=1.5,
         bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),
+        stub_proximity_radius=1.0,  # mm - penalize routes near unrouted stubs
+        stub_proximity_cost=3.0,    # mm equivalent cost at stub center
     )
 
     # Find net IDs
@@ -253,12 +281,19 @@ def batch_route_grid(input_file: str, output_file: str, net_names: List[str]) ->
     failed = 0
     total_time = 0
 
+    # Track remaining unrouted net IDs for stub proximity avoidance
+    remaining_net_ids = [nid for _, nid in net_ids]
+
     for i, (net_name, net_id) in enumerate(net_ids):
         print(f"\n[{i+1}/{len(net_ids)}] Routing {net_name} (id={net_id})")
         print("-" * 40)
 
+        # Get stub positions for remaining unrouted nets (excluding current)
+        other_unrouted = [nid for nid in remaining_net_ids if nid != net_id]
+        unrouted_stubs = get_stub_endpoints(pcb_data, other_unrouted)
+
         start_time = time.time()
-        result = route_net_grid(pcb_data, net_id, config)
+        result = route_net_grid(pcb_data, net_id, config, unrouted_stubs=unrouted_stubs)
         elapsed = time.time() - start_time
         total_time += elapsed
 
@@ -269,6 +304,8 @@ def batch_route_grid(input_file: str, output_file: str, net_names: List[str]) ->
 
             # Update pcb_data with new route
             add_route_to_pcb_data(pcb_data, result)
+            # Remove from remaining unrouted list
+            remaining_net_ids.remove(net_id)
         else:
             print(f"  FAILED: Could not find route ({elapsed:.2f}s)")
             failed += 1
