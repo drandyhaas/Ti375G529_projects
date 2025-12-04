@@ -214,12 +214,22 @@ class GridObstacleMap:
 
     def _mark_segment_blocked(self, x1: float, y1: float, x2: float, y2: float,
                                half_width_mm: float, layer_idx: int):
-        """Mark all grid cells along a segment as blocked."""
+        """Mark all grid cells along a segment as blocked.
+
+        Also marks cells in blocked_vias to prevent vias from being placed
+        too close to segments (vias span all layers and need clearance).
+        """
         gx1, gy1 = self.coord.to_grid(x1, y1)
         gx2, gy2 = self.coord.to_grid(x2, y2)
 
+        # Track expansion for blocking (half track width + clearance)
         expansion_mm = half_width_mm + self.config.clearance
         expansion_grid = max(1, self.coord.to_grid_dist(expansion_mm))
+
+        # Via expansion: via needs clearance from segment
+        # Distance required = via_radius + track_half_width + clearance
+        via_block_mm = self.config.via_size / 2 + half_width_mm + self.config.clearance
+        via_block_grid = max(1, self.coord.to_grid_dist(via_block_mm))
 
         # Use Bresenham-like approach to mark cells along segment
         dx = abs(gx2 - gx1)
@@ -227,11 +237,20 @@ class GridObstacleMap:
         sx = 1 if gx1 < gx2 else -1
         sy = 1 if gy1 < gy2 else -1
 
-        if dx == 0 and dy == 0:
-            # Single point
+        def mark_point(gx, gy):
+            # Mark for track clearance
             for ex in range(-expansion_grid, expansion_grid + 1):
                 for ey in range(-expansion_grid, expansion_grid + 1):
-                    self.blocked_cells[layer_idx].add((gx1 + ex, gy1 + ey))
+                    self.blocked_cells[layer_idx].add((gx + ex, gy + ey))
+            # Mark for via clearance (vias span all layers)
+            for ex in range(-via_block_grid, via_block_grid + 1):
+                for ey in range(-via_block_grid, via_block_grid + 1):
+                    if ex*ex + ey*ey <= via_block_grid * via_block_grid:
+                        self.blocked_vias.add((gx + ex, gy + ey))
+
+        if dx == 0 and dy == 0:
+            # Single point
+            mark_point(gx1, gy1)
             return
 
         # Walk along the segment
@@ -239,10 +258,7 @@ class GridObstacleMap:
         if dx > dy:
             err = dx // 2
             while gx != gx2:
-                # Mark cells around this point
-                for ex in range(-expansion_grid, expansion_grid + 1):
-                    for ey in range(-expansion_grid, expansion_grid + 1):
-                        self.blocked_cells[layer_idx].add((gx + ex, gy + ey))
+                mark_point(gx, gy)
                 err -= dy
                 if err < 0:
                     gy += sy
@@ -251,9 +267,7 @@ class GridObstacleMap:
         else:
             err = dy // 2
             while gy != gy2:
-                for ex in range(-expansion_grid, expansion_grid + 1):
-                    for ey in range(-expansion_grid, expansion_grid + 1):
-                        self.blocked_cells[layer_idx].add((gx + ex, gy + ey))
+                mark_point(gx, gy)
                 err -= dx
                 if err < 0:
                     gx += sx
@@ -261,9 +275,7 @@ class GridObstacleMap:
                 gy += sy
 
         # Mark endpoint
-        for ex in range(-expansion_grid, expansion_grid + 1):
-            for ey in range(-expansion_grid, expansion_grid + 1):
-                self.blocked_cells[layer_idx].add((gx2 + ex, gy2 + ey))
+        mark_point(gx2, gy2)
 
     def _build_from_segments(self):
         """Add existing track segments as obstacles."""
