@@ -11,7 +11,6 @@ Creates images showing:
 import sys
 import math
 from typing import List, Tuple, Optional, Set, Dict
-from dataclasses import dataclass
 
 # Try to import visualization libraries
 try:
@@ -25,10 +24,10 @@ except ImportError:
     print("matplotlib not available - install with: pip install matplotlib")
 
 from kicad_parser import parse_kicad_pcb, PCBData, Segment, Via, Pad
-from astar_router import (
-    RouteConfig, ObstacleGrid, State, AStarRouter,
-    find_stub_endpoints, find_stub_segments
+from grid_astar_router import (
+    GridRouteConfig, GridObstacleMap, GridAStarRouter, GridState, GridCoord
 )
+from batch_grid_router import find_connected_groups
 
 
 # Layer colors
@@ -74,7 +73,7 @@ def get_bounds(pcb_data: PCBData, net_id: int, padding: float = 5.0) -> Tuple[fl
     return (min_x, max_x, min_y, max_y)
 
 
-def draw_obstacles(ax, pcb_data: PCBData, config: RouteConfig,
+def draw_obstacles(ax, pcb_data: PCBData, config: GridRouteConfig,
                    bounds: Tuple[float, float, float, float],
                    exclude_net_id: int = None):
     """Draw all obstacles within bounds."""
@@ -137,202 +136,310 @@ def draw_net_stubs(ax, pcb_data: PCBData, net_id: int):
                 solid_capstyle='round')
 
 
-def draw_endpoints(ax, endpoints: List[Tuple[float, float, str]]):
-    """Draw stub endpoints that need to be connected."""
-    for i, (x, y, layer) in enumerate(endpoints):
-        color = LAYER_COLORS.get(layer, 'orange')
-        # Draw a star marker
-        ax.plot(x, y, marker='*', markersize=15, color=color,
-                markeredgecolor='black', markeredgewidth=1, zorder=10)
-        ax.annotate(f'EP{i}', (x, y), textcoords="offset points",
-                   xytext=(5, 5), fontsize=8, zorder=11)
+def draw_stub_groups(ax, groups: List[List[Segment]]):
+    """Draw stub groups with different markers."""
+    markers = ['*', 'o', 's', '^', 'v', 'D']
+    for i, group in enumerate(groups):
+        # Calculate centroid
+        points = []
+        for seg in group:
+            points.append((seg.start_x, seg.start_y))
+            points.append((seg.end_x, seg.end_y))
+        if points:
+            cx = sum(p[0] for p in points) / len(points)
+            cy = sum(p[1] for p in points) / len(points)
+            marker = markers[i % len(markers)]
+            color = ['red', 'blue', 'green', 'orange'][i % 4]
+            ax.plot(cx, cy, marker=marker, markersize=15, color=color,
+                    markeredgecolor='black', markeredgewidth=1, zorder=10)
+            ax.annotate(f'G{i}', (cx, cy), textcoords="offset points",
+                       xytext=(5, 5), fontsize=10, fontweight='bold', zorder=11)
 
 
-class VisualizingRouter(AStarRouter):
-    """A* Router that records exploration for visualization."""
+def draw_stub_proximity(ax, obstacles: GridObstacleMap, bounds: Tuple[float, float, float, float]):
+    """Draw stub proximity cost field as a heatmap."""
+    min_x, max_x, min_y, max_y = bounds
+    coord = obstacles.coord
 
-    def __init__(self, obstacles: ObstacleGrid, config: RouteConfig):
+    # Sample the proximity field
+    step = obstacles.config.grid_step
+    xs = []
+    ys = []
+    costs = []
+
+    x = min_x
+    while x <= max_x:
+        y = min_y
+        while y <= max_y:
+            gx, gy = coord.to_grid(x, y)
+            cost = obstacles.stub_proximity.get((gx, gy), 0)
+            if cost > 0:
+                xs.append(x)
+                ys.append(y)
+                costs.append(cost)
+            y += step
+        x += step
+
+    if xs:
+        scatter = ax.scatter(xs, ys, c=costs, cmap='Reds', s=20, alpha=0.5, zorder=2)
+        return scatter
+    return None
+
+
+class VisualizingGridRouter(GridAStarRouter):
+    """Grid Router that records exploration for visualization."""
+
+    def __init__(self, obstacles: GridObstacleMap, config: GridRouteConfig):
         super().__init__(obstacles, config)
-        self.exploration_history = []  # List of (iteration, x, y, layer, f_score)
-        self.record_interval = 1  # Record EVERY iteration for detailed visualization
-        self.unique_positions = set()  # Track unique (x, y, layer) positions explored
+        self.exploration_history = []  # List of (iteration, gx, gy, layer_idx, g_cost)
+        self.unique_positions = set()
 
-    def route(self, start: State, goal: State,
-              escape_start: Tuple[float, float] = None) -> Optional[List[State]]:
+    def route_segments_to_segments_visualized(self, source_segments: List[Segment],
+                                               target_segments: List[Segment],
+                                               max_iterations: int = None):
         """Route with exploration recording."""
         import heapq
+
+        if max_iterations is None:
+            max_iterations = self.config.max_iterations
 
         self.exploration_history = []
         self.unique_positions = set()
 
-        start_x, start_y = start.x, start.y
-        if escape_start:
-            start_x, start_y = escape_start
+        # Sample source segments to get starting points
+        start_points = []
+        for seg in source_segments:
+            layer_idx = self.layer_mapper.get_idx(seg.layer)
+            if layer_idx is None:
+                continue
+            dx = seg.end_x - seg.start_x
+            dy = seg.end_y - seg.start_y
+            length = math.sqrt(dx*dx + dy*dy)
+            if length < 0.001:
+                gx, gy = self.coord.to_grid(seg.start_x, seg.start_y)
+                start_points.append((GridState(gx, gy, layer_idx), (seg.start_x, seg.start_y)))
+                continue
+            num_points = max(2, int(length / self.config.grid_step) + 1)
+            for i in range(num_points):
+                t = i / (num_points - 1)
+                x = seg.start_x + t * dx
+                y = seg.start_y + t * dy
+                gx, gy = self.coord.to_grid(x, y)
+                start_points.append((GridState(gx, gy, layer_idx), (x, y)))
 
-        # A* setup
-        g_scores = {start: 0}
-        f_scores = {start: self._heuristic(start, goal)}
-        came_from = {}
+        if not start_points:
+            return None
 
-        open_set = [(f_scores[start], id(start), start)]
-        open_set_lookup = {start}
-        closed_set = set()
+        # Sample target segments
+        target_points = []
+        for seg in target_segments:
+            layer_idx = self.layer_mapper.get_idx(seg.layer)
+            if layer_idx is None:
+                continue
+            dx = seg.end_x - seg.start_x
+            dy = seg.end_y - seg.start_y
+            length = math.sqrt(dx*dx + dy*dy)
+            if length < 0.001:
+                gx, gy = self.coord.to_grid(seg.start_x, seg.start_y)
+                target_points.append(((gx, gy, layer_idx), (seg.start_x, seg.start_y)))
+                continue
+            num_points = max(2, int(length / self.config.grid_step) + 1)
+            for i in range(num_points):
+                t = i / (num_points - 1)
+                x = seg.start_x + t * dx
+                y = seg.start_y + t * dy
+                gx, gy = self.coord.to_grid(x, y)
+                target_points.append(((gx, gy, layer_idx), (x, y)))
 
-        iteration = 0
+        if not target_points:
+            return None
 
-        while open_set and iteration < self.config.max_iterations:
-            iteration += 1
+        target_float_coords = {pt[0]: pt[1] for pt in target_points}
+        target_keys = [pt[0] for pt in target_points]
+        target_set = set(target_keys)
 
-            _, _, current = heapq.heappop(open_set)
-            open_set_lookup.discard(current)
+        # Multi-source A*
+        counter = 0
+        open_set = []
+        g_costs = {}
+        parents = {}
+        source_origins = {}
+        closed = set()
 
-            # Track unique position
-            pos_key = (round(current.x, 2), round(current.y, 2), current.layer)
-            self.unique_positions.add(pos_key)
+        for state, float_coords in start_points:
+            key = state.as_tuple()
+            h = int(self._heuristic_to_points(state, target_keys) * self.h_weight)
+            heapq.heappush(open_set, (h, counter, 0, state))
+            counter += 1
+            g_costs[key] = 0
+            parents[key] = None
+            source_origins[key] = float_coords
 
-            # Record exploration - every iteration for detailed viz
+        iterations = 0
+
+        while open_set and iterations < max_iterations:
+            iterations += 1
+
+            f, _, g, current = heapq.heappop(open_set)
+            current_key = current.as_tuple()
+
+            if current_key in closed:
+                continue
+
+            closed.add(current_key)
+
+            # Record exploration
             self.exploration_history.append((
-                iteration,
-                current.x,
-                current.y,
-                current.layer,
-                f_scores.get(current, 0)
+                iterations, current.gx, current.gy, current.layer_idx, g
             ))
+            self.unique_positions.add(current_key)
 
-            # Check if reached goal
-            if self._reached_goal(current, goal):
-                # Reconstruct path
-                path = [current]
-                while current in came_from:
-                    current = came_from[current]
-                    path.append(current)
+            # Propagate source origin
+            if current_key not in source_origins:
+                parent_key = parents.get(current_key)
+                if parent_key and parent_key in source_origins:
+                    source_origins[current_key] = source_origins[parent_key]
+
+            # Check if reached target
+            if current_key in target_set:
+                path = []
+                key = current_key
+                while key is not None:
+                    path.append(GridState(*key))
+                    key = parents[key]
                 path.reverse()
-                print(f"  Found path in {iteration} iterations")
-                return path
 
-            closed_set.add(current)
+                src_coords = source_origins.get(path[0].as_tuple(),
+                                                 self.coord.to_float(path[0].gx, path[0].gy))
+                tgt_coords = target_float_coords[current_key]
 
-            # Get neighbors
-            neighbors = self._get_neighbors(current, start_x, start_y)
+                print(f"Grid route found in {iterations} iterations, path length: {len(path)}")
+                return (path, src_coords, tgt_coords)
 
-            for neighbor, cost in neighbors:
-                if neighbor in closed_set:
+            # Expand neighbors
+            for dx, dy in self.DIRECTIONS:
+                ngx = current.gx + dx
+                ngy = current.gy + dy
+
+                if self.obstacles.is_move_blocked(current.gx, current.gy,
+                                                   ngx, ngy, current.layer_idx):
                     continue
 
-                tentative_g = g_scores[current] + cost
+                neighbor_key = (ngx, ngy, current.layer_idx)
 
-                if neighbor not in g_scores or tentative_g < g_scores[neighbor]:
-                    came_from[neighbor] = current
-                    g_scores[neighbor] = tentative_g
-                    f = tentative_g + self.config.heuristic_weight * self._heuristic(neighbor, goal)
-                    f_scores[neighbor] = f
+                if neighbor_key in closed:
+                    continue
 
-                    if neighbor not in open_set_lookup:
-                        heapq.heappush(open_set, (f, id(neighbor), neighbor))
-                        open_set_lookup.add(neighbor)
+                move_cost = self.DIAG_COST if (dx != 0 and dy != 0) else self.ORTHO_COST
+                move_cost += self.obstacles.get_stub_proximity_cost(ngx, ngy)
+                new_g = g + move_cost
 
-        print(f"  Failed after {iteration} iterations")
+                if neighbor_key not in g_costs or new_g < g_costs[neighbor_key]:
+                    g_costs[neighbor_key] = new_g
+                    parents[neighbor_key] = current_key
+                    if current_key in source_origins:
+                        source_origins[neighbor_key] = source_origins[current_key]
+                    neighbor = GridState(*neighbor_key)
+                    h = int(self._heuristic_to_points(neighbor, target_keys) * self.h_weight)
+                    f = new_g + h
+                    counter += 1
+                    heapq.heappush(open_set, (f, counter, new_g, neighbor))
+
+            # Try via
+            if not self.obstacles.is_via_blocked(current.gx, current.gy):
+                for layer_idx in range(self.layer_mapper.num_layers()):
+                    if layer_idx == current.layer_idx:
+                        continue
+
+                    neighbor_key = (current.gx, current.gy, layer_idx)
+
+                    if neighbor_key in closed:
+                        continue
+
+                    via_proximity_cost = self.obstacles.get_stub_proximity_cost(current.gx, current.gy) * 2
+                    new_g = g + self.via_cost + via_proximity_cost
+
+                    if neighbor_key not in g_costs or new_g < g_costs[neighbor_key]:
+                        g_costs[neighbor_key] = new_g
+                        parents[neighbor_key] = current_key
+                        if current_key in source_origins:
+                            source_origins[neighbor_key] = source_origins[current_key]
+                        neighbor = GridState(*neighbor_key)
+                        h = int(self._heuristic_to_points(neighbor, target_keys) * self.h_weight)
+                        f = new_g + h
+                        counter += 1
+                        heapq.heappush(open_set, (f, counter, new_g, neighbor))
+
+        print(f"No grid route found after {iterations} iterations")
         return None
 
-    def _reached_goal(self, current: State, goal: State, tolerance: float = 0.15) -> bool:
-        """Check if current state has reached the goal."""
-        if current.layer != goal.layer:
-            return False
-        dist = math.sqrt((current.x - goal.x)**2 + (current.y - goal.y)**2)
-        return dist < tolerance
 
-    def _get_neighbors(self, state: State,
-                       escape_x: float, escape_y: float) -> List[Tuple[State, float]]:
-        """Get valid neighboring states."""
-        neighbors = []
-        step = self.config.grid_step
-
-        # Check if in escape zone
-        dist_from_start = math.sqrt((state.x - escape_x)**2 + (state.y - escape_y)**2)
-        in_escape = dist_from_start < self.config.escape_radius
-        reduced_clearance = self.config.escape_clearance if in_escape else None
-
-        # 8 directions on same layer
-        for dx, dy in self.DIRECTIONS:
-            nx = state.x + dx * step
-            ny = state.y + dy * step
-
-            if not self.obstacles.segment_collides(state.x, state.y, nx, ny,
-                                                   state.layer, reduced_clearance):
-                cost = step * self.sqrt2 if (dx != 0 and dy != 0) else step
-                # Add repulsion cost to discourage routing near obstacles
-                cost += self.obstacles.repulsion_cost(nx, ny, state.layer)
-                neighbors.append((State(nx, ny, state.layer), cost))
-
-        # Layer changes (vias)
-        if not self.obstacles.via_collides(state.x, state.y):
-            for layer in self.config.layers:
-                if layer != state.layer:
-                    neighbors.append((State(state.x, state.y, layer),
-                                     self.config.via_cost))
-
-        return neighbors
-
-
-def visualize_search(pcb_data: PCBData, net_id: int, config: RouteConfig,
-                     output_prefix: str = "route_viz"):
+def visualize_search(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
+                     output_prefix: str = "route_viz",
+                     unrouted_stubs: List[Tuple[float, float]] = None):
     """Create visualization of A* search for a net."""
     if not HAS_MATPLOTLIB:
         print("Cannot create visualization - matplotlib not installed")
         return
 
-    # Get endpoints
-    endpoints = find_stub_endpoints(pcb_data, net_id)
-    if len(endpoints) < 2:
-        print(f"Net {net_id} has fewer than 2 endpoints")
+    # Get segments for this net
+    net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+    if len(net_segments) < 2:
+        print(f"Net {net_id} has fewer than 2 segments")
+        return
+
+    # Find disconnected groups
+    groups = find_connected_groups(net_segments)
+    if len(groups) < 2:
+        print(f"Net {net_id} segments are already connected")
         return
 
     print(f"Visualizing route for net {net_id}")
-    print(f"  Endpoints: {endpoints}")
+    print(f"  Found {len(groups)} disconnected stub groups")
 
     # Get bounds
     bounds = get_bounds(pcb_data, net_id, padding=3.0)
 
-    # Build obstacles
-    obstacles = ObstacleGrid(pcb_data, config, exclude_net_id=net_id)
-    router = VisualizingRouter(obstacles, config)
+    # Build obstacles with stub proximity
+    obstacles = GridObstacleMap(pcb_data, config, exclude_net_id=net_id,
+                                unrouted_stubs=unrouted_stubs)
+    router = VisualizingGridRouter(obstacles, config)
+    coord = GridCoord(config.grid_step)
 
     # Create figure
     fig, axes = plt.subplots(2, 2, figsize=(16, 16))
 
-    # Plot 1: Overview with obstacles
+    # Plot 1: Overview with obstacles and stub groups
     ax1 = axes[0, 0]
-    ax1.set_title(f"Net {net_id} - Overview")
+    ax1.set_title(f"Net {net_id} - Overview ({len(groups)} stub groups)")
     draw_obstacles(ax1, pcb_data, config, bounds, exclude_net_id=net_id)
     draw_net_stubs(ax1, pcb_data, net_id)
-    draw_endpoints(ax1, endpoints)
+    draw_stub_groups(ax1, groups)
     ax1.set_xlim(bounds[0], bounds[1])
     ax1.set_ylim(bounds[3], bounds[2])  # Flip Y for PCB coordinates
     ax1.set_aspect('equal')
     ax1.grid(True, alpha=0.3)
 
-    # Route between first two endpoints
-    start = State(endpoints[0][0], endpoints[0][1], endpoints[0][2])
-    goal = State(endpoints[1][0], endpoints[1][1], endpoints[1][2])
+    # Route between the two largest groups
+    groups.sort(key=len, reverse=True)
+    source_segs = groups[0]
+    target_segs = groups[1]
 
-    print(f"  Routing from {start} to {goal}")
-    path = router.route(start, goal, escape_start=(start.x, start.y))
+    print(f"  Routing from group 0 ({len(source_segs)} segs) to group 1 ({len(target_segs)} segs)")
+    result = router.route_segments_to_segments_visualized(source_segs, target_segs,
+                                                          max_iterations=config.max_iterations)
 
     # Plot 2: Search exploration colored by iteration
     ax2 = axes[0, 1]
     ax2.set_title(f"A* Exploration (colored by iteration)")
     draw_obstacles(ax2, pcb_data, config, bounds, exclude_net_id=net_id)
     draw_net_stubs(ax2, pcb_data, net_id)
-    draw_endpoints(ax2, endpoints)
 
     if router.exploration_history:
-        # Color points by iteration
         iterations = [h[0] for h in router.exploration_history]
-        xs = [h[1] for h in router.exploration_history]
-        ys = [h[2] for h in router.exploration_history]
-        layers = [h[3] for h in router.exploration_history]
+        xs = [coord.to_float(h[1], 0)[0] for h in router.exploration_history]
+        ys = [coord.to_float(0, h[2])[1] for h in router.exploration_history]
 
-        # Normalize iterations for coloring
         max_iter = max(iterations)
         colors = [i / max_iter for i in iterations]
 
@@ -345,21 +452,27 @@ def visualize_search(pcb_data: PCBData, net_id: int, config: RouteConfig,
     ax2.set_aspect('equal')
     ax2.grid(True, alpha=0.3)
 
-    # Plot 3: Search exploration by layer
+    # Plot 3: Search exploration by layer + stub proximity field
     ax3 = axes[1, 0]
-    ax3.set_title(f"A* Exploration by Layer")
+    ax3.set_title(f"A* Exploration by Layer + Stub Proximity")
     draw_obstacles(ax3, pcb_data, config, bounds, exclude_net_id=net_id)
     draw_net_stubs(ax3, pcb_data, net_id)
-    draw_endpoints(ax3, endpoints)
+
+    # Draw stub proximity field
+    if unrouted_stubs:
+        prox_scatter = draw_stub_proximity(ax3, obstacles, bounds)
+        if prox_scatter:
+            plt.colorbar(prox_scatter, ax=ax3, label='Stub Proximity Cost')
 
     if router.exploration_history:
-        for layer in config.layers:
-            layer_points = [(h[1], h[2]) for h in router.exploration_history if h[3] == layer]
+        for layer_idx, layer_name in enumerate(config.layers):
+            layer_points = [(coord.to_float(h[1], h[2]) ) for h in router.exploration_history if h[3] == layer_idx]
             if layer_points:
-                xs, ys = zip(*layer_points)
-                color = LAYER_COLORS.get(layer, 'gray')
+                xs = [p[0] for p in layer_points]
+                ys = [p[1] for p in layer_points]
+                color = LAYER_COLORS.get(layer_name, 'gray')
                 ax3.scatter(xs, ys, c=color, s=25, alpha=0.7,
-                           label=f"{layer} ({len(layer_points)} pts)", zorder=3)
+                           label=f"{layer_name} ({len(layer_points)} pts)", zorder=3)
         ax3.legend(loc='upper right', fontsize=8)
 
     ax3.set_xlim(bounds[0], bounds[1])
@@ -369,25 +482,27 @@ def visualize_search(pcb_data: PCBData, net_id: int, config: RouteConfig,
 
     # Plot 4: Final path
     ax4 = axes[1, 1]
-    ax4.set_title(f"Final Path" + (" (FOUND)" if path else " (NOT FOUND)"))
+    ax4.set_title(f"Final Path" + (" (FOUND)" if result else " (NOT FOUND)"))
     draw_obstacles(ax4, pcb_data, config, bounds, exclude_net_id=net_id)
     draw_net_stubs(ax4, pcb_data, net_id)
-    draw_endpoints(ax4, endpoints)
+    draw_stub_groups(ax4, groups)
 
-    if path:
-        # Draw path segments
-        for i in range(len(path) - 1):
-            curr = path[i]
-            next_ = path[i + 1]
+    if result:
+        path, src_coords, tgt_coords = result
+        # Convert to float and draw
+        float_path = router.path_to_float(path)
 
-            if curr.layer == next_.layer:
-                # Same layer - draw segment
-                color = LAYER_COLORS.get(curr.layer, 'orange')
-                ax4.plot([curr.x, next_.x], [curr.y, next_.y],
+        for i in range(len(float_path) - 1):
+            x1, y1, layer1 = float_path[i]
+            x2, y2, layer2 = float_path[i + 1]
+
+            if layer1 == layer2:
+                color = LAYER_COLORS.get(layer1, 'orange')
+                ax4.plot([x1, x2], [y1, y2],
                         color=color, linewidth=3, alpha=0.9, zorder=8)
             else:
                 # Via
-                ax4.plot(curr.x, curr.y, 'ko', markersize=8, zorder=9)
+                ax4.plot(x1, y1, 'ko', markersize=8, zorder=9)
 
         print(f"  Path has {len(path)} waypoints")
 
@@ -413,21 +528,12 @@ def visualize_search(pcb_data: PCBData, net_id: int, config: RouteConfig,
 
         layer_counts = {}
         for h in router.exploration_history:
-            layer = h[3]
-            layer_counts[layer] = layer_counts.get(layer, 0) + 1
+            layer_idx = h[3]
+            layer_name = config.layers[layer_idx] if layer_idx < len(config.layers) else f"L{layer_idx}"
+            layer_counts[layer_name] = layer_counts.get(layer_name, 0) + 1
 
         print(f"    Iterations per layer:")
         for layer, count in sorted(layer_counts.items()):
-            print(f"      {layer}: {count}")
-
-        # Count unique positions by layer
-        unique_layer_counts = {}
-        for pos in router.unique_positions:
-            layer = pos[2]
-            unique_layer_counts[layer] = unique_layer_counts.get(layer, 0) + 1
-
-        print(f"    Unique positions per layer:")
-        for layer, count in sorted(unique_layer_counts.items()):
             print(f"      {layer}: {count}")
 
 
@@ -456,23 +562,23 @@ if __name__ == "__main__":
         print(f"Net '{net_name}' not found")
         sys.exit(1)
 
-    config = RouteConfig(
+    config = GridRouteConfig(
         track_width=0.1,
         clearance=0.1,
         via_size=0.3,
         via_drill=0.2,
-        grid_step=0.1,  # Fine grid to show actual search behavior
-        via_cost=0.5,
+        grid_step=0.1,
+        via_cost=500,
         layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
-        max_iterations=10000,  # Limit for quick visualization
-        escape_radius=2.0,
-        escape_clearance=0.02,
-        heuristic_weight=1.5,  # Moderate heuristic weighting
-        # BGA exclusion zone - vias inside are ignored as obstacles
-        # bga_exclusion_zone disabled - let repulsion handle obstacle avoidance
-        # Obstacle repulsion - keeps routes away from obstacles
-        repulsion_distance=2.0,  # mm - repulsion field radius
-        repulsion_cost=2.0,  # mm equivalent cost at clearance boundary
+        max_iterations=50000,
+        heuristic_weight=1.5,
+        bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),
+        stub_proximity_radius=1.0,
+        stub_proximity_cost=3.0,
     )
 
-    visualize_search(pcb_data, net_id, config, output_prefix)
+    # For demonstration, create some dummy unrouted stubs
+    # In real use, you'd collect these from other nets
+    unrouted_stubs = []
+
+    visualize_search(pcb_data, net_id, config, output_prefix, unrouted_stubs)

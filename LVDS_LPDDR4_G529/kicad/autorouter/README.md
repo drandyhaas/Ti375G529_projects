@@ -20,6 +20,10 @@ A fast Python-based A* autorouter for KiCad PCB files using integer grid coordin
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 | `check_drc.py` | DRC checker for detecting clearance violations |
+| `visualize_routing.py` | Matplotlib visualization of A* search progress |
+| `bga_fanout.py` | BGA fanout stub generation |
+| `qfn_fanout.py` | QFN fanout stub generation |
+| `apply_fanouts.py` | Apply generated fanouts to PCB file |
 
 ## Quick Start
 

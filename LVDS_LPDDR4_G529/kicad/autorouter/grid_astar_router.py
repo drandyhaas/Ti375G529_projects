@@ -28,12 +28,9 @@ class GridRouteConfig:
     via_cost: int = 5  # grid steps equivalent penalty for via
     layers: List[str] = field(default_factory=lambda: ['F.Cu', 'B.Cu'])
     max_iterations: int = 100000
-    # Escape zone for congested areas
-    escape_radius: float = 2.0  # mm
-    escape_clearance: float = 0.02  # mm
-    # Heuristic weight (1.0 = A*, lower = more Dijkstra-like)
-    heuristic_weight: float = 0.1
-    # BGA exclusion zone
+    # Heuristic weight (1.0 = A*, >1.0 = greedier/faster)
+    heuristic_weight: float = 1.5
+    # BGA exclusion zone - no vias allowed in this rectangle
     bga_exclusion_zone: Optional[Tuple[float, float, float, float]] = None
     # Stub proximity cost - discourages blocking unrouted nets
     stub_proximity_radius: float = 1.0  # mm - radius around stubs to penalize
