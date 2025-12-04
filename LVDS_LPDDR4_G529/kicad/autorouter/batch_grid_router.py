@@ -24,6 +24,50 @@ def find_stub_endpoints(segments: List[Segment]) -> List[Tuple[float, float, str
     return endpoints
 
 
+def find_connected_groups(segments: List[Segment], tolerance: float = 0.01) -> List[List[Segment]]:
+    """Find groups of connected segments using union-find."""
+    if not segments:
+        return []
+
+    # Build adjacency: two segments are connected if they share an endpoint
+    n = len(segments)
+    parent = list(range(n))
+
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+
+    def union(x, y):
+        px, py = find(x), find(y)
+        if px != py:
+            parent[px] = py
+
+    # Check all pairs for shared endpoints
+    for i in range(n):
+        for j in range(i + 1, n):
+            si, sj = segments[i], segments[j]
+            # Get endpoints
+            pts_i = [(si.start_x, si.start_y), (si.end_x, si.end_y)]
+            pts_j = [(sj.start_x, sj.start_y), (sj.end_x, sj.end_y)]
+            # Check if any endpoints match
+            for pi in pts_i:
+                for pj in pts_j:
+                    if abs(pi[0] - pj[0]) < tolerance and abs(pi[1] - pj[1]) < tolerance:
+                        union(i, j)
+                        break
+
+    # Group segments by their root
+    groups = {}
+    for i in range(n):
+        root = find(i)
+        if root not in groups:
+            groups[root] = []
+        groups[root].append(segments[i])
+
+    return list(groups.values())
+
+
 def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> Optional[dict]:
     """Route a single net using the grid-based router."""
     # Find segments belonging to this net
@@ -36,10 +80,17 @@ def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> O
     obstacles = GridObstacleMap(pcb_data, config, exclude_net_id=net_id)
     router = GridAStarRouter(obstacles, config)
 
-    # Split segments into two groups to route between
-    mid = len(net_segments) // 2
-    source_segs = net_segments[:mid]
-    target_segs = net_segments[mid:]
+    # Find disconnected groups of segments
+    groups = find_connected_groups(net_segments)
+
+    if len(groups) < 2:
+        print(f"  Net segments are already connected (only {len(groups)} group)")
+        return None
+
+    # Route between the two largest groups
+    groups.sort(key=len, reverse=True)
+    source_segs = groups[0]
+    target_segs = groups[1]
 
     # Try routing
     result = router.route_segments_to_segments(
@@ -171,7 +222,7 @@ def batch_route_grid(input_file: str, output_file: str, net_names: List[str]) ->
         grid_step=0.1,
         via_cost=500,  # Integer cost (1000 = 1 grid step)
         layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
-        max_iterations=25000,
+        max_iterations=100000,
         heuristic_weight=1.5,
         bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),
     )
