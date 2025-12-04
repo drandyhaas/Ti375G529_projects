@@ -355,10 +355,14 @@ class ObstacleGrid:
                 for obs_type, obs_data in obstacles_by_layer[cell]:
                     if obs_type == 'segment':
                         ox1, oy1, ox2, oy2, obs_exp = obs_data
-                        # Also reduce obstacle expansion if using reduced clearance
+                        # Threshold = half-width of new track + clearance + half-width of obstacle track
+                        # obs_exp already includes the obstacle's half-width + clearance
+                        # So we just need: our half-width + obs_half_width + clearance (not double clearance)
+                        obs_half_width = obs_exp - self.config.clearance  # Extract just the half-width
                         if reduced_clearance is not None:
-                            obs_exp = half_track + reduced_clearance
-                        threshold = expansion + obs_exp
+                            threshold = half_track + reduced_clearance + obs_half_width
+                        else:
+                            threshold = half_track + self.config.clearance + obs_half_width
                         threshold_sq = threshold * threshold
                         dist_sq = self._segment_to_segment_distance_sq(
                             x1, y1, x2, y2, ox1, oy1, ox2, oy2)
