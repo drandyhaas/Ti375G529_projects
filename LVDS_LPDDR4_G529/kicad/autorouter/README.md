@@ -1,182 +1,173 @@
-# KiCad PCB Autorouter
+# KiCad PCB Grid Router
 
-A Python-based A* autorouter for KiCad PCB files. Routes nets between existing stub endpoints using octilinear (0°, 45°, 90°) routing with multi-layer support and automatic via placement.
+A fast Python-based A* autorouter for KiCad PCB files using integer grid coordinates. Routes nets between existing stub endpoints with multi-layer support and automatic via placement.
 
 ## Features
 
-- **A* pathfinding** with octilinear constraints (horizontal, vertical, and 45° diagonal)
-- **Multi-layer routing** with automatic via insertion
-- **Obstacle avoidance** - respects existing tracks, vias, and pads
-- **Mid-segment connections** - can connect to any point along existing stubs, not just endpoints
-- **Stub trimming** - automatically shortens destination stubs when connecting mid-segment
-- **Path smoothing** - removes zigzag staircase patterns for cleaner routes
-- **Batch routing** - routes multiple nets sequentially, each avoiding previously routed tracks
+- **Grid-based A* pathfinding** - Integer coordinates for fast collision detection
+- **Octilinear routing** - Horizontal, vertical, and 45-degree diagonal moves
+- **Multi-layer routing** - 4 layers (F.Cu, In1.Cu, In2.Cu, B.Cu) with automatic via insertion
+- **Obstacle avoidance** - Respects existing tracks, vias, and pads with configurable clearance
+- **BGA exclusion zone** - Prevents vias under BGA packages
+- **Batch routing** - Routes multiple nets sequentially, each avoiding previously routed tracks
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `astar_router.py` | Core A* routing engine with obstacle detection and path optimization |
-| `batch_router.py` | Routes multiple nets sequentially with collision avoidance |
-| `route_data_nets.py` | Example script routing DATA_0-DATA_31 with optimized ordering |
+| `grid_astar_router.py` | Core grid-based A* routing engine |
+| `batch_grid_router.py` | Batch routing for multiple nets |
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 
-## Usage
-
-### Route a Single Net
-
-```bash
-python astar_router.py input.kicad_pcb "Net-(U2A-DATA_0)" output.kicad_pcb
-```
+## Quick Start
 
 ### Route Multiple Nets
 
 ```bash
-python batch_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)" "Net-(U2A-DATA_2)"
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)"
 ```
 
-### Route DATA_0 through DATA_31 (Optimized Order)
+### Route 32 DATA Nets with Inside-Out Ordering
+
+For BGA fanout routing, inside-out ordering (routing inner pins first) achieves the best success rate:
 
 ```bash
-python route_data_nets.py
-python route_data_nets.py input.kicad_pcb output.kicad_pcb
+python batch_grid_router.py fanout_starting_point.kicad_pcb routed_output.kicad_pcb \
+  "Net-(U2A-DATA_23)" "Net-(U2A-DATA_20)" "Net-(U2A-DATA_17)" "Net-(U2A-DATA_22)" \
+  "Net-(U2A-DATA_24)" "Net-(U2A-DATA_16)" "Net-(U2A-DATA_18)" "Net-(U2A-DATA_14)" \
+  "Net-(U2A-DATA_26)" "Net-(U2A-DATA_11)" "Net-(U2A-DATA_21)" "Net-(U2A-DATA_29)" \
+  "Net-(U2A-DATA_25)" "Net-(U2A-DATA_30)" "Net-(U2A-DATA_15)" "Net-(U2A-DATA_13)" \
+  "Net-(U2A-DATA_9)" "Net-(U2A-DATA_19)" "Net-(U2A-DATA_27)" "Net-(U2A-DATA_8)" \
+  "Net-(U2A-DATA_10)" "Net-(U2A-DATA_28)" "Net-(U2A-DATA_31)" "Net-(U2A-DATA_7)" \
+  "Net-(U2A-DATA_5)" "Net-(U2A-DATA_12)" "Net-(U2A-DATA_0)" "Net-(U2A-DATA_4)" \
+  "Net-(U2A-DATA_2)" "Net-(U2A-DATA_3)" "Net-(U2A-DATA_6)" "Net-(U2A-DATA_1)"
 ```
 
-## How It Works
+## Determining Net Ordering
 
-### 1. Stub Detection
+For BGA breakout routing, order nets by distance from the BGA center (inside-out):
 
-The router expects each net to have existing "stub" tracks that fan out from component pads. It identifies the endpoints of these stubs (points that aren't connected to other segments or pads) and routes between them.
+```python
+from kicad_parser import parse_kicad_pcb
+import math
 
+pcb_data = parse_kicad_pcb('input.kicad_pcb')
+
+# BGA center coordinates
+bga_center_x, bga_center_y = 195.4, 103.0
+
+net_distances = []
+for i in range(32):
+    net_name = f'Net-(U2A-DATA_{i})'
+    net_id = next((nid for nid, net in pcb_data.nets.items() if net.name == net_name), None)
+    if net_id is None:
+        continue
+
+    # Get stub segment positions
+    segs = [s for s in pcb_data.segments if s.net_id == net_id]
+    if not segs:
+        continue
+
+    # Calculate centroid
+    points = [(s.start_x, s.start_y) for s in segs] + [(s.end_x, s.end_y) for s in segs]
+    avg_x = sum(p[0] for p in points) / len(points)
+    avg_y = sum(p[1] for p in points) / len(points)
+
+    dist = math.sqrt((avg_x - bga_center_x)**2 + (avg_y - bga_center_y)**2)
+    net_distances.append((net_name, dist))
+
+# Sort by distance (inside-out)
+net_distances.sort(key=lambda x: x[1])
+print([name for name, _ in net_distances])
 ```
-  Pad ----[stub]---- Endpoint A
-                          |
-                     [new route]
-                          |
-  Pad ----[stub]---- Endpoint B
-```
-
-### 2. A* Search
-
-The router uses A* pathfinding on a grid (default 0.1mm resolution):
-
-- **States**: (x, y, layer) tuples
-- **Moves**: 8 directions on same layer + via transitions to other layers
-- **Cost**: Distance traveled + via penalty (default 0.5mm equivalent per via)
-- **Heuristic**: Euclidean distance to goal + via cost if layer differs
-
-### 3. Obstacle Avoidance
-
-Before routing, the router builds a spatial index of all obstacles:
-- Existing tracks (with clearance expansion)
-- Existing vias (blocking all layers)
-- Component pads (except those on the net being routed)
-
-The net being routed is excluded from obstacles, allowing the router to connect to its own stubs.
-
-### 4. Connection Modes
-
-The router tries three connection strategies in order:
-
-1. **Endpoint to segment**: Start from source stub endpoint, connect to any point on target stub
-2. **Endpoint to endpoint**: Traditional point-to-point routing
-3. **Segment to segment**: Start from any point on source stub, connect to any point on target stub (escapes congested areas)
-
-### 5. Path Optimization
-
-After finding a path:
-1. **Smoothing**: Replaces zigzag staircase patterns with clean horizontal + diagonal segments
-2. **Simplification**: Merges collinear segments into single longer segments
-
-### 6. Stub Trimming
-
-When connecting mid-segment on a destination stub, the router:
-- Identifies which part of the stub leads to the pad
-- Keeps that portion, removes the rest
-- Shortens the intersected segment to the connection point
 
 ## Configuration
 
-Default routing parameters in `RouteConfig`:
+Default parameters in `batch_grid_router.py`:
 
 ```python
-RouteConfig(
-    track_width=0.1,       # mm - width of new tracks
-    clearance=0.1,         # mm - minimum spacing between tracks
-    via_size=0.3,          # mm - via outer diameter
-    via_drill=0.2,         # mm - via drill size
-    grid_step=0.1,         # mm - routing grid resolution
-    via_cost=0.5,          # penalty for via (in mm equivalent)
-    layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],  # available layers
-    max_iterations=100000, # max A* iterations before giving up
-    escape_radius=2.0,     # mm - escape zone radius (see below)
-    escape_clearance=0.02  # mm - reduced clearance in escape zone
+GridRouteConfig(
+    track_width=0.1,        # mm - width of new tracks
+    clearance=0.1,          # mm - minimum edge-to-edge spacing
+    via_size=0.3,           # mm - via outer diameter
+    via_drill=0.2,          # mm - via drill size
+    grid_step=0.1,          # mm - routing grid resolution
+    via_cost=500,           # integer cost penalty (1000 = 1 grid step)
+    layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
+    max_iterations=25000,   # max A* iterations per route
+    heuristic_weight=1.5,   # A* greediness (1.0=optimal, >1.0=faster)
+    bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),  # no vias in this rectangle
 )
 ```
 
-### Escape Zone
+### Parameter Notes
 
-When routing from congested stub fanout areas (like BGA breakouts), the normal clearance rules can block all movement from the starting point. The **escape zone** feature solves this by allowing reduced clearance near the route's starting points:
+- **clearance**: Edge-to-edge spacing between tracks. A 0.1mm clearance means tracks with 0.1mm width can pass with 0.2mm center-to-center spacing.
+- **heuristic_weight**: Values > 1.0 make the search greedier (faster but potentially suboptimal). 1.5 is a good balance.
+- **max_iterations**: Increase for complex routes. Easy routes need ~200 iterations, hard routes may need 10,000+.
+- **via_cost**: Higher values discourage layer changes. 500 means a via costs as much as 0.5 grid steps of travel.
 
-- **escape_radius**: Distance from starting points where reduced clearance applies (default 2.0mm)
-- **escape_clearance**: Minimal clearance used in escape zone (default 0.02mm - just avoid touching)
+## Performance
 
-This allows routes to escape tight fanout areas while maintaining full clearance in open areas. Both the current position AND next position must be within the escape zone for reduced clearance to apply.
+Tested on 32 DATA nets with BGA fanout:
 
-## Routing Order Matters
+| Tracks | Success Rate | Time | Notes |
+|--------|-------------|------|-------|
+| 1 | 100% | 24ms | 160 iterations |
+| 4 | 100% | 116ms | 160-893 iterations |
+| 8 | 100% | 908ms | 160-12873 iterations |
+| 16 | 56% | 2.6s | Some routes blocked |
+| 32 (inside-out) | **97%** | **12s** | 31/32 successful |
+| 32 (outside-in) | 88% | 28s | 28/32 successful |
 
-For congested routing channels, the order in which nets are routed significantly affects success rate. Early routes become obstacles for later ones.
+### Routing Order Comparison
 
-**Recommended strategy**: Route from both ends toward the middle (alternating). This prevents outer routes from blocking paths for inner ones.
+| Order | Success | Time | Failed Nets |
+|-------|---------|------|-------------|
+| Inside-out | 31/32 (97%) | 12s | DATA_5 |
+| Outside-in | 28/32 (88%) | 28s | DATA_9, DATA_12, DATA_14, DATA_20 |
 
-```python
-# Bad: Sequential order - inner nets get blocked
-["DATA_0", "DATA_1", "DATA_2", ..., "DATA_11"]
+**Inside-out is recommended** for BGA breakout routing. Inner nets route first and establish clear escape paths before outer nets can block them.
 
-# Good: Alternating from ends - each net has more room
-["DATA_0", "DATA_11", "DATA_1", "DATA_10", "DATA_2", "DATA_9", ...]
-```
+## How It Works
+
+### 1. Grid Discretization
+
+Coordinates are converted to integers: `grid_x = round(mm_x / grid_step)`
+
+This enables fast set-based collision detection with O(1) lookups.
+
+### 2. Obstacle Map
+
+Before routing, all obstacles are rasterized to grid cells:
+- Existing tracks (expanded by half-width + clearance)
+- Existing vias (all layers blocked)
+- Component pads
+
+The net being routed is excluded from obstacles.
+
+### 3. A* Search
+
+States are `(grid_x, grid_y, layer_index)` tuples. Moves include:
+- 8 directions on same layer (orthogonal + diagonal)
+- Via transitions to adjacent layers
+
+Cost = manhattan/diagonal distance + via penalty. Heuristic = octile distance to goal.
+
+### 4. Path Output
+
+The grid path is simplified (collinear points merged) and converted back to mm coordinates. Segments and vias are generated for the KiCad file.
 
 ## Limitations
 
 - Requires existing stub tracks to identify connection points
-- Grid-based routing (0.1mm default) - may miss tight fits
+- Grid-based (0.1mm default) - may miss very tight fits
 - No length matching or differential pair support
 - No push-and-shove (routes around obstacles, doesn't move them)
-- Maximum 100,000 iterations per route (configurable)
-
-## Example Output
-
-```
-Loading fanout_starting_point.kicad_pcb...
-
-Routing 12 nets...
-============================================================
-
-[1/12] Routing Net-(U2A-DATA_0) (id=302)
-----------------------------------------
-Routing from (205.100, 100.200) on In2.Cu
-       to   (223.361, 94.920) on F.Cu
-  Target stub has 2 segments, allowing mid-segment connection
-Route found in 20044 iterations, path length: 165
-  Connecting to segment at (221.200, 97.700)
-Smoothed from 165 to 5 points
-Simplified to 5 waypoints
-Removing 1 segments beyond intersection
-Shortening 1 segments at intersection
-  SUCCESS: 3 segments, 1 vias
-
-...
-
-============================================================
-Routing complete: 12 successful, 0 failed
-
-Writing output to routed_output.kicad_pcb...
-Successfully wrote routed_output.kicad_pcb
-```
+- No rip-up and reroute (failed nets stay failed)
 
 ## Dependencies
 
 - Python 3.7+
-- No external packages required (uses only standard library)
+- No external packages required (standard library only)
