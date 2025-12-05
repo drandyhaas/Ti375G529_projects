@@ -118,16 +118,29 @@ def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
     source_segs = groups[0]
     target_segs = groups[1]
 
-    # Try routing
+    # Smart direction search:
+    # 1. Try forward direction with quick check (5000 iterations)
+    # 2. If fails, try reverse direction with full iterations
+    # 3. If still fails, try forward direction with full iterations
+    # This gives both directions a chance while being efficient
+    quick_iterations = 5000
+
     result = router.route_segments_to_segments(
         source_segs, target_segs,
-        max_iterations=config.max_iterations
+        max_iterations=quick_iterations
     )
 
     if not result:
-        # Try reverse direction
+        # Try reverse direction with full iterations
         result = router.route_segments_to_segments(
             target_segs, source_segs,
+            max_iterations=config.max_iterations
+        )
+
+    if not result:
+        # Fall back to forward direction with full iterations
+        result = router.route_segments_to_segments(
+            source_segs, target_segs,
             max_iterations=config.max_iterations
         )
 
@@ -143,6 +156,20 @@ def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
     # Generate segments and vias
     new_segments = []
     new_vias = []
+
+    # Add connecting segment from original source point to first path point if needed
+    if float_path and src_pt:
+        first_x, first_y, first_layer = float_path[0]
+        src_x, src_y = src_pt
+        if abs(src_x - first_x) > 0.001 or abs(src_y - first_y) > 0.001:
+            seg = Segment(
+                start_x=src_x, start_y=src_y,
+                end_x=first_x, end_y=first_y,
+                width=config.track_width,
+                layer=first_layer,
+                net_id=net_id
+            )
+            new_segments.append(seg)
 
     for i in range(len(float_path) - 1):
         x1, y1, layer1 = float_path[i]
@@ -165,6 +192,20 @@ def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
                 end_x=x2, end_y=y2,
                 width=config.track_width,
                 layer=layer1,
+                net_id=net_id
+            )
+            new_segments.append(seg)
+
+    # Add connecting segment from last path point to original target point if needed
+    if float_path and tgt_pt:
+        last_x, last_y, last_layer = float_path[-1]
+        tgt_x, tgt_y = tgt_pt
+        if abs(tgt_x - last_x) > 0.001 or abs(tgt_y - last_y) > 0.001:
+            seg = Segment(
+                start_x=last_x, start_y=last_y,
+                end_x=tgt_x, end_y=tgt_y,
+                width=config.track_width,
+                layer=last_layer,
                 net_id=net_id
             )
             new_segments.append(seg)

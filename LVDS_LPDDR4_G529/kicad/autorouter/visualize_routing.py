@@ -429,6 +429,14 @@ def visualize_search(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
     result = router.route_segments_to_segments_visualized(source_segs, target_segs,
                                                           max_iterations=config.max_iterations)
 
+    # Try reverse direction if first direction failed
+    if not result:
+        print(f"  Trying reverse direction...")
+        router.exploration_history = []
+        router.unique_positions = set()
+        result = router.route_segments_to_segments_visualized(target_segs, source_segs,
+                                                              max_iterations=config.max_iterations)
+
     # Plot 2: Search exploration colored by iteration
     ax2 = axes[0, 1]
     ax2.set_title(f"A* Exploration (colored by iteration)")

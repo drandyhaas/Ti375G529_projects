@@ -126,9 +126,11 @@ Tested on 32 DATA nets with BGA fanout:
 | 4 | 100% | 116ms | 160-893 iterations |
 | 8 | 100% | 908ms | 160-12873 iterations |
 | 16 | 56% | 2.6s | Some routes blocked |
-| 32 (with stub avoidance) | **100%** | **65s** | 32/32 successful |
+| 32 (with stub avoidance) | **97-100%** | **53-65s** | 31-32/32 successful |
 
-**Stub proximity avoidance** is the key feature for high success rates. Routes are penalized for passing near unrouted stub endpoints, preventing early routes from blocking later ones.
+**Key features for high success rates:**
+- **Stub proximity avoidance**: Routes are penalized for passing near unrouted stub endpoints, preventing early routes from blocking later ones
+- **Smart direction search**: Try forward direction quickly (5000 iterations), then reverse with full iterations, then forward with full iterations. This finds the "easy" direction faster.
 
 ### Iterative Retry Strategy
 
@@ -196,7 +198,21 @@ The checker reports:
 
 Note: Pre-existing differential pair routing (e.g., LVDS signals) may intentionally have tight spacing and will show as violations.
 
+## Rust Router (Recommended)
+
+For faster routing (~10x speedup), use the Rust implementation in the `rust_router/` directory.
+
+See [rust_router/README.md](rust_router/README.md) for build instructions and usage.
+
+```bash
+cd rust_router
+python benchmark_full.py
+```
+
+Results: 32/32 nets routed in ~5 seconds.
+
 ## Dependencies
 
 - Python 3.7+
-- No external packages required (standard library only)
+- No external packages required for Python router
+- Rust toolchain required for Rust router (see rust_router/README.md)

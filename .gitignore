@@ -22,3 +22,6 @@ nul
 __pycache__/
 */__pycache__/
 */*/__pycache__/
+/LVDS_LPDDR4_G529/kicad/.claude/settings.local.json
+/LVDS_LPDDR4_G529/kicad/autorouter/.claude/settings.local.json
+/LVDS_LPDDR4_G529/kicad/haasoscope_pro_max/~haasoscope_pro_max.kicad_sch.lck
