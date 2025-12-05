@@ -142,20 +142,23 @@ impl GridObstacleMap {
     /// Check if cell is blocked
     #[inline]
     fn is_blocked(&self, gx: i32, gy: i32, layer: usize) -> bool {
-        // Check if explicitly allowed (source/target points)
-        if self.allowed_cells.contains(&pack_xy(gx, gy)) {
-            return false;
-        }
-        // Check BGA zone
-        if let Some((min_gx, min_gy, max_gx, max_gy)) = self.bga_zone {
-            if gx >= min_gx && gx <= max_gx && gy >= min_gy && gy <= max_gy {
-                return true;
-            }
-        }
+        // First check if blocked by regular obstacles (segments, vias, pads)
         if layer >= self.num_layers {
             return true;
         }
-        self.blocked_cells[layer].contains(&pack_xy(gx, gy))
+        if self.blocked_cells[layer].contains(&pack_xy(gx, gy)) {
+            return true;
+        }
+
+        // Check BGA zone - but allowed_cells can override this
+        if let Some((min_gx, min_gy, max_gx, max_gy)) = self.bga_zone {
+            if gx >= min_gx && gx <= max_gx && gy >= min_gy && gy <= max_gy {
+                // Inside BGA zone - blocked unless explicitly allowed
+                return !self.allowed_cells.contains(&pack_xy(gx, gy));
+            }
+        }
+
+        false
     }
 
     /// Check if via is blocked
@@ -378,7 +381,7 @@ impl GridRouter {
 }
 
 /// Module version
-const VERSION: &str = "0.2.0";
+const VERSION: &str = "0.2.1";
 
 /// Python module
 #[pymodule]

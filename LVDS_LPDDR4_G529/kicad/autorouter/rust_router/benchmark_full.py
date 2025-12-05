@@ -86,7 +86,7 @@ def build_rust_obstacles(pcb_data, config, exclude_net_id, unrouted_stubs=None):
                 gy += sy
 
     # Add vias as obstacles
-    via_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.clearance))
+    via_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.track_width / 2 + config.clearance))
     for via in pcb_data.vias:
         if via.net_id == exclude_net_id:
             continue
