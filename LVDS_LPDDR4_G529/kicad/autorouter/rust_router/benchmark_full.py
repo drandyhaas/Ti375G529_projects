@@ -120,10 +120,11 @@ def build_rust_obstacles(pcb_data, config, exclude_net_id, unrouted_stubs=None):
 
             # Via blocking near pads - use rectangular bounds
             # Via must clear pad edge by: via_radius + clearance
+            # Use int() instead of round() to avoid over-blocking due to grid discretization
             if 'F.Cu' in pad.layers or 'B.Cu' in pad.layers:
                 via_clear_mm = config.via_size / 2 + config.clearance
-                via_expand_x = coord.to_grid_dist(pad.size_x / 2 + via_clear_mm)
-                via_expand_y = coord.to_grid_dist(pad.size_y / 2 + via_clear_mm)
+                via_expand_x = int((pad.size_x / 2 + via_clear_mm) / config.grid_step)
+                via_expand_y = int((pad.size_y / 2 + via_clear_mm) / config.grid_step)
                 for ex in range(-via_expand_x, via_expand_x + 1):
                     for ey in range(-via_expand_y, via_expand_y + 1):
                         obstacles.add_blocked_via(gx + ex, gy + ey)

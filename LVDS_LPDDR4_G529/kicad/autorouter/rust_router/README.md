@@ -2,7 +2,7 @@
 
 High-performance A* grid router implemented in Rust with Python bindings via PyO3.
 
-**Current Version: 0.2.0**
+**Current Version: 0.2.1**
 
 ## Features
 
@@ -11,6 +11,7 @@ High-performance A* grid router implemented in Rust with Python bindings via PyO
 - Via cost and layer transitions
 - BGA exclusion zone with allowed cell overrides
 - Stub proximity costs to avoid blocking unrouted nets
+- **Rectangular pad obstacle blocking** with proper rotation handling
 - ~10x speedup vs Python implementation
 
 ## Building
@@ -119,11 +120,14 @@ python benchmark_full.py
 
 | Metric | Value |
 |--------|-------|
-| 32 net routing | ~5 seconds |
-| Success rate | 32/32 (100%) |
-| Total iterations | ~35,000 |
+| 32 net routing | ~7 seconds |
+| Success rate | **32/32 (100%)** |
+| Total iterations | ~285,000 |
+| DRC violations | None (DATA nets) |
 
 Speedup vs Python implementation: **~10x**
+
+Note: With proper rectangular pad blocking using `int()` instead of `round()` for grid discretization, the router correctly places vias on QFN pads while maintaining clearance to adjacent pads.
 
 ## API Reference
 
@@ -163,5 +167,28 @@ Methods:
 
 ## Version History
 
+- **0.2.1**: Fixed `is_blocked()` to check blocked_cells before allowed_cells (prevents allowed_cells from overriding regular obstacles)
 - **0.2.0**: Added `add_allowed_cell()` for BGA zone overrides, added `__version__` attribute
 - **0.1.0**: Initial release with basic A* routing
+
+## Pad Rotation and Rectangular Blocking
+
+The `benchmark_full.py` script uses rectangular pad blocking with proper rotation handling:
+
+```python
+# Pads are blocked with rectangular bounds based on their rotated dimensions
+# For a QFN pad with size (0.875, 0.2) and 90° rotation:
+# - Board-space size becomes (0.2, 0.875)
+# - Via blocking zone: pad_half_x + via_radius + clearance in X
+#                      pad_half_y + via_radius + clearance in Y
+
+for pad in pads:
+    # size_x and size_y are already rotated by kicad_parser.py
+    via_expand_x = coord.to_grid_dist(pad.size_x / 2 + via_clear_mm)
+    via_expand_y = coord.to_grid_dist(pad.size_y / 2 + via_clear_mm)
+    for ex in range(-via_expand_x, via_expand_x + 1):
+        for ey in range(-via_expand_y, via_expand_y + 1):
+            obstacles.add_blocked_via(gx + ex, gy + ey)
+```
+
+This ensures vias are only placed where they have proper clearance to all adjacent pads, even for tightly-spaced QFN pins (0.4mm pitch).

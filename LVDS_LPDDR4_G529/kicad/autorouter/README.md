@@ -17,7 +17,7 @@ A fast Python-based A* autorouter for KiCad PCB files using integer grid coordin
 |------|-------------|
 | `grid_astar_router.py` | Core grid-based A* routing engine |
 | `batch_grid_router.py` | Batch routing for multiple nets |
-| `kicad_parser.py` | Parses .kicad_pcb files into Python data structures |
+| `kicad_parser.py` | Parses .kicad_pcb files into Python data structures (handles pad rotation) |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 | `check_drc.py` | DRC checker for detecting clearance violations |
 | `visualize_routing.py` | Matplotlib visualization of A* search progress |
@@ -157,11 +157,13 @@ This enables fast set-based collision detection with O(1) lookups.
 Before routing, all obstacles are rasterized to grid cells:
 - Existing tracks (expanded by half-width + clearance)
 - Existing vias (all layers blocked)
-- Component pads
-- Via placement zones (tracks block via placement with via_radius + track_half_width + clearance)
+- Component pads with **rectangular bounds** (respects pad rotation for correct orientation)
+- Via placement zones (tracks and pads block via placement with appropriate clearances)
 - **Stub proximity cost field** (unrouted stub locations have decaying cost penalty)
 
 The net being routed is excluded from obstacles.
+
+**Pad Rotation Handling**: The parser correctly transforms pad dimensions based on rotation. For example, QFN pads defined as (0.875 x 0.2)mm with 90° rotation become (0.2 x 0.875)mm in board coordinates, ensuring rectangular via blocking zones are correctly oriented.
 
 ### 3. A* Search
 
@@ -209,7 +211,7 @@ cd rust_router
 python benchmark_full.py
 ```
 
-Results: 32/32 nets routed in ~5 seconds.
+Results: **32/32 nets routed** in ~7 seconds with proper rectangular pad clearance checking.
 
 ## Dependencies
 

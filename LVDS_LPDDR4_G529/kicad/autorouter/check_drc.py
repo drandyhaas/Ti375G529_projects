@@ -45,22 +45,31 @@ def segment_to_segment_distance(seg1: Segment, seg2: Segment) -> float:
     return min(d1, d2, d3, d4)
 
 
-def check_segment_overlap(seg1: Segment, seg2: Segment, clearance: float) -> Tuple[bool, float]:
-    """Check if two segments on the same layer violate clearance."""
+def check_segment_overlap(seg1: Segment, seg2: Segment, clearance: float, tolerance: float = 0.001) -> Tuple[bool, float]:
+    """Check if two segments on the same layer violate clearance.
+
+    Args:
+        tolerance: Ignore violations smaller than this (mm). Default 0.001mm (1 micron).
+    """
     if seg1.layer != seg2.layer:
         return False, 0.0
 
     # Required distance is half-widths plus clearance
     required_dist = seg1.width / 2 + seg2.width / 2 + clearance
     actual_dist = segment_to_segment_distance(seg1, seg2)
+    overlap = required_dist - actual_dist
 
-    if actual_dist < required_dist:
-        return True, required_dist - actual_dist
+    if overlap > tolerance:
+        return True, overlap
     return False, 0.0
 
 
-def check_via_segment_overlap(via: Via, seg: Segment, clearance: float) -> Tuple[bool, float]:
-    """Check if a via overlaps with a segment on any common layer."""
+def check_via_segment_overlap(via: Via, seg: Segment, clearance: float, tolerance: float = 0.001) -> Tuple[bool, float]:
+    """Check if a via overlaps with a segment on any common layer.
+
+    Args:
+        tolerance: Ignore violations smaller than this (mm). Default 0.001mm (1 micron).
+    """
     # Check if they share a layer
     via_layers = set(via.layers) if via.layers else {'F.Cu', 'B.Cu'}
     if seg.layer not in via_layers:
@@ -70,20 +79,26 @@ def check_via_segment_overlap(via: Via, seg: Segment, clearance: float) -> Tuple
     actual_dist = point_to_segment_distance(via.x, via.y,
                                             seg.start_x, seg.start_y,
                                             seg.end_x, seg.end_y)
+    overlap = required_dist - actual_dist
 
-    if actual_dist < required_dist:
-        return True, required_dist - actual_dist
+    if overlap > tolerance:
+        return True, overlap
     return False, 0.0
 
 
-def check_via_via_overlap(via1: Via, via2: Via, clearance: float) -> Tuple[bool, float]:
-    """Check if two vias overlap."""
+def check_via_via_overlap(via1: Via, via2: Via, clearance: float, tolerance: float = 0.001) -> Tuple[bool, float]:
+    """Check if two vias overlap.
+
+    Args:
+        tolerance: Ignore violations smaller than this (mm). Default 0.001mm (1 micron).
+    """
     # All vias are through-hole, so they always potentially conflict
     required_dist = via1.size / 2 + via2.size / 2 + clearance
     actual_dist = math.sqrt((via1.x - via2.x)**2 + (via1.y - via2.y)**2)
+    overlap = required_dist - actual_dist
 
-    if actual_dist < required_dist:
-        return True, required_dist - actual_dist
+    if overlap > tolerance:
+        return True, overlap
     return False, 0.0
 
 
