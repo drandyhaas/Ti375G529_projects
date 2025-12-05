@@ -13,6 +13,7 @@ Requires the Rust router module. Build it with:
 import sys
 import os
 import time
+import fnmatch
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass, field
 
@@ -645,15 +646,64 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
     return successful, failed, total_time
 
 
+def expand_net_patterns(pcb_data: PCBData, patterns: List[str]) -> List[str]:
+    """
+    Expand wildcard patterns to matching net names.
+
+    Patterns can include * and ? wildcards (fnmatch style).
+    Example: "Net-(U2A-DATA_*)" matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.
+
+    Returns list of unique net names in sorted order for patterns,
+    preserving order of non-pattern names.
+    """
+    all_net_names = [net.name for net in pcb_data.nets.values()]
+    result = []
+    seen = set()
+
+    for pattern in patterns:
+        if '*' in pattern or '?' in pattern:
+            # It's a wildcard pattern - find all matching nets
+            matches = sorted([name for name in all_net_names if fnmatch.fnmatch(name, pattern)])
+            if not matches:
+                print(f"Warning: Pattern '{pattern}' matched no nets")
+            else:
+                print(f"Pattern '{pattern}' matched {len(matches)} nets")
+            for name in matches:
+                if name not in seen:
+                    result.append(name)
+                    seen.add(name)
+        else:
+            # Literal net name
+            if pattern not in seen:
+                result.append(pattern)
+                seen.add(pattern)
+
+    return result
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("Usage: python batch_grid_router.py input.kicad_pcb output.kicad_pcb net1 [net2 net3 ...]")
+        print("\nWildcard patterns supported:")
+        print('  "Net-(U2A-DATA_*)"  - matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.')
+        print('  "Net-(*CLK*)"       - matches any net containing CLK')
         print("\nExample:")
-        print('  python batch_grid_router.py fanout_starting_point.kicad_pcb routed.kicad_pcb "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)"')
+        print('  python batch_grid_router.py fanout_starting_point.kicad_pcb routed.kicad_pcb "Net-(U2A-DATA_*)"')
         sys.exit(1)
 
     input_file = sys.argv[1]
     output_file = sys.argv[2]
-    net_names = sys.argv[3:]
+    net_patterns = sys.argv[3:]
+
+    # Load PCB to expand wildcards
+    print(f"Loading {input_file} to expand net patterns...")
+    pcb_data = parse_kicad_pcb(input_file)
+    net_names = expand_net_patterns(pcb_data, net_patterns)
+
+    if not net_names:
+        print("No nets matched the given patterns!")
+        sys.exit(1)
+
+    print(f"Routing {len(net_names)} nets: {net_names[:5]}{'...' if len(net_names) > 5 else ''}")
 
     batch_route(input_file, output_file, net_names)

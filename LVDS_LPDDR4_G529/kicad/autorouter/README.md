@@ -49,6 +49,7 @@ See [rust_router/README.md](rust_router/README.md) for detailed build instructio
 | `qfn_fanout.py` | QFN fanout stub generation |
 | `apply_fanouts.py` | Apply generated fanouts to PCB file |
 | `rust_router/` | Rust A* implementation with Python bindings |
+| `pygame_visualizer/` | Real-time visualization of routing algorithm |
 
 ## Quick Start
 
@@ -58,20 +59,27 @@ See [rust_router/README.md](rust_router/README.md) for detailed build instructio
 python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)"
 ```
 
-### Route 32 DATA Nets (Inside-Out Ordering is Automatic)
+### Route with Wildcard Patterns
 
-The router automatically detects BGA components and sorts nets with BGA pads inside-out (center pads first). Just pass the nets in any order:
+Use `*` and `?` wildcards to match multiple nets:
 
 ```bash
-python batch_grid_router.py fanout_starting_point.kicad_pcb routed_output.kicad_pcb \
-  "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)" "Net-(U2A-DATA_2)" "Net-(U2A-DATA_3)" \
-  "Net-(U2A-DATA_4)" "Net-(U2A-DATA_5)" "Net-(U2A-DATA_6)" "Net-(U2A-DATA_7)" \
-  "Net-(U2A-DATA_8)" "Net-(U2A-DATA_9)" "Net-(U2A-DATA_10)" "Net-(U2A-DATA_11)" \
-  "Net-(U2A-DATA_12)" "Net-(U2A-DATA_13)" "Net-(U2A-DATA_14)" "Net-(U2A-DATA_15)" \
-  "Net-(U2A-DATA_16)" "Net-(U2A-DATA_17)" "Net-(U2A-DATA_18)" "Net-(U2A-DATA_19)" \
-  "Net-(U2A-DATA_20)" "Net-(U2A-DATA_21)" "Net-(U2A-DATA_22)" "Net-(U2A-DATA_23)" \
-  "Net-(U2A-DATA_24)" "Net-(U2A-DATA_25)" "Net-(U2A-DATA_26)" "Net-(U2A-DATA_27)" \
-  "Net-(U2A-DATA_28)" "Net-(U2A-DATA_29)" "Net-(U2A-DATA_30)" "Net-(U2A-DATA_31)"
+# Route all DATA nets (matches Net-(U2A-DATA_0) through Net-(U2A-DATA_31))
+python batch_grid_router.py fanout_starting_point.kicad_pcb routed.kicad_pcb "Net-(U2A-DATA_*)"
+
+# Route all nets containing "CLK"
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "*CLK*"
+
+# Mix wildcards and explicit names
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" "Net-(U2A-CLK)"
+```
+
+### Route 32 DATA Nets (Inside-Out Ordering is Automatic)
+
+The router automatically detects BGA components and sorts nets with BGA pads inside-out (center pads first). With wildcards, this is now a single command:
+
+```bash
+python batch_grid_router.py fanout_starting_point.kicad_pcb routed_output.kicad_pcb "Net-(U2A-DATA_*)"
 ```
 
 The router will output:
@@ -207,7 +215,25 @@ The checker reports:
 
 Note: Pre-existing differential pair routing (e.g., LVDS signals) may intentionally have tight spacing and will show as violations.
 
+## Real-Time Visualizer
+
+Watch the A* algorithm explore the routing grid in real-time using the PyGame visualizer:
+
+```bash
+pip install pygame-ce
+python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-DATA_0)"
+```
+
+Features:
+- Same Rust router as batch mode (zero performance impact on normal routing)
+- Pause, step, zoom, pan controls
+- Speed control with 2x scaling (1x, 2x, 4x, 8x...)
+- Layer filtering and legend display
+
+See [pygame_visualizer/README.md](pygame_visualizer/README.md) for full documentation.
+
 ## Dependencies
 
 - Python 3.7+
 - Rust toolchain (for building the router module)
+- pygame-ce (optional, for visualizer)

@@ -41,6 +41,17 @@ Or as a module:
 python -m pygame_visualizer.run_visualizer input.kicad_pcb "Net-Name"
 ```
 
+### Wildcard Patterns
+
+Use `*` and `?` wildcards to match multiple nets. All matching nets will be routed sequentially:
+
+```bash
+# Route and visualize all 32 DATA nets
+python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"
+```
+
+Each successfully routed net is added as an obstacle for subsequent routes, just like the batch router.
+
 ### Example
 
 ```bash
@@ -53,12 +64,15 @@ python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-
 |-----|--------|
 | Space | Pause/Resume |
 | S | Single step (when paused) |
-| +/- | Increase/Decrease speed |
+| R | Restart current net |
+| Ctrl+R | Restart all nets from beginning |
+| +/- | Double/Halve speed (1x, 2x, 4x, 8x...) |
 | 1-4 | Show layer 1-4 only |
 | 0 | Show all layers |
 | G | Toggle grid lines |
 | O | Toggle open set display |
 | C | Toggle closed set display |
+| H | Toggle legend |
 | L | Toggle layer legend |
 | Q/Esc | Quit |
 

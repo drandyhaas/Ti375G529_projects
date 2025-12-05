@@ -97,12 +97,11 @@ class VisualizerConfig:
     # Animation settings
     update_interval: int = 1     # Update display every N iterations
     target_fps: int = 60         # Target frame rate
-    iterations_per_frame: int = 100  # A* iterations between display updates
+    iterations_per_frame: int = 8  # A* iterations between display updates (power of 2 for 2x scaling)
 
-    # Speed control
+    # Speed control (2x scale: 1, 2, 4, 8, 16, 32, ...)
     min_speed: int = 1           # Minimum iterations per frame
-    max_speed: int = 5000        # Maximum iterations per frame
-    speed_step: int = 50         # Speed change per key press
+    max_speed: int = 8192        # Maximum iterations per frame (2^13)
 
     # Display options
     show_open_set: bool = True   # Show cells in open set (priority queue)
@@ -111,6 +110,7 @@ class VisualizerConfig:
     show_obstacles: bool = True  # Show blocked cells
     show_layer_legend: bool = True
     show_stats: bool = True      # Show iteration count, etc.
+    show_legend: bool = True     # Show color legend
 
     # Layer display
     layers: List[str] = field(default_factory=lambda: ['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'])
@@ -126,8 +126,9 @@ CONTROLS_HELP = """
 Keyboard Controls:
   Space     - Pause/Resume
   S         - Single step (when paused)
-  R         - Reset and restart
-  +/-       - Increase/Decrease speed
+  R         - Restart current net
+  Ctrl+R    - Restart all nets
+  +/-       - Double/Halve speed (1x, 2x, 4x...)
   1-4       - Show layer 1-4 only
   0         - Show all layers
   G         - Toggle grid lines
@@ -135,6 +136,7 @@ Keyboard Controls:
   C         - Toggle closed set display
   P         - Toggle proximity field
   L         - Toggle layer legend
+  H         - Toggle color legend
   Q/Esc     - Quit
 
 Mouse:

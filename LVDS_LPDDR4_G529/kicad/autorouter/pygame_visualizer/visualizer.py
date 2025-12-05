@@ -124,6 +124,8 @@ class RoutingVisualizer:
         self.running = True
         self.paused = False
         self.step_mode = False
+        self.restart_requested = False      # R = restart current net
+        self.restart_all_requested = False  # Ctrl+R = restart all nets
         self.iterations_per_frame = self.config.iterations_per_frame
 
         # Routing data (from Rust)
@@ -385,9 +387,10 @@ class RoutingVisualizer:
                 self.screen.blit(text, (10, y_offset))
                 y_offset += 18
 
+        # Layer legend (bottom-left)
         if self.config.show_layer_legend:
             y_offset = self.config.window_height - 100
-            text = self.font.render("Layers:", True, (200, 200, 200))
+            text = self.font.render("Layers (1-4, 0=all):", True, (200, 200, 200))
             self.screen.blit(text, (10, y_offset))
             y_offset += 18
 
@@ -400,9 +403,123 @@ class RoutingVisualizer:
                 self.screen.blit(text, (10, y_offset))
                 y_offset += 16
 
-        speed_text = f"+/- Speed: {self.iterations_per_frame}"
+        # Speed indicator (top-right)
+        speed_text = f"+/- Speed: {self.iterations_per_frame}x"
         text = self.font.render(speed_text, True, (150, 150, 150))
-        self.screen.blit(text, (self.config.window_width - 150, 10))
+        self.screen.blit(text, (self.config.window_width - 160, 10))
+
+        # Legend (right side)
+        if self.config.show_legend:
+            self._render_legend()
+
+    def _render_legend(self):
+        """Render the legend explaining what each visual element represents."""
+        x_offset = self.config.window_width - 220
+        y_offset = 40
+        line_height = 18
+        swatch_size = 12
+
+        # Background box for legend
+        legend_height = 280
+        legend_rect = Rect(x_offset - 10, y_offset - 5, 220, legend_height)
+        pygame.draw.rect(self.screen, (40, 40, 45), legend_rect)
+        pygame.draw.rect(self.screen, (80, 80, 85), legend_rect, 1)
+
+        # Title
+        text = self.font.render("Legend", True, (220, 220, 220))
+        self.screen.blit(text, (x_offset, y_offset))
+        y_offset += line_height + 5
+
+        # Search state section
+        text = self.font.render("Search State:", True, (180, 180, 180))
+        self.screen.blit(text, (x_offset, y_offset))
+        y_offset += line_height
+
+        legend_items = [
+            (SearchColors.SOURCE, "Source (start)"),
+            (SearchColors.TARGET, "Target (goal)"),
+            (SearchColors.CURRENT, "Current node"),
+            ((180, 100, 100), "Open set (frontier)"),
+            ((80, 80, 90), "Closed set (explored)"),
+            (SearchColors.PATH_FOUND, "Final path"),
+            ((255, 255, 255), "Via (layer change)"),
+        ]
+
+        for color, label in legend_items:
+            # Draw color swatch
+            swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+            pygame.draw.rect(self.screen, color, swatch_rect)
+            pygame.draw.rect(self.screen, (100, 100, 100), swatch_rect, 1)
+            # Draw label
+            text = self.font.render(label, True, (200, 200, 200))
+            self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+            y_offset += line_height
+
+        y_offset += 5
+
+        # Obstacles section
+        text = self.font.render("Obstacles:", True, (180, 180, 180))
+        self.screen.blit(text, (x_offset, y_offset))
+        y_offset += line_height
+
+        obstacle_items = [
+            (SearchColors.BGA_ZONE, "BGA exclusion zone"),
+            ((60, 40, 40), "Blocked cells"),
+            (SearchColors.VIA_BLOCKED, "Blocked via positions"),
+        ]
+
+        for color, label in obstacle_items:
+            swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+            pygame.draw.rect(self.screen, color, swatch_rect)
+            pygame.draw.rect(self.screen, (100, 100, 100), swatch_rect, 1)
+            text = self.font.render(label, True, (200, 200, 200))
+            self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+            y_offset += line_height
+
+        # Controls legend (bottom-right)
+        self._render_controls_legend()
+
+    def _render_controls_legend(self):
+        """Render keyboard/mouse controls in bottom-right."""
+        line_height = 16
+        x_offset = self.config.window_width - 220
+
+        controls = [
+            ("Space", "Pause/Resume"),
+            ("S", "Step (paused)"),
+            ("R", "Restart net"),
+            ("Ctrl+R", "Restart all"),
+            ("+/-", "Speed 2x"),
+            ("1-4", "Layer filter"),
+            ("0", "All layers"),
+            ("O/C", "Open/Closed set"),
+            ("H", "Toggle legend"),
+            ("Scroll", "Zoom"),
+            ("Drag", "Pan"),
+            ("Q/Esc", "Quit"),
+        ]
+
+        box_height = len(controls) * line_height + 25
+        y_start = self.config.window_height - box_height - 10
+
+        # Background box
+        legend_rect = Rect(x_offset - 10, y_start, 220, box_height)
+        pygame.draw.rect(self.screen, (40, 40, 45), legend_rect)
+        pygame.draw.rect(self.screen, (80, 80, 85), legend_rect, 1)
+
+        y_offset = y_start + 5
+
+        # Title
+        text = self.font.render("Controls", True, (220, 220, 220))
+        self.screen.blit(text, (x_offset, y_offset))
+        y_offset += line_height + 3
+
+        for key, action in controls:
+            key_text = self.font.render(f"{key}:", True, (150, 200, 150))
+            action_text = self.font.render(action, True, (180, 180, 180))
+            self.screen.blit(key_text, (x_offset + 5, y_offset))
+            self.screen.blit(action_text, (x_offset + 70, y_offset))
+            y_offset += line_height
 
     def handle_events(self) -> bool:
         """Handle pygame events. Returns False if should quit."""
@@ -418,15 +535,26 @@ class RoutingVisualizer:
                 elif event.key == pygame.K_s:
                     if self.paused:
                         self.step_mode = True
+                elif event.key == pygame.K_r:
+                    mods = pygame.key.get_mods()
+                    if mods & pygame.KMOD_CTRL:
+                        # Ctrl+R = restart all nets
+                        self.restart_all_requested = True
+                    else:
+                        # R = restart current net
+                        self.restart_requested = True
+                    self.snapshot = None
                 elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:
+                    # 2x speed increase
                     self.iterations_per_frame = min(
                         self.config.max_speed,
-                        self.iterations_per_frame + self.config.speed_step
+                        self.iterations_per_frame * 2
                     )
                 elif event.key == pygame.K_MINUS:
+                    # 2x speed decrease (halve)
                     self.iterations_per_frame = max(
                         self.config.min_speed,
-                        self.iterations_per_frame - self.config.speed_step
+                        self.iterations_per_frame // 2
                     )
                 elif event.key == pygame.K_g:
                     self.config.show_grid_lines = not self.config.show_grid_lines
@@ -439,6 +567,8 @@ class RoutingVisualizer:
                     self.config.show_proximity = not self.config.show_proximity
                 elif event.key == pygame.K_l:
                     self.config.show_layer_legend = not self.config.show_layer_legend
+                elif event.key == pygame.K_h:
+                    self.config.show_legend = not self.config.show_legend
                 elif event.key == pygame.K_0:
                     self.config.current_layer = -1
                     self._obstacle_dirty = True
