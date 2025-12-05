@@ -126,6 +126,7 @@ CONTROLS_HELP = """
 Keyboard Controls:
   Space     - Pause/Resume
   S         - Single step (when paused)
+  N         - Next net (after route completes)
   R         - Restart current net
   Ctrl+R    - Restart all nets
   +/-       - Double/Halve speed (1x, 2x, 4x...)

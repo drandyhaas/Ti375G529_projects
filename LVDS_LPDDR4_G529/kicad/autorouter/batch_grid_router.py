@@ -602,7 +602,7 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         total_time += elapsed
 
         if result:
-            print(f"  SUCCESS: {len(result['new_segments'])} segments, {len(result['new_vias'])} vias ({elapsed:.2f}s)")
+            print(f"  SUCCESS: {len(result['new_segments'])} segments, {len(result['new_vias'])} vias, {result['iterations']} iterations ({elapsed:.2f}s)")
             results.append(result)
             successful += 1
             total_iterations += result['iterations']

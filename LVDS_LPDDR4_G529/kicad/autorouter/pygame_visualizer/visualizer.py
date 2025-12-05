@@ -126,7 +126,13 @@ class RoutingVisualizer:
         self.step_mode = False
         self.restart_requested = False      # R = restart current net
         self.restart_all_requested = False  # Ctrl+R = restart all nets
+        self.next_net_requested = False     # N = advance to next net
         self.iterations_per_frame = self.config.iterations_per_frame
+
+        # Current net info for display
+        self.current_net_name = ""
+        self.current_net_num = 0
+        self.total_nets = 0
 
         # Routing data (from Rust)
         self.rust_obstacles = None  # GridObstacleMap from Rust
@@ -186,6 +192,12 @@ class RoutingVisualizer:
     def update_snapshot(self, snapshot):
         """Update the current search snapshot from Rust VisualRouter."""
         self.snapshot = snapshot
+
+    def set_current_net(self, net_name: str, net_num: int, total_nets: int):
+        """Set the current net being routed for status display."""
+        self.current_net_name = net_name
+        self.current_net_num = net_num
+        self.total_nets = total_nets
 
     def grid_to_screen(self, gx: int, gy: int) -> Tuple[int, int]:
         """Convert grid coordinates to screen coordinates."""
@@ -251,14 +263,16 @@ class RoutingVisualizer:
                         )
                         pygame.draw.rect(surface, color, rect)
 
-        # Render blocked vias
+        # Render blocked vias as small X marks
         for gx, gy in self._blocked_vias_cache:
             if min_gx <= gx <= max_gx and min_gy <= gy <= max_gy:
-                center = (
-                    (gx - min_gx) * cell_size + cell_size // 2,
-                    (gy - min_gy) * cell_size + cell_size // 2
-                )
-                pygame.draw.circle(surface, SearchColors.VIA_BLOCKED, center, cell_size // 2)
+                x = (gx - min_gx) * cell_size
+                y = (gy - min_gy) * cell_size
+                # Draw X (two diagonal lines)
+                pygame.draw.line(surface, SearchColors.VIA_BLOCKED,
+                               (x + 1, y + 1), (x + cell_size - 2, y + cell_size - 2), 1)
+                pygame.draw.line(surface, SearchColors.VIA_BLOCKED,
+                               (x + cell_size - 2, y + 1), (x + 1, y + cell_size - 2), 1)
 
         self._obstacle_offset = (min_gx, min_gy)
         return surface
@@ -371,6 +385,13 @@ class RoutingVisualizer:
         self.screen.blit(text, (10, y_offset))
         y_offset += 20
 
+        # Show current net being routed
+        if self.current_net_name:
+            net_status = f"Net [{self.current_net_num}/{self.total_nets}]: {self.current_net_name}"
+            text = self.font.render(net_status, True, (150, 200, 255))
+            self.screen.blit(text, (10, y_offset))
+            y_offset += 20
+
         if self.snapshot and self.config.show_stats:
             snapshot = self.snapshot
             info_lines = [
@@ -381,6 +402,7 @@ class RoutingVisualizer:
             if snapshot.found:
                 path_len = len(snapshot.path) if snapshot.path else 0
                 info_lines.append(f"PATH FOUND! Length: {path_len}")
+                info_lines.append("Press N for next net")
 
             for line in info_lines:
                 text = self.font.render(line, True, (200, 200, 200))
@@ -435,12 +457,18 @@ class RoutingVisualizer:
         self.screen.blit(text, (x_offset, y_offset))
         y_offset += line_height
 
+        # Get current layer color for accurate legend
+        layer_idx = self.config.current_layer if self.config.current_layer >= 0 else 0
+        layer_color = LayerColors.get_layer_color_by_index(layer_idx)
+        open_color = tuple(min(255, c + 80) for c in layer_color)
+        closed_color = tuple(c // 3 for c in layer_color)
+
         legend_items = [
             (SearchColors.SOURCE, "Source (start)"),
             (SearchColors.TARGET, "Target (goal)"),
             (SearchColors.CURRENT, "Current node"),
-            ((180, 100, 100), "Open set (frontier)"),
-            ((80, 80, 90), "Closed set (explored)"),
+            (open_color, "Open set (frontier)"),
+            (closed_color, "Closed set (explored)"),
             (SearchColors.PATH_FOUND, "Final path"),
             ((255, 255, 255), "Via (layer change)"),
         ]
@@ -487,6 +515,7 @@ class RoutingVisualizer:
         controls = [
             ("Space", "Pause/Resume"),
             ("S", "Step (paused)"),
+            ("N", "Next net"),
             ("R", "Restart net"),
             ("Ctrl+R", "Restart all"),
             ("+/-", "Speed 2x"),
@@ -569,6 +598,8 @@ class RoutingVisualizer:
                     self.config.show_layer_legend = not self.config.show_layer_legend
                 elif event.key == pygame.K_h:
                     self.config.show_legend = not self.config.show_legend
+                elif event.key == pygame.K_n:
+                    self.next_net_requested = True
                 elif event.key == pygame.K_0:
                     self.config.current_layer = -1
                     self._obstacle_dirty = True

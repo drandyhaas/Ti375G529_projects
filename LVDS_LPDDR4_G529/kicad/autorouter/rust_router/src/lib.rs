@@ -80,6 +80,7 @@ struct GridObstacleMap {
     /// Stub proximity costs: (gx, gy) -> cost
     stub_proximity: FxHashMap<u64, i32>,
     /// Number of layers
+    #[pyo3(get)]
     num_layers: usize,
     /// BGA exclusion zone (min_gx, min_gy, max_gx, max_gy)
     bga_zone: Option<(i32, i32, i32, i32)>,
@@ -150,13 +151,10 @@ impl GridObstacleMap {
             return true;
         }
 
-        // Check BGA zone - but allowed_cells can override this
-        if let Some((min_gx, min_gy, max_gx, max_gy)) = self.bga_zone {
-            if gx >= min_gx && gx <= max_gx && gy >= min_gy && gy <= max_gy {
-                // Inside BGA zone - blocked unless explicitly allowed
-                return !self.allowed_cells.contains(&pack_xy(gx, gy));
-            }
-        }
+        // BGA zone only blocks F.Cu (layer 0) routing, not inner layers
+        // Vias are blocked separately by is_via_blocked()
+        // Inner layers can route freely through BGA zone
+        // (F.Cu blocking is handled by add_blocked_cell in Python)
 
         false
     }
@@ -164,7 +162,17 @@ impl GridObstacleMap {
     /// Check if via is blocked
     #[inline]
     fn is_via_blocked(&self, gx: i32, gy: i32) -> bool {
-        self.blocked_vias.contains(&pack_xy(gx, gy))
+        // Check explicit via blocks
+        if self.blocked_vias.contains(&pack_xy(gx, gy)) {
+            return true;
+        }
+        // Check BGA zone - vias blocked inside unless allowed
+        if let Some((min_gx, min_gy, max_gx, max_gy)) = self.bga_zone {
+            if gx >= min_gx && gx <= max_gx && gy >= min_gy && gy <= max_gy {
+                return !self.allowed_cells.contains(&pack_xy(gx, gy));
+            }
+        }
+        false
     }
 
     /// Get stub proximity cost
