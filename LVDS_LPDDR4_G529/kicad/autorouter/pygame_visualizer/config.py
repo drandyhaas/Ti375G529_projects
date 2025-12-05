@@ -127,6 +127,7 @@ Keyboard Controls:
   Space     - Pause/Resume
   S         - Single step (when paused)
   N         - Next net (after route completes)
+  B         - Force backwards direction (restart & try backwards)
   R         - Restart current net
   Ctrl+R    - Restart all nets
   +/-       - Double/Halve speed (1x, 2x, 4x...)

@@ -127,12 +127,14 @@ class RoutingVisualizer:
         self.restart_requested = False      # R = restart current net
         self.restart_all_requested = False  # Ctrl+R = restart all nets
         self.next_net_requested = False     # N = advance to next net
+        self.backwards_requested = False    # B = try backwards direction
         self.iterations_per_frame = self.config.iterations_per_frame
 
         # Current net info for display
         self.current_net_name = ""
         self.current_net_num = 0
         self.total_nets = 0
+        self.status_message = ""  # Additional status message (e.g., "Forward failed, press N for reverse")
 
         # Routing data (from Rust)
         self.rust_obstacles = None  # GridObstacleMap from Rust
@@ -392,6 +394,12 @@ class RoutingVisualizer:
             self.screen.blit(text, (10, y_offset))
             y_offset += 20
 
+        # Show additional status message (e.g., forward failed)
+        if self.status_message:
+            text = self.font.render(self.status_message, True, (255, 150, 100))
+            self.screen.blit(text, (10, y_offset))
+            y_offset += 20
+
         if self.snapshot and self.config.show_stats:
             snapshot = self.snapshot
             info_lines = [
@@ -600,6 +608,8 @@ class RoutingVisualizer:
                     self.config.show_legend = not self.config.show_legend
                 elif event.key == pygame.K_n:
                     self.next_net_requested = True
+                elif event.key == pygame.K_b:
+                    self.backwards_requested = True
                 elif event.key == pygame.K_0:
                     self.config.current_layer = -1
                     self._obstacle_dirty = True

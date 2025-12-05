@@ -64,6 +64,8 @@ python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-
 |-----|--------|
 | Space | Pause/Resume |
 | S | Single step (when paused) |
+| N | Next net (after route completes), or try backwards if forward failed |
+| B | Force backwards direction (restart track & route backwards) |
 | R | Restart current net |
 | Ctrl+R | Restart all nets from beginning |
 | +/- | Double/Halve speed (1x, 2x, 4x, 8x...) |
@@ -72,6 +74,7 @@ python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-
 | G | Toggle grid lines |
 | O | Toggle open set display |
 | C | Toggle closed set display |
+| P | Toggle proximity field |
 | H | Toggle legend |
 | L | Toggle layer legend |
 | Q/Esc | Quit |

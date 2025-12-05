@@ -103,7 +103,7 @@ GridRouteConfig(
     via_size=0.3,           # mm - via outer diameter
     via_drill=0.2,          # mm - via drill size
     grid_step=0.1,          # mm - routing grid resolution
-    via_cost=500,           # integer cost penalty (1000 = 1 grid step)
+    via_cost=25,            # integer cost penalty (1000 = 1 grid step)
     layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
     max_iterations=100000,  # max A* iterations per route
     heuristic_weight=1.5,   # A* greediness (1.0=optimal, >1.0=faster)
@@ -119,7 +119,7 @@ GridRouteConfig(
 - **via-to-via spacing**: Automatically calculated as `via_size + clearance` (0.4mm with defaults). This is larger than track-to-via spacing to ensure proper clearance between via barrels.
 - **heuristic_weight**: Values > 1.0 make the search greedier (faster but potentially suboptimal). 1.5 is a good balance.
 - **max_iterations**: Increase for complex routes. Easy routes need ~200 iterations, hard routes may need 10,000+.
-- **via_cost**: Higher values discourage layer changes. 500 means a via costs as much as 0.5 grid steps of travel.
+- **via_cost**: Higher values discourage layer changes. 25 means a via costs as much as 0.025 grid steps of travel (encourages using vias freely for optimal routing).
 - **stub_proximity_radius/cost**: Routes passing near unrouted stub endpoints incur extra cost. This prevents early routes from blocking later ones. Vias near stubs are penalized 2x.
 - **bga_exclusion_zones**: Automatically detected from BGA footprints in the PCB. Can be overridden manually if needed.
 - **inside-out ordering**: Nets with pads inside a BGA zone are automatically sorted by distance from BGA center (closest first). This improves routing success for BGA escape routing.
@@ -137,8 +137,9 @@ Tested on 32 DATA nets with BGA fanout:
 
 **Key features for high success rates:**
 - **Stub proximity avoidance**: Routes are penalized for passing near unrouted stub endpoints, preventing early routes from blocking later ones
-- **Smart direction search**: Try forward direction quickly (5000 iterations), then reverse with full iterations, then forward with full iterations. This finds the "easy" direction faster.
+- **Forward-then-backwards search**: Try forward direction first, then backwards if forward fails. Some routes are only possible in one direction.
 - **Rectangular pad blocking**: Proper clearance for non-square pads (e.g., QFN 0.2x0.875mm pads)
+- **BGA zone blocking**: All layers blocked inside BGA exclusion zones (not just vias)
 
 ### Iterative Retry Strategy
 

@@ -136,7 +136,7 @@ def build_obstacle_map_with_cache(
     blocked_vias: Set[Tuple[int, int]] = set()
     bga_zones_grid: List[Tuple[int, int, int, int]] = []
 
-    # Add BGA exclusion zones
+    # Add BGA exclusion zones - block ALL layers
     if bga_zones:
         for zone in bga_zones:
             min_x, min_y, max_x, max_y = zone
@@ -144,13 +144,12 @@ def build_obstacle_map_with_cache(
             gmax_x, gmax_y = coord.to_grid(max_x, max_y)
             obstacles.set_bga_zone(gmin_x, gmin_y, gmax_x, gmax_y)
             bga_zones_grid.append((gmin_x, gmin_y, gmax_x, gmax_y))
-            # Block F.Cu cells in BGA zone
-            f_cu_idx = layer_map.get('F.Cu')
-            if f_cu_idx is not None:
+            # Block ALL layers in BGA zone
+            for layer_idx in range(num_layers):
                 for gx in range(gmin_x, gmax_x + 1):
                     for gy in range(gmin_y, gmax_y + 1):
-                        obstacles.add_blocked_cell(gx, gy, f_cu_idx)
-                        blocked_cells[f_cu_idx].add((gx, gy))
+                        obstacles.add_blocked_cell(gx, gy, layer_idx)
+                        blocked_cells[layer_idx].add((gx, gy))
 
     # Add segments as obstacles
     expansion_mm = track_width / 2 + clearance
@@ -425,19 +424,16 @@ def run_visualization(
     net_results = []  # Track results per net: (name, iterations, path_length, success)
     current_net_iterations = 0  # Track iterations for current net (across direction attempts)
 
-    # Direction search state (matches batch router logic):
-    # Phase 0: quick forward (5000 iter)
-    # Phase 1: reverse (full iter)
-    # Phase 2: full forward (full iter)
-    quick_iterations = 5000
-    search_phase = 0
+    # Direction search state
+    forward_done = False  # True after forward attempt completes (success or fail)
+    reverse_done = False  # True after reverse attempt completes (success or fail)
     original_sources = []
     original_targets = []
 
     def setup_net(net_idx: int) -> bool:
         """Set up routing for the net at the given index. Returns False if net should be skipped."""
         nonlocal router, sources, targets, obstacles, current_net_iterations
-        nonlocal search_phase, original_sources, original_targets
+        nonlocal forward_done, reverse_done, original_sources, original_targets
 
         if net_idx >= len(net_queue):
             return False
@@ -546,19 +542,21 @@ def run_visualization(
         )
 
         # Reset flags for new net
-        search_phase = 0  # Start with quick forward
+        forward_done = False
+        reverse_done = False
         current_net_iterations = 0
         original_sources = list(sources)
         original_targets = list(targets)
 
-        # Initialize Rust VisualRouter with quick_iterations for phase 0
-        via_cost = 500 * 1000  # Same as batch_grid_router
+        # Initialize Rust VisualRouter
+        via_cost = 25 * 1000
         h_weight = 1.5
         router = VisualRouter(via_cost=via_cost, h_weight=h_weight)
-        router.init(sources, targets, quick_iterations)  # Start with quick check
+        router.init(sources, targets, max_iterations)
 
         # Tell visualizer which net we're routing
         visualizer.set_current_net(net_name, net_idx + 1, len(net_queue))
+        visualizer.status_message = ""  # Clear any previous status
 
         return True
 
@@ -653,19 +651,36 @@ def run_visualization(
                 print("\nRestarting all nets...")
                 continue
 
-            # Check for restart request (restart last/current net)
+            # Check for restart request (restart current net)
             if visualizer.restart_requested:
                 visualizer.restart_requested = False
-                # If router is done or None, go back to previous net
-                if router is None or router.is_done():
-                    if current_net_idx > 0:
-                        current_net_idx -= 1
+                waiting_for_next = False  # Cancel any wait state
                 # Remove any geometry added by this net before restarting
                 remove_net_geometry(current_net_idx)
                 # Re-setup the current net
                 if current_net_idx < len(net_queue):
                     setup_net(current_net_idx)
                     print(f"\nRestarting {net_queue[current_net_idx][0]}...")
+
+            # Check for B key to force backwards direction
+            if visualizer.backwards_requested:
+                visualizer.backwards_requested = False
+                waiting_for_next = False  # Cancel any wait state
+                # Remove any geometry added by this net
+                remove_net_geometry(current_net_idx)
+                # Re-setup the current net but immediately switch to backwards
+                if current_net_idx < len(net_queue):
+                    setup_net(current_net_idx)
+                    net_name, _ = net_queue[current_net_idx]
+                    print(f"\nForcing backwards direction for {net_name}...")
+                    visualizer.status_message = "Trying backwards direction..."
+                    # Swap sources and targets
+                    sources, targets = original_targets, original_sources
+                    forward_done = True  # Mark forward as done so we know we're in backwards mode
+                    reverse_done = True  # Mark reverse as done so N goes to next net after this
+                    router = VisualRouter(via_cost=25 * 1000, h_weight=1.5)
+                    router.init(sources, targets, max_iterations)
+                continue
 
             # Advance search if not paused and not done
             if visualizer.should_step() and router and not router.is_done():
@@ -677,9 +692,11 @@ def run_visualization(
                     net_name, net_id = net_queue[current_net_idx]
                     current_net_iterations += snapshot.iteration
                     path_len = len(snapshot.path) if snapshot.path else 0
-                    print(f"\nPath found for {net_name} in {current_net_iterations} iterations!")
+                    direction = "backwards" if forward_done else "forward"
+                    print(f"\nPath found for {net_name} in {current_net_iterations} iterations ({direction})!")
                     print(f"Path length: {path_len}")
-                    print("Press N to continue to next net")
+                    print("Press N to continue to next net, or B to try backwards")
+                    visualizer.status_message = f"Path found ({direction}) - N=next, B=try backwards"
                     successful += 1
                     total_iterations += current_net_iterations
                     net_results.append((net_name, current_net_iterations, path_len, True))
@@ -691,10 +708,21 @@ def run_visualization(
                     # Wait for user to press N before next net
                     waiting_for_next = True
 
-            # Check for N key to advance to next net
+            # Check for N key to advance to next net or try reverse
             if waiting_for_next and visualizer.next_net_requested:
                 visualizer.next_net_requested = False
                 waiting_for_next = False
+
+                # Check if we need to try backwards direction (forward failed, haven't tried backwards yet)
+                if forward_done and not reverse_done:
+                    # Forward failed, now try backwards
+                    print(f"\nTrying backwards direction...")
+                    visualizer.status_message = "Trying backwards direction..."
+                    sources, targets = original_targets, original_sources  # Swap
+                    router = VisualRouter(via_cost=25 * 1000, h_weight=1.5)
+                    router.init(sources, targets, max_iterations)
+                    continue
+
                 # Move to next net
                 current_net_idx += 1
                 while current_net_idx < len(net_queue) and not setup_net(current_net_idx):
@@ -727,30 +755,20 @@ def run_visualization(
                     current_net_iterations += snapshot.iteration
                     net_name, _ = net_queue[current_net_idx]
 
-                    # Phase-based direction search (matches batch router):
-                    # Phase 0: quick forward failed -> try reverse
-                    # Phase 1: reverse failed -> try full forward
-                    # Phase 2: full forward failed -> give up
-                    if search_phase == 0:
-                        # Quick forward failed, try reverse with full iterations
-                        search_phase = 1
-                        print(f"\nQuick forward failed after {snapshot.iteration} iterations, trying reverse...")
-                        sources, targets = original_targets, original_sources  # Swap
-                        router = VisualRouter(via_cost=500 * 1000, h_weight=1.5)
-                        router.init(sources, targets, max_iterations)
-                        continue
-                    elif search_phase == 1:
-                        # Reverse failed, try full forward
-                        search_phase = 2
-                        print(f"\nReverse failed after {snapshot.iteration} iterations, trying full forward...")
-                        sources, targets = original_sources, original_targets  # Back to original
-                        router = VisualRouter(via_cost=500 * 1000, h_weight=1.5)
-                        router.init(sources, targets, max_iterations)
-                        continue
+                    # Forward failed -> wait for N key to try backwards
+                    if not forward_done:
+                        forward_done = True
+                        print(f"\nForward failed after {snapshot.iteration} iterations")
+                        print("Press N to try backwards direction...")
+                        visualizer.status_message = "Forward failed - Press N to try backwards"
+                        waiting_for_next = True  # Wait for N key
                     else:
-                        # All phases failed
-                        print(f"\nNo path found for {net_name} after {current_net_iterations} iterations (all directions)")
+                        # Backwards also failed
+                        reverse_done = True
+                        print(f"\nBackwards also failed after {snapshot.iteration} iterations")
+                        print(f"No path found for {net_name} after {current_net_iterations} total iterations")
                         print("Press N to continue to next net")
+                        visualizer.status_message = "Both directions failed - Press N for next net"
                         failed += 1
                         total_iterations += current_net_iterations
                         net_results.append((net_name, current_net_iterations, 0, False))
@@ -855,6 +873,7 @@ def run_headless(
     successful = 0
     failed = 0
     total_iterations = 0
+    total_vias = 0
     total_time = 0.0
 
     for net_idx, (net_name, net_id) in enumerate(net_queue):
@@ -900,6 +919,8 @@ def run_headless(
             print(f"  SKIP: No valid source/target points")
             continue
 
+        start_time = time.time()
+
         # Get unrouted stubs for proximity avoidance (same as batch router)
         remaining_net_ids = [nid for _, nid in net_queue[net_idx+1:]]
         unrouted_stubs = get_stub_endpoints(pcb_data, remaining_net_ids)
@@ -926,27 +947,26 @@ def run_headless(
         # 1. Try forward with quick check (5000 iterations)
         # 2. If fails, try reverse with full iterations
         # 3. If still fails, try forward with full iterations
-        via_cost = 500 * 1000
+        via_cost = 25 * 1000
         h_weight = 1.5
-        quick_iterations = 5000
+        max_iter = 100000
 
-        start_time = time.time()
-
-        # Try forward direction (quick check)
+        # Try forward direction first
         router = VisualRouter(via_cost=via_cost, h_weight=h_weight)
-        router.init(sources, targets, quick_iterations)
+        router.init(sources, targets, max_iter)
 
         while not router.is_done():
             router.step(obstacles, 10000)
 
-        fwd_quick_iter = router.get_iterations()
+        fwd_iter = router.get_iterations()
         path = router.get_path()
-        direction = "fwd_quick"
+        direction = "forward"
+        iterations = fwd_iter
 
-        # If failed, try reverse direction with full iterations
+        # If forward failed, try reverse
         if path is None:
             router = VisualRouter(via_cost=via_cost, h_weight=h_weight)
-            router.init(targets, sources, max_iterations)
+            router.init(targets, sources, max_iter)
 
             while not router.is_done():
                 router.step(obstacles, 10000)
@@ -954,30 +974,17 @@ def run_headless(
             rev_iter = router.get_iterations()
             path = router.get_path()
             direction = "reverse"
-
-            # If still failed, try forward with full iterations
-            if path is None:
-                router = VisualRouter(via_cost=via_cost, h_weight=h_weight)
-                router.init(sources, targets, max_iterations)
-
-                while not router.is_done():
-                    router.step(obstacles, 10000)
-
-                fwd_full_iter = router.get_iterations()
-                path = router.get_path()
-                direction = "fwd_full"
-                iterations = fwd_quick_iter + rev_iter + fwd_full_iter
-            else:
-                iterations = fwd_quick_iter + rev_iter
-        else:
-            iterations = fwd_quick_iter
+            iterations = fwd_iter + rev_iter
 
         elapsed = time.time() - start_time
 
         if path:
-            print(f"  SUCCESS: {iterations} iterations, path length {len(path)}, {direction} ({elapsed:.2f}s)")
+            # Count vias in path
+            via_count = sum(1 for i in range(len(path) - 1) if path[i][2] != path[i + 1][2])
+            print(f"  SUCCESS: {iterations} iterations, path length {len(path)}, {via_count} vias, {direction} ({elapsed:.2f}s)")
             successful += 1
             total_iterations += iterations
+            total_vias += via_count
 
             # Add path to pcb_data for subsequent routes
             from kicad_parser import Segment, Via
@@ -1005,6 +1012,7 @@ def run_headless(
     print("\n" + "=" * 70)
     print(f"Results: {successful} successful, {failed} failed")
     print(f"Total iterations: {total_iterations}")
+    print(f"Total vias: {total_vias}")
     print(f"Total time: {total_time:.2f}s")
 
     return successful, failed

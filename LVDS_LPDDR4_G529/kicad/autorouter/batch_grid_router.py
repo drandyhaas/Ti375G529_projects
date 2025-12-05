@@ -49,7 +49,7 @@ class GridRouteConfig:
     via_size: float = 0.3  # mm via outer diameter
     via_drill: float = 0.2  # mm via drill
     grid_step: float = 0.1  # mm grid resolution
-    via_cost: int = 500  # grid steps equivalent penalty for via
+    via_cost: int = 25  # grid steps equivalent penalty for via
     layers: List[str] = field(default_factory=lambda: ['F.Cu', 'B.Cu'])
     max_iterations: int = 100000
     heuristic_weight: float = 1.5
@@ -150,20 +150,19 @@ def build_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
 
     obstacles = GridObstacleMap(num_layers)
 
-    # Set BGA exclusion zones - block both vias AND tracks on F.Cu
-    # Tracks cannot route through BGA ball matrix on the surface layer
-    f_cu_idx = layer_map.get('F.Cu')
+    # Set BGA exclusion zones - block vias AND tracks on ALL layers
+    # Tracks cannot route through BGA ball matrix area
     for zone in config.bga_exclusion_zones:
         min_x, min_y, max_x, max_y = zone
         gmin_x, gmin_y = coord.to_grid(min_x, min_y)
         gmax_x, gmax_y = coord.to_grid(max_x, max_y)
         # Block vias in BGA zone
         obstacles.set_bga_zone(gmin_x, gmin_y, gmax_x, gmax_y)
-        # Also block track routing on F.Cu inside BGA zone
-        if f_cu_idx is not None:
+        # Block track routing on ALL layers inside BGA zone
+        for layer_idx in range(num_layers):
             for gx in range(gmin_x, gmax_x + 1):
                 for gy in range(gmin_y, gmax_y + 1):
-                    obstacles.add_blocked_cell(gx, gy, f_cu_idx)
+                    obstacles.add_blocked_cell(gx, gy, layer_idx)
 
     # Add segments as obstacles
     expansion_mm = config.track_width / 2 + config.clearance
@@ -341,31 +340,22 @@ def route_net(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
 
     router = GridRouter(via_cost=config.via_cost * 1000, h_weight=config.heuristic_weight)
 
-    # Smart direction search:
-    # 1. Try forward direction with quick check (5000 iterations)
-    # 2. If fails, try reverse direction with full iterations
-    # 3. If still fails, try forward direction with full iterations
-    quick_iterations = 5000
+    # Try forward, then reverse if forward fails
     reversed_path = False
     total_iterations = 0
 
-    path, iterations = router.route_multi(obstacles, sources_grid, targets_grid, quick_iterations)
+    path, iterations = router.route_multi(obstacles, sources_grid, targets_grid, config.max_iterations)
     total_iterations += iterations
 
     if path is None:
-        print(f"No route found after {iterations} iterations")
+        print(f"No route found after {iterations} iterations, trying reverse...")
         path, iterations = router.route_multi(obstacles, targets_grid, sources_grid, config.max_iterations)
         total_iterations += iterations
         if path is not None:
             reversed_path = True
 
     if path is None:
-        print(f"No route found after {iterations} iterations")
-        path, iterations = router.route_multi(obstacles, sources_grid, targets_grid, config.max_iterations)
-        total_iterations += iterations
-
-    if path is None:
-        print(f"No route found after {iterations} iterations")
+        print(f"No route found after {total_iterations} iterations (both directions)")
         return None
 
     print(f"Route found in {total_iterations} iterations, path length: {len(path)}")
@@ -507,7 +497,7 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         via_size=0.3,
         via_drill=0.2,
         grid_step=0.1,
-        via_cost=500,
+        via_cost=25,
         layers=layers,
         max_iterations=100000,
         heuristic_weight=1.5,
