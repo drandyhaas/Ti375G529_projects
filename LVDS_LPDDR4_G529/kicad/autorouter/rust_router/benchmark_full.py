@@ -98,21 +98,35 @@ def build_rust_obstacles(pcb_data, config, exclude_net_id, unrouted_stubs=None):
                         obstacles.add_blocked_cell(gx + ex, gy + ey, layer_idx)
                     obstacles.add_blocked_via(gx + ex, gy + ey)
 
-    # Add pads as obstacles
+    # Add pads as obstacles with RECTANGULAR bounds
     for net_id, pads in pcb_data.pads_by_net.items():
         if net_id == exclude_net_id:
             continue
         for pad in pads:
-            radius = max(pad.size_x, pad.size_y) / 2
-            radius_grid = max(1, coord.to_grid_dist(radius + config.clearance))
             gx, gy = coord.to_grid(pad.global_x, pad.global_y)
-            for ex in range(-radius_grid, radius_grid + 1):
-                for ey in range(-radius_grid, radius_grid + 1):
-                    if ex*ex + ey*ey <= radius_grid * radius_grid:
-                        for layer in pad.layers:
-                            layer_idx = layer_map.get(layer)
-                            if layer_idx is not None:
-                                obstacles.add_blocked_cell(gx + ex, gy + ey, layer_idx)
+
+            # Rectangular expansion for track clearance
+            half_x_mm = pad.size_x / 2 + config.clearance
+            half_y_mm = pad.size_y / 2 + config.clearance
+            expand_x = coord.to_grid_dist(half_x_mm)
+            expand_y = coord.to_grid_dist(half_y_mm)
+
+            for ex in range(-expand_x, expand_x + 1):
+                for ey in range(-expand_y, expand_y + 1):
+                    for layer in pad.layers:
+                        layer_idx = layer_map.get(layer)
+                        if layer_idx is not None:
+                            obstacles.add_blocked_cell(gx + ex, gy + ey, layer_idx)
+
+            # Via blocking near pads - use rectangular bounds
+            # Via must clear pad edge by: via_radius + clearance
+            if 'F.Cu' in pad.layers or 'B.Cu' in pad.layers:
+                via_clear_mm = config.via_size / 2 + config.clearance
+                via_expand_x = coord.to_grid_dist(pad.size_x / 2 + via_clear_mm)
+                via_expand_y = coord.to_grid_dist(pad.size_y / 2 + via_clear_mm)
+                for ex in range(-via_expand_x, via_expand_x + 1):
+                    for ey in range(-via_expand_y, via_expand_y + 1):
+                        obstacles.add_blocked_via(gx + ex, gy + ey)
 
     # Add stub proximity costs
     if unrouted_stubs:

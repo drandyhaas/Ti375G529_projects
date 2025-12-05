@@ -25,6 +25,7 @@ class Pad:
     layers: List[str]
     net_id: int
     net_name: str
+    rotation: float = 0.0  # Total rotation in degrees (pad + footprint)
     pinfunction: str = ""
     pintype: str = ""
 
@@ -294,13 +295,17 @@ def extract_footprints_and_pads(content: str, nets: Dict[int, Net]) -> Tuple[Dic
             pad_type = pad_match.group(2)  # smd, thru_hole, etc.
             pad_shape = pad_match.group(3)  # circle, rect, roundrect, etc.
 
-            # Extract pad local position
+            # Extract pad local position and rotation
             pad_at_match = re.search(r'\(at\s+([\d.-]+)\s+([\d.-]+)(?:\s+([\d.-]+))?\)', pad_text)
             if not pad_at_match:
                 continue
 
             local_x = float(pad_at_match.group(1))
             local_y = float(pad_at_match.group(2))
+            pad_rotation = float(pad_at_match.group(3)) if pad_at_match.group(3) else 0.0
+
+            # Total rotation = pad rotation + footprint rotation
+            total_rotation = (pad_rotation + fp_rotation) % 360
 
             # Extract size
             size_match = re.search(r'\(size\s+([\d.-]+)\s+([\d.-]+)\)', pad_text)
@@ -309,6 +314,14 @@ def extract_footprints_and_pads(content: str, nets: Dict[int, Net]) -> Tuple[Dic
                 size_y = float(size_match.group(2))
             else:
                 size_x = size_y = 0.5  # default
+
+            # Apply only pad rotation to get board-space dimensions
+            # The pad rotation already accounts for orientation relative to footprint,
+            # and footprint rotation transforms coordinates but the size in local
+            # footprint space after pad rotation gives the board-space dimensions
+            pad_rot_normalized = pad_rotation % 180
+            if 45 < pad_rot_normalized < 135:  # Close to 90°
+                size_x, size_y = size_y, size_x
 
             # Extract layers
             layers_match = re.search(r'\(layers\s+"([^"]+)"(?:\s+"([^"]+)")*', pad_text)
@@ -349,6 +362,7 @@ def extract_footprints_and_pads(content: str, nets: Dict[int, Net]) -> Tuple[Dic
                 layers=pad_layers,
                 net_id=net_id,
                 net_name=net_name,
+                rotation=total_rotation,
                 pinfunction=pinfunction,
                 pintype=pintype
             )
