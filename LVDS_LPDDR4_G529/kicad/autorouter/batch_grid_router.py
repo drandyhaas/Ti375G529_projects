@@ -14,6 +14,7 @@ import sys
 import os
 import time
 import fnmatch
+import random
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass, field
 
@@ -57,6 +58,8 @@ class GridRouteConfig:
     bga_exclusion_zones: List[Tuple[float, float, float, float]] = field(default_factory=list)
     stub_proximity_radius: float = 1.0  # mm - radius around stubs to penalize
     stub_proximity_cost: float = 3.0  # mm equivalent cost at stub center
+    # Direction search order: "forward", "backwards", or "random"
+    direction_order: str = "forward"
 
 
 class GridCoord:
@@ -340,19 +343,37 @@ def route_net(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
 
     router = GridRouter(via_cost=config.via_cost * 1000, h_weight=config.heuristic_weight)
 
-    # Try forward, then reverse if forward fails
+    # Determine direction order
+    if config.direction_order == "random":
+        start_backwards = random.choice([True, False])
+    elif config.direction_order == "backwards":
+        start_backwards = True
+    else:  # "forward" or default
+        start_backwards = False
+
+    # Set up first and second direction based on order
+    if start_backwards:
+        first_sources, first_targets = targets_grid, sources_grid
+        second_sources, second_targets = sources_grid, targets_grid
+        first_label, second_label = "backwards", "forward"
+    else:
+        first_sources, first_targets = sources_grid, targets_grid
+        second_sources, second_targets = targets_grid, sources_grid
+        first_label, second_label = "forward", "backwards"
+
+    # Try first direction, then second if first fails
     reversed_path = False
     total_iterations = 0
 
-    path, iterations = router.route_multi(obstacles, sources_grid, targets_grid, config.max_iterations)
+    path, iterations = router.route_multi(obstacles, first_sources, first_targets, config.max_iterations)
     total_iterations += iterations
 
     if path is None:
-        print(f"No route found after {iterations} iterations, trying reverse...")
-        path, iterations = router.route_multi(obstacles, targets_grid, sources_grid, config.max_iterations)
+        print(f"No route found after {iterations} iterations ({first_label}), trying {second_label}...")
+        path, iterations = router.route_multi(obstacles, second_sources, second_targets, config.max_iterations)
         total_iterations += iterations
         if path is not None:
-            reversed_path = True
+            reversed_path = not start_backwards  # True if we ended up going backwards
 
     if path is None:
         print(f"No route found after {total_iterations} iterations (both directions)")
@@ -457,7 +478,8 @@ def add_route_to_pcb_data(pcb_data: PCBData, result: dict) -> None:
 
 def batch_route(input_file: str, output_file: str, net_names: List[str],
                 layers: List[str] = None,
-                bga_exclusion_zones: Optional[List[Tuple[float, float, float, float]]] = None) -> Tuple[int, int, float]:
+                bga_exclusion_zones: Optional[List[Tuple[float, float, float, float]]] = None,
+                direction_order: str = None) -> Tuple[int, int, float]:
     """
     Route multiple nets using the Rust router.
 
@@ -468,6 +490,8 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         layers: List of copper layers to route on (must be specified - cannot auto-detect
                 which layers are ground planes vs signal layers)
         bga_exclusion_zones: Optional list of BGA exclusion zones (auto-detected if None)
+        direction_order: Direction search order - "forward", "backwards", or "random"
+                        (None = use GridRouteConfig default)
 
     Returns:
         (successful_count, failed_count, total_time)
@@ -491,7 +515,7 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         else:
             print("No BGA components detected - no exclusion zones needed")
 
-    config = GridRouteConfig(
+    config_kwargs = dict(
         track_width=0.1,
         clearance=0.1,
         via_size=0.3,
@@ -505,6 +529,9 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         stub_proximity_radius=1.0,
         stub_proximity_cost=3.0,
     )
+    if direction_order is not None:
+        config_kwargs['direction_order'] = direction_order
+    config = GridRouteConfig(**config_kwargs)
 
     # Find net IDs
     net_ids = []
