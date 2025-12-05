@@ -23,7 +23,10 @@ except ImportError:
     HAS_MATPLOTLIB = False
     print("matplotlib not available - install with: pip install matplotlib")
 
-from kicad_parser import parse_kicad_pcb, PCBData, Segment, Via, Pad
+from kicad_parser import (
+    parse_kicad_pcb, PCBData, Segment, Via, Pad,
+    auto_detect_bga_exclusion_zones, find_components_by_type
+)
 from grid_astar_router import (
     GridRouteConfig, GridObstacleMap, GridAStarRouter, GridState, GridCoord
 )
@@ -570,6 +573,20 @@ if __name__ == "__main__":
         print(f"Net '{net_name}' not found")
         sys.exit(1)
 
+    # Layers must be specified - can't auto-detect which are ground planes
+    layers = ['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu']
+    print(f"Using {len(layers)} routing layers: {layers}")
+
+    # Auto-detect BGA exclusion zones
+    bga_exclusion_zones = auto_detect_bga_exclusion_zones(pcb_data, margin=0.5)
+    if bga_exclusion_zones:
+        bga_components = find_components_by_type(pcb_data, 'BGA')
+        print(f"Auto-detected {len(bga_exclusion_zones)} BGA exclusion zone(s):")
+        for fp, zone in zip(bga_components, bga_exclusion_zones):
+            print(f"  {fp.reference}: ({zone[0]:.1f}, {zone[1]:.1f}) to ({zone[2]:.1f}, {zone[3]:.1f})")
+    else:
+        print("No BGA components detected - no exclusion zones needed")
+
     config = GridRouteConfig(
         track_width=0.1,
         clearance=0.1,
@@ -577,10 +594,10 @@ if __name__ == "__main__":
         via_drill=0.2,
         grid_step=0.1,
         via_cost=500,
-        layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
+        layers=layers,
         max_iterations=50000,
         heuristic_weight=1.5,
-        bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),
+        bga_exclusion_zones=bga_exclusion_zones,
         stub_proximity_radius=1.0,
         stub_proximity_cost=3.0,
     )

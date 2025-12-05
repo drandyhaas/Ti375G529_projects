@@ -19,7 +19,7 @@ from typing import List, Dict, Tuple, Optional, Set
 from collections import defaultdict
 import fnmatch
 
-from kicad_parser import parse_kicad_pcb, Pad, Footprint, PCBData
+from kicad_parser import parse_kicad_pcb, Pad, Footprint, PCBData, find_components_by_type
 from kicad_writer import add_tracks_and_vias_to_pcb
 
 
@@ -664,13 +664,11 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Generate BGA fanout routing')
-    parser.add_argument('pcb', nargs='?',
-                        default='../haasoscope_pro_max/haasoscope_pro_max.kicad_pcb',
-                        help='Input PCB file')
+    parser.add_argument('pcb', help='Input PCB file')
     parser.add_argument('--output', '-o', default='fanout_test.kicad_pcb',
                         help='Output PCB file')
-    parser.add_argument('--component', '-c', default='U3',
-                        help='Component reference')
+    parser.add_argument('--component', '-c', default=None,
+                        help='Component reference (auto-detected if not specified)')
     parser.add_argument('--layers', '-l', nargs='+', default=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
                         help='Routing layers')
     parser.add_argument('--width', '-w', type=float, default=0.1,
@@ -686,6 +684,19 @@ def main():
 
     print(f"Parsing {args.pcb}...")
     pcb_data = parse_kicad_pcb(args.pcb)
+
+    # Auto-detect BGA component if not specified
+    if args.component is None:
+        bga_components = find_components_by_type(pcb_data, 'BGA')
+        if bga_components:
+            args.component = bga_components[0].reference
+            print(f"Auto-detected BGA component: {args.component}")
+            if len(bga_components) > 1:
+                print(f"  (Other BGAs found: {[fp.reference for fp in bga_components[1:]]})")
+        else:
+            print("Error: No BGA components found in PCB")
+            print(f"Available components: {list(pcb_data.footprints.keys())[:20]}...")
+            return 1
 
     if args.component not in pcb_data.footprints:
         print(f"Error: Component {args.component} not found")

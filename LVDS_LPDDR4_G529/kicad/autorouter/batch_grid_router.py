@@ -16,7 +16,10 @@ import time
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass, field
 
-from kicad_parser import parse_kicad_pcb, PCBData, Segment, Via
+from kicad_parser import (
+    parse_kicad_pcb, PCBData, Segment, Via,
+    auto_detect_bga_exclusion_zones, find_components_by_type, detect_package_type
+)
 from kicad_writer import generate_segment_sexpr, generate_via_sexpr
 
 # Add rust_router directory to path for importing the compiled module
@@ -49,7 +52,8 @@ class GridRouteConfig:
     layers: List[str] = field(default_factory=lambda: ['F.Cu', 'B.Cu'])
     max_iterations: int = 100000
     heuristic_weight: float = 1.5
-    bga_exclusion_zone: Optional[Tuple[float, float, float, float]] = None
+    # BGA exclusion zones (auto-detected from PCB) - vias blocked inside these areas
+    bga_exclusion_zones: List[Tuple[float, float, float, float]] = field(default_factory=list)
     stub_proximity_radius: float = 1.0  # mm - radius around stubs to penalize
     stub_proximity_cost: float = 3.0  # mm equivalent cost at stub center
 
@@ -145,9 +149,9 @@ def build_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
 
     obstacles = GridObstacleMap(num_layers)
 
-    # Set BGA exclusion zone
-    if config.bga_exclusion_zone:
-        min_x, min_y, max_x, max_y = config.bga_exclusion_zone
+    # Set BGA exclusion zones
+    for zone in config.bga_exclusion_zones:
+        min_x, min_y, max_x, max_y = zone
         gmin_x, gmin_y = coord.to_grid(min_x, min_y)
         gmax_x, gmax_y = coord.to_grid(max_x, max_y)
         obstacles.set_bga_zone(gmin_x, gmin_y, gmax_x, gmax_y)
@@ -444,10 +448,41 @@ def add_route_to_pcb_data(pcb_data: PCBData, result: dict) -> None:
         pcb_data.vias.append(via)
 
 
-def batch_route(input_file: str, output_file: str, net_names: List[str]) -> Tuple[int, int, float]:
-    """Route multiple nets using the Rust router."""
+def batch_route(input_file: str, output_file: str, net_names: List[str],
+                layers: List[str] = None,
+                bga_exclusion_zones: Optional[List[Tuple[float, float, float, float]]] = None) -> Tuple[int, int, float]:
+    """
+    Route multiple nets using the Rust router.
+
+    Args:
+        input_file: Path to input KiCad PCB file
+        output_file: Path to output KiCad PCB file
+        net_names: List of net names to route
+        layers: List of copper layers to route on (must be specified - cannot auto-detect
+                which layers are ground planes vs signal layers)
+        bga_exclusion_zones: Optional list of BGA exclusion zones (auto-detected if None)
+
+    Returns:
+        (successful_count, failed_count, total_time)
+    """
     print(f"Loading {input_file}...")
     pcb_data = parse_kicad_pcb(input_file)
+
+    # Layers must be specified - we can't auto-detect which are ground planes
+    if layers is None:
+        layers = ['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu']  # Default 4-layer signal stack
+    print(f"Using {len(layers)} routing layers: {layers}")
+
+    # Auto-detect BGA exclusion zones if not specified
+    if bga_exclusion_zones is None:
+        bga_exclusion_zones = auto_detect_bga_exclusion_zones(pcb_data, margin=0.5)
+        if bga_exclusion_zones:
+            bga_components = find_components_by_type(pcb_data, 'BGA')
+            print(f"Auto-detected {len(bga_exclusion_zones)} BGA exclusion zone(s):")
+            for i, (fp, zone) in enumerate(zip(bga_components, bga_exclusion_zones)):
+                print(f"  {fp.reference}: ({zone[0]:.1f}, {zone[1]:.1f}) to ({zone[2]:.1f}, {zone[3]:.1f})")
+        else:
+            print("No BGA components detected - no exclusion zones needed")
 
     config = GridRouteConfig(
         track_width=0.1,
@@ -456,10 +491,10 @@ def batch_route(input_file: str, output_file: str, net_names: List[str]) -> Tupl
         via_drill=0.2,
         grid_step=0.1,
         via_cost=500,
-        layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
+        layers=layers,
         max_iterations=100000,
         heuristic_weight=1.5,
-        bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),
+        bga_exclusion_zones=bga_exclusion_zones,
         stub_proximity_radius=1.0,
         stub_proximity_cost=3.0,
     )

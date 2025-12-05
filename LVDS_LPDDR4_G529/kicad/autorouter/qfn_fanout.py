@@ -16,7 +16,7 @@ from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
 import fnmatch
 
-from kicad_parser import parse_kicad_pcb, Pad, Footprint, PCBData
+from kicad_parser import parse_kicad_pcb, Pad, Footprint, PCBData, find_components_by_type
 from kicad_writer import add_tracks_and_vias_to_pcb
 
 
@@ -421,13 +421,11 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Generate QFN/QFP fanout routing')
-    parser.add_argument('pcb', nargs='?',
-                        default='../haasoscope_pro_max/haasoscope_pro_max.kicad_pcb',
-                        help='Input PCB file')
+    parser.add_argument('pcb', help='Input PCB file')
     parser.add_argument('--output', '-o', default='qfn_fanout_test.kicad_pcb',
                         help='Output PCB file')
-    parser.add_argument('--component', '-c', default='U2',
-                        help='Component reference')
+    parser.add_argument('--component', '-c', default=None,
+                        help='Component reference (auto-detected if not specified)')
     parser.add_argument('--layer', '-l', default='F.Cu',
                         help='Routing layer')
     parser.add_argument('--width', '-w', type=float, default=0.1,
@@ -443,6 +441,21 @@ def main():
 
     print(f"Parsing {args.pcb}...")
     pcb_data = parse_kicad_pcb(args.pcb)
+
+    # Auto-detect QFN/QFP component if not specified
+    if args.component is None:
+        qfn_components = find_components_by_type(pcb_data, 'QFN')
+        if not qfn_components:
+            qfn_components = find_components_by_type(pcb_data, 'QFP')
+        if qfn_components:
+            args.component = qfn_components[0].reference
+            print(f"Auto-detected QFN/QFP component: {args.component}")
+            if len(qfn_components) > 1:
+                print(f"  (Other QFN/QFPs found: {[fp.reference for fp in qfn_components[1:]]})")
+        else:
+            print("Error: No QFN/QFP components found in PCB")
+            print(f"Available components: {list(pcb_data.footprints.keys())[:20]}...")
+            return 1
 
     if args.component not in pcb_data.footprints:
         print(f"Error: Component {args.component} not found")

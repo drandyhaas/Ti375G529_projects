@@ -540,6 +540,145 @@ def get_nets_to_route(pcb_data: PCBData,
     return routes
 
 
+def detect_package_type(footprint: Footprint) -> str:
+    """
+    Detect the package type of a footprint based on its characteristics.
+
+    Returns one of: 'BGA', 'QFN', 'QFP', 'SOIC', 'DIP', 'OTHER'
+
+    Detection is based on:
+    - Footprint name patterns
+    - Pad arrangement (grid vs perimeter)
+    - Pad shapes and sizes
+    """
+    fp_name = footprint.footprint_name.upper()
+
+    # Check footprint name first
+    if 'BGA' in fp_name or 'FBGA' in fp_name or 'LFBGA' in fp_name:
+        return 'BGA'
+    if 'QFN' in fp_name or 'DFN' in fp_name or 'MLF' in fp_name:
+        return 'QFN'
+    if 'QFP' in fp_name or 'LQFP' in fp_name or 'TQFP' in fp_name:
+        return 'QFP'
+    if 'SOIC' in fp_name or 'SOP' in fp_name or 'SSOP' in fp_name or 'TSSOP' in fp_name:
+        return 'SOIC'
+    if 'DIP' in fp_name or 'PDIP' in fp_name:
+        return 'DIP'
+
+    # Analyze pad arrangement if name doesn't indicate type
+    pads = footprint.pads
+    if len(pads) < 4:
+        return 'OTHER'
+
+    # Get unique X and Y positions
+    x_positions = sorted(set(round(p.global_x, 2) for p in pads))
+    y_positions = sorted(set(round(p.global_y, 2) for p in pads))
+
+    # BGA: grid arrangement (multiple rows AND columns of pads)
+    # QFN/QFP: perimeter arrangement (pads mostly on edges)
+
+    if len(x_positions) >= 4 and len(y_positions) >= 4:
+        # Check if pads form a filled grid (BGA) or just perimeter (QFN/QFP)
+        # Count pads in interior vs perimeter
+        min_x, max_x = min(x_positions), max(x_positions)
+        min_y, max_y = min(y_positions), max(y_positions)
+
+        # Define "interior" as not on the outermost positions
+        interior_pads = 0
+        perimeter_pads = 0
+        tolerance = 0.1
+
+        for pad in pads:
+            on_edge = (abs(pad.global_x - min_x) < tolerance or
+                      abs(pad.global_x - max_x) < tolerance or
+                      abs(pad.global_y - min_y) < tolerance or
+                      abs(pad.global_y - max_y) < tolerance)
+            if on_edge:
+                perimeter_pads += 1
+            else:
+                interior_pads += 1
+
+        # BGA has many interior pads, QFN/QFP has mostly perimeter pads
+        if interior_pads > perimeter_pads:
+            return 'BGA'
+        elif perimeter_pads > 0:
+            # Check pad shapes - QFN typically has rectangular pads, BGA has circular
+            circular_pads = sum(1 for p in pads if p.shape in ('circle', 'oval'))
+            rect_pads = sum(1 for p in pads if p.shape in ('rect', 'roundrect'))
+            if rect_pads > circular_pads:
+                return 'QFN'
+            else:
+                return 'BGA'
+
+    return 'OTHER'
+
+
+def get_footprint_bounds(footprint: Footprint, margin: float = 0.0) -> Tuple[float, float, float, float]:
+    """
+    Get the bounding box of a footprint based on its pad positions.
+
+    Args:
+        footprint: The footprint to analyze
+        margin: Extra margin to add around the bounds (in mm)
+
+    Returns:
+        (min_x, min_y, max_x, max_y) tuple
+    """
+    if not footprint.pads:
+        # Fall back to footprint position if no pads
+        return (footprint.x - margin, footprint.y - margin,
+                footprint.x + margin, footprint.y + margin)
+
+    min_x = min(p.global_x - p.size_x/2 for p in footprint.pads)
+    max_x = max(p.global_x + p.size_x/2 for p in footprint.pads)
+    min_y = min(p.global_y - p.size_y/2 for p in footprint.pads)
+    max_y = max(p.global_y + p.size_y/2 for p in footprint.pads)
+
+    return (min_x - margin, min_y - margin, max_x + margin, max_y + margin)
+
+
+def find_components_by_type(pcb_data: 'PCBData', package_type: str) -> List[Footprint]:
+    """
+    Find all components of a specific package type.
+
+    Args:
+        pcb_data: Parsed PCB data
+        package_type: One of 'BGA', 'QFN', 'QFP', 'SOIC', 'DIP', 'OTHER'
+
+    Returns:
+        List of matching Footprint objects
+    """
+    matches = []
+    for ref, fp in pcb_data.footprints.items():
+        if detect_package_type(fp) == package_type:
+            matches.append(fp)
+    return matches
+
+
+def auto_detect_bga_exclusion_zones(pcb_data: 'PCBData', margin: float = 0.5) -> List[Tuple[float, float, float, float]]:
+    """
+    Auto-detect BGA exclusion zones from all BGA components in the PCB.
+
+    Via placement should be avoided inside BGA packages to prevent shorts
+    with the BGA balls.
+
+    Args:
+        pcb_data: Parsed PCB data
+        margin: Extra margin around BGA bounds (in mm)
+
+    Returns:
+        List of (min_x, min_y, max_x, max_y) tuples for each BGA
+    """
+    zones = []
+    bga_components = find_components_by_type(pcb_data, 'BGA')
+
+    for fp in bga_components:
+        bounds = get_footprint_bounds(fp, margin=margin)
+        zones.append(bounds)
+
+    return zones
+
+
 if __name__ == "__main__":
     import sys
 
