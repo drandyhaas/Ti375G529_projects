@@ -149,12 +149,20 @@ def build_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
 
     obstacles = GridObstacleMap(num_layers)
 
-    # Set BGA exclusion zones
+    # Set BGA exclusion zones - block both vias AND tracks on F.Cu
+    # Tracks cannot route through BGA ball matrix on the surface layer
+    f_cu_idx = layer_map.get('F.Cu')
     for zone in config.bga_exclusion_zones:
         min_x, min_y, max_x, max_y = zone
         gmin_x, gmin_y = coord.to_grid(min_x, min_y)
         gmax_x, gmax_y = coord.to_grid(max_x, max_y)
+        # Block vias in BGA zone
         obstacles.set_bga_zone(gmin_x, gmin_y, gmax_x, gmax_y)
+        # Also block track routing on F.Cu inside BGA zone
+        if f_cu_idx is not None:
+            for gx in range(gmin_x, gmax_x + 1):
+                for gy in range(gmin_y, gmax_y + 1):
+                    obstacles.add_blocked_cell(gx, gy, f_cu_idx)
 
     # Add segments as obstacles
     expansion_mm = config.track_width / 2 + config.clearance
