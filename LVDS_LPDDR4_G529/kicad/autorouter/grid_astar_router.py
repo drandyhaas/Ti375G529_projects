@@ -186,6 +186,9 @@ class GridObstacleMap:
             gmax_x, gmax_y = self.coord.to_grid(max_x, max_y)
             self.bga_zone_grid = (gmin_x, gmin_y, gmax_x, gmax_y)
 
+        # Allowed cells that override BGA zone blocking (for source/target stubs inside BGA)
+        self.allowed_cells: Set[Tuple[int, int]] = set()
+
         # Build the obstacle map
         self._build_from_segments()
         self._build_from_vias()
@@ -201,6 +204,10 @@ class GridObstacleMap:
             return False
         gmin_x, gmin_y, gmax_x, gmax_y = self.bga_zone_grid
         return gmin_x <= gx <= gmax_x and gmin_y <= gy <= gmax_y
+
+    def add_allowed_cell(self, gx: int, gy: int):
+        """Add a cell that overrides BGA zone blocking (for source/target stubs)."""
+        self.allowed_cells.add((gx, gy))
 
     def _mark_circle_blocked(self, cx: float, cy: float, radius_mm: float,
                               layer_idx: int, for_via: bool = False):
@@ -313,17 +320,39 @@ class GridObstacleMap:
             self._mark_circle_blocked(via.x, via.y, via.size / 2, 0, for_via=True)
 
     def _build_from_pads(self):
-        """Add pads as obstacles."""
+        """Add pads as obstacles with rectangular bounds.
+
+        Uses proper rectangular blocking based on pad dimensions (which are
+        already rotated by kicad_parser.py to board-space coordinates).
+        """
         for net_id, pads in self.pcb_data.pads_by_net.items():
             if net_id == self.exclude_net_id:
                 continue
             for pad in pads:
-                radius = max(pad.size_x, pad.size_y) / 2
+                gx, gy = self.coord.to_grid(pad.global_x, pad.global_y)
+
+                # Rectangular expansion for track clearance
+                half_x_mm = pad.size_x / 2 + self.config.clearance
+                half_y_mm = pad.size_y / 2 + self.config.clearance
+                expand_x = self.coord.to_grid_dist(half_x_mm)
+                expand_y = self.coord.to_grid_dist(half_y_mm)
+
                 for layer in pad.layers:
                     layer_idx = self.layer_mapper.get_idx(layer)
                     if layer_idx is not None:
-                        self._mark_circle_blocked(pad.global_x, pad.global_y,
-                                                   radius, layer_idx)
+                        for ex in range(-expand_x, expand_x + 1):
+                            for ey in range(-expand_y, expand_y + 1):
+                                self.blocked_cells[layer_idx].add((gx + ex, gy + ey))
+
+                # Via blocking near pads - use rectangular bounds
+                # Use int() instead of round() to avoid over-blocking
+                if 'F.Cu' in pad.layers or 'B.Cu' in pad.layers:
+                    via_clear_mm = self.config.via_size / 2 + self.config.clearance
+                    via_expand_x = int((pad.size_x / 2 + via_clear_mm) / self.config.grid_step)
+                    via_expand_y = int((pad.size_y / 2 + via_clear_mm) / self.config.grid_step)
+                    for ex in range(-via_expand_x, via_expand_x + 1):
+                        for ey in range(-via_expand_y, via_expand_y + 1):
+                            self.blocked_vias.add((gx + ex, gy + ey))
 
     def _build_stub_proximity(self, stubs: List[Tuple[float, float]]):
         """Build proximity cost map around unrouted stub endpoints.
@@ -356,10 +385,13 @@ class GridObstacleMap:
 
     def is_blocked(self, gx: int, gy: int, layer_idx: int) -> bool:
         """Check if a grid cell is blocked. O(1) lookup."""
-        # BGA zone is always blocked
-        if self._in_bga_zone(gx, gy):
+        # Check blocked_cells first (allowed_cells doesn't override regular obstacles)
+        if (gx, gy) in self.blocked_cells.get(layer_idx, set()):
             return True
-        return (gx, gy) in self.blocked_cells.get(layer_idx, set())
+        # BGA zone is blocked unless cell is in allowed_cells
+        if self._in_bga_zone(gx, gy) and (gx, gy) not in self.allowed_cells:
+            return True
+        return False
 
     def is_move_blocked(self, gx1: int, gy1: int, gx2: int, gy2: int,
                         layer_idx: int) -> bool:

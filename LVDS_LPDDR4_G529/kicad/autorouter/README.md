@@ -213,6 +213,18 @@ python benchmark_full.py
 
 Results: **32/32 nets routed** in ~7 seconds with proper rectangular pad clearance checking.
 
+## Code Synchronization
+
+**IMPORTANT**: The Python router (`grid_astar_router.py`) and the Rust-accelerated router (`rust_router/benchmark_full.py`) must be kept in sync. Both implementations share the same obstacle map construction logic:
+
+- **Rectangular pad blocking**: Pads are blocked with proper rectangular bounds based on `size_x` and `size_y` (already rotated by `kicad_parser.py`)
+- **Via blocking near pads**: Uses `int()` instead of `round()` for grid discretization to avoid over-blocking
+- **Pad rotation handling**: `kicad_parser.py` swaps `size_x`/`size_y` for 90° rotated pads
+
+When fixing bugs or adding features to obstacle map construction, update both:
+1. `grid_astar_router.py` - `GridObstacleMap._build_from_pads()`
+2. `rust_router/benchmark_full.py` - `build_obstacle_map()`
+
 ## Dependencies
 
 - Python 3.7+

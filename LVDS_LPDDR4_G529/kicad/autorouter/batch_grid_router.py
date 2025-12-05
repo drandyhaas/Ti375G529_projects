@@ -11,7 +11,7 @@ from typing import List, Optional, Tuple
 from kicad_parser import parse_kicad_pcb, PCBData, Segment, Via
 from kicad_writer import generate_segment_sexpr, generate_via_sexpr
 from grid_astar_router import (
-    GridRouteConfig, GridObstacleMap, GridAStarRouter
+    GridRouteConfig, GridObstacleMap, GridAStarRouter, GridCoord
 )
 
 
@@ -104,6 +104,18 @@ def route_net_grid(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
     # Build obstacle map excluding this net, with stub proximity costs
     obstacles = GridObstacleMap(pcb_data, config, exclude_net_id=net_id,
                                 unrouted_stubs=unrouted_stubs)
+
+    # Add source and target positions as allowed cells to override BGA zone blocking
+    # This is needed because stubs may be inside the BGA zone
+    coord = GridCoord(config.grid_step)
+    allow_radius = 10  # Grid cells around each stub endpoint
+    for seg in net_segments:
+        for x, y in [(seg.start_x, seg.start_y), (seg.end_x, seg.end_y)]:
+            gx, gy = coord.to_grid(x, y)
+            for dx in range(-allow_radius, allow_radius + 1):
+                for dy in range(-allow_radius, allow_radius + 1):
+                    obstacles.add_allowed_cell(gx + dx, gy + dy)
+
     router = GridAStarRouter(obstacles, config)
 
     # Find disconnected groups of segments
