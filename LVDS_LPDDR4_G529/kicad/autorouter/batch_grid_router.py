@@ -200,16 +200,24 @@ def build_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
                 gy += sy
 
     # Add vias as obstacles
-    via_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.track_width / 2 + config.clearance))
+    # Track clearance around vias: via_radius + track_half_width + clearance
+    via_track_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.track_width / 2 + config.clearance))
+    # Via-to-via clearance: via_diameter + clearance (center-to-center distance)
+    via_via_expansion_grid = max(1, coord.to_grid_dist(config.via_size + config.clearance))
     for via in pcb_data.vias:
         if via.net_id == exclude_net_id:
             continue
         gx, gy = coord.to_grid(via.x, via.y)
-        for ex in range(-via_expansion_grid, via_expansion_grid + 1):
-            for ey in range(-via_expansion_grid, via_expansion_grid + 1):
-                if ex*ex + ey*ey <= via_expansion_grid * via_expansion_grid:
+        # Block cells for track routing
+        for ex in range(-via_track_expansion_grid, via_track_expansion_grid + 1):
+            for ey in range(-via_track_expansion_grid, via_track_expansion_grid + 1):
+                if ex*ex + ey*ey <= via_track_expansion_grid * via_track_expansion_grid:
                     for layer_idx in range(num_layers):
                         obstacles.add_blocked_cell(gx + ex, gy + ey, layer_idx)
+        # Block cells for via placement (larger radius for via-to-via clearance)
+        for ex in range(-via_via_expansion_grid, via_via_expansion_grid + 1):
+            for ey in range(-via_via_expansion_grid, via_via_expansion_grid + 1):
+                if ex*ex + ey*ey <= via_via_expansion_grid * via_via_expansion_grid:
                     obstacles.add_blocked_via(gx + ex, gy + ey)
 
     # Add pads as obstacles with RECTANGULAR bounds
@@ -515,6 +523,51 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
     if not net_ids:
         print("No valid nets to route!")
         return 0, 0, 0.0
+
+    # Sort nets inside-out from BGA center(s) for better escape routing
+    # Only applies to nets that have pads inside a BGA zone
+    if bga_exclusion_zones:
+        def pad_in_bga_zone(pad):
+            """Check if a pad is inside any BGA zone."""
+            for zone in bga_exclusion_zones:
+                if zone[0] <= pad.global_x <= zone[2] and zone[1] <= pad.global_y <= zone[3]:
+                    return True
+            return False
+
+        def get_min_distance_to_bga_center(net_id):
+            """Get minimum distance from any BGA pad of this net to its BGA center."""
+            pads = pcb_data.pads_by_net.get(net_id, [])
+            if not pads:
+                return float('inf')
+
+            min_dist = float('inf')
+            for zone in bga_exclusion_zones:
+                center_x = (zone[0] + zone[2]) / 2
+                center_y = (zone[1] + zone[3]) / 2
+                for pad in pads:
+                    # Only consider pads that are inside this BGA zone
+                    if zone[0] <= pad.global_x <= zone[2] and zone[1] <= pad.global_y <= zone[3]:
+                        dist = ((pad.global_x - center_x) ** 2 + (pad.global_y - center_y) ** 2) ** 0.5
+                        min_dist = min(min_dist, dist)
+            return min_dist
+
+        # Separate BGA nets from non-BGA nets
+        bga_nets = []
+        non_bga_nets = []
+        for net_name, net_id in net_ids:
+            pads = pcb_data.pads_by_net.get(net_id, [])
+            has_bga_pad = any(pad_in_bga_zone(pad) for pad in pads)
+            if has_bga_pad:
+                bga_nets.append((net_name, net_id))
+            else:
+                non_bga_nets.append((net_name, net_id))
+
+        # Sort BGA nets inside-out, keep non-BGA nets in original order
+        bga_nets.sort(key=lambda x: get_min_distance_to_bga_center(x[1]))
+        net_ids = bga_nets + non_bga_nets
+
+        if bga_nets:
+            print(f"\nSorted {len(bga_nets)} BGA nets inside-out ({len(non_bga_nets)} non-BGA nets unchanged)")
 
     print(f"\nRouting {len(net_ids)} nets...")
     print("=" * 60)

@@ -6,10 +6,13 @@ A fast Rust-accelerated A* autorouter for KiCad PCB files using integer grid coo
 
 - **Grid-based A* pathfinding** - Integer coordinates for fast collision detection
 - **Octilinear routing** - Horizontal, vertical, and 45-degree diagonal moves
-- **Multi-layer routing** - 4 layers (F.Cu, In1.Cu, In2.Cu, B.Cu) with automatic via insertion
+- **Multi-layer routing** - Configurable layers with automatic via insertion
 - **Obstacle avoidance** - Respects existing tracks, vias, and pads with configurable clearance
 - **Rectangular pad blocking** - Proper clearance for non-square pads with rotation handling
-- **BGA exclusion zone** - Prevents vias under BGA packages
+- **Auto-detected BGA exclusion zones** - Prevents vias under BGA packages (detected from footprint)
+- **Auto-detected component types** - BGA and QFN/QFP components detected by footprint pattern
+- **Inside-out BGA routing** - Nets with BGA pads are automatically sorted by distance from center
+- **Via-to-via clearance** - Proper spacing between vias (separate from track clearance)
 - **Batch routing** - Routes multiple nets sequentially, each avoiding previously routed tracks
 - **Stub proximity avoidance** - Penalizes routes near unrouted stubs to prevent blocking
 
@@ -55,58 +58,30 @@ See [rust_router/README.md](rust_router/README.md) for detailed build instructio
 python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)"
 ```
 
-### Route 32 DATA Nets with Inside-Out Ordering
+### Route 32 DATA Nets (Inside-Out Ordering is Automatic)
 
-For BGA fanout routing, inside-out ordering (routing inner pins first) achieves the best success rate:
+The router automatically detects BGA components and sorts nets with BGA pads inside-out (center pads first). Just pass the nets in any order:
 
 ```bash
 python batch_grid_router.py fanout_starting_point.kicad_pcb routed_output.kicad_pcb \
-  "Net-(U2A-DATA_23)" "Net-(U2A-DATA_20)" "Net-(U2A-DATA_17)" "Net-(U2A-DATA_22)" \
-  "Net-(U2A-DATA_24)" "Net-(U2A-DATA_16)" "Net-(U2A-DATA_18)" "Net-(U2A-DATA_14)" \
-  "Net-(U2A-DATA_26)" "Net-(U2A-DATA_11)" "Net-(U2A-DATA_21)" "Net-(U2A-DATA_29)" \
-  "Net-(U2A-DATA_25)" "Net-(U2A-DATA_30)" "Net-(U2A-DATA_15)" "Net-(U2A-DATA_13)" \
-  "Net-(U2A-DATA_9)" "Net-(U2A-DATA_19)" "Net-(U2A-DATA_27)" "Net-(U2A-DATA_8)" \
-  "Net-(U2A-DATA_10)" "Net-(U2A-DATA_28)" "Net-(U2A-DATA_31)" "Net-(U2A-DATA_7)" \
-  "Net-(U2A-DATA_5)" "Net-(U2A-DATA_12)" "Net-(U2A-DATA_0)" "Net-(U2A-DATA_4)" \
-  "Net-(U2A-DATA_2)" "Net-(U2A-DATA_3)" "Net-(U2A-DATA_6)" "Net-(U2A-DATA_1)"
+  "Net-(U2A-DATA_0)" "Net-(U2A-DATA_1)" "Net-(U2A-DATA_2)" "Net-(U2A-DATA_3)" \
+  "Net-(U2A-DATA_4)" "Net-(U2A-DATA_5)" "Net-(U2A-DATA_6)" "Net-(U2A-DATA_7)" \
+  "Net-(U2A-DATA_8)" "Net-(U2A-DATA_9)" "Net-(U2A-DATA_10)" "Net-(U2A-DATA_11)" \
+  "Net-(U2A-DATA_12)" "Net-(U2A-DATA_13)" "Net-(U2A-DATA_14)" "Net-(U2A-DATA_15)" \
+  "Net-(U2A-DATA_16)" "Net-(U2A-DATA_17)" "Net-(U2A-DATA_18)" "Net-(U2A-DATA_19)" \
+  "Net-(U2A-DATA_20)" "Net-(U2A-DATA_21)" "Net-(U2A-DATA_22)" "Net-(U2A-DATA_23)" \
+  "Net-(U2A-DATA_24)" "Net-(U2A-DATA_25)" "Net-(U2A-DATA_26)" "Net-(U2A-DATA_27)" \
+  "Net-(U2A-DATA_28)" "Net-(U2A-DATA_29)" "Net-(U2A-DATA_30)" "Net-(U2A-DATA_31)"
 ```
 
-## Determining Net Ordering
+The router will output:
+```
+Auto-detected 3 BGA exclusion zone(s):
+  IC1: (135.7, 94.2) to (152.3, 110.8)
+  U3: (185.9, 93.5) to (204.9, 112.5)
+  U1: (165.3, 95.5) to (175.5, 110.5)
 
-For BGA breakout routing, order nets by distance from the BGA center (inside-out):
-
-```python
-from kicad_parser import parse_kicad_pcb
-import math
-
-pcb_data = parse_kicad_pcb('input.kicad_pcb')
-
-# BGA center coordinates
-bga_center_x, bga_center_y = 195.4, 103.0
-
-net_distances = []
-for i in range(32):
-    net_name = f'Net-(U2A-DATA_{i})'
-    net_id = next((nid for nid, net in pcb_data.nets.items() if net.name == net_name), None)
-    if net_id is None:
-        continue
-
-    # Get stub segment positions
-    segs = [s for s in pcb_data.segments if s.net_id == net_id]
-    if not segs:
-        continue
-
-    # Calculate centroid
-    points = [(s.start_x, s.start_y) for s in segs] + [(s.end_x, s.end_y) for s in segs]
-    avg_x = sum(p[0] for p in points) / len(points)
-    avg_y = sum(p[1] for p in points) / len(points)
-
-    dist = math.sqrt((avg_x - bga_center_x)**2 + (avg_y - bga_center_y)**2)
-    net_distances.append((net_name, dist))
-
-# Sort by distance (inside-out)
-net_distances.sort(key=lambda x: x[1])
-print([name for name, _ in net_distances])
+Sorted 32 BGA nets inside-out (0 non-BGA nets unchanged)
 ```
 
 ## Configuration
@@ -124,7 +99,7 @@ GridRouteConfig(
     layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
     max_iterations=100000,  # max A* iterations per route
     heuristic_weight=1.5,   # A* greediness (1.0=optimal, >1.0=faster)
-    bga_exclusion_zone=(185.9, 93.5, 204.9, 112.5),  # no vias in this rectangle
+    bga_exclusion_zones=[],  # auto-detected from BGA footprints
     stub_proximity_radius=1.0,  # mm - penalize routes near unrouted stubs
     stub_proximity_cost=3.0,    # mm equivalent cost at stub center
 )
@@ -133,10 +108,13 @@ GridRouteConfig(
 ### Parameter Notes
 
 - **clearance**: Edge-to-edge spacing between tracks. A 0.1mm clearance means tracks with 0.1mm width can pass with 0.2mm center-to-center spacing.
+- **via-to-via spacing**: Automatically calculated as `via_size + clearance` (0.4mm with defaults). This is larger than track-to-via spacing to ensure proper clearance between via barrels.
 - **heuristic_weight**: Values > 1.0 make the search greedier (faster but potentially suboptimal). 1.5 is a good balance.
 - **max_iterations**: Increase for complex routes. Easy routes need ~200 iterations, hard routes may need 10,000+.
 - **via_cost**: Higher values discourage layer changes. 500 means a via costs as much as 0.5 grid steps of travel.
 - **stub_proximity_radius/cost**: Routes passing near unrouted stub endpoints incur extra cost. This prevents early routes from blocking later ones. Vias near stubs are penalized 2x.
+- **bga_exclusion_zones**: Automatically detected from BGA footprints in the PCB. Can be overridden manually if needed.
+- **inside-out ordering**: Nets with pads inside a BGA zone are automatically sorted by distance from BGA center (closest first). This improves routing success for BGA escape routing.
 
 ## Performance
 
