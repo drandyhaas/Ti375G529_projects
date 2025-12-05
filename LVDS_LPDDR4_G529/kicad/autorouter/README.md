@@ -1,6 +1,6 @@
 # KiCad PCB Grid Router
 
-A fast Python-based A* autorouter for KiCad PCB files using integer grid coordinates. Routes nets between existing stub endpoints with multi-layer support and automatic via placement.
+A fast Rust-accelerated A* autorouter for KiCad PCB files using integer grid coordinates. Routes nets between existing stub endpoints with multi-layer support and automatic via placement.
 
 ## Features
 
@@ -8,22 +8,44 @@ A fast Python-based A* autorouter for KiCad PCB files using integer grid coordin
 - **Octilinear routing** - Horizontal, vertical, and 45-degree diagonal moves
 - **Multi-layer routing** - 4 layers (F.Cu, In1.Cu, In2.Cu, B.Cu) with automatic via insertion
 - **Obstacle avoidance** - Respects existing tracks, vias, and pads with configurable clearance
+- **Rectangular pad blocking** - Proper clearance for non-square pads with rotation handling
 - **BGA exclusion zone** - Prevents vias under BGA packages
 - **Batch routing** - Routes multiple nets sequentially, each avoiding previously routed tracks
+- **Stub proximity avoidance** - Penalizes routes near unrouted stubs to prevent blocking
+
+## Requirements
+
+The router requires the Rust module for A* pathfinding. Build it first:
+
+```bash
+cd rust_router
+cargo build --release
+
+# Windows:
+cp target/release/grid_router.dll grid_router.pyd
+
+# Linux:
+cp target/release/libgrid_router.so grid_router.so
+
+# macOS:
+cp target/release/libgrid_router.dylib grid_router.so
+```
+
+See [rust_router/README.md](rust_router/README.md) for detailed build instructions.
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `grid_astar_router.py` | Core grid-based A* routing engine |
-| `batch_grid_router.py` | Batch routing for multiple nets |
+| `batch_grid_router.py` | Main router - routes multiple nets using Rust A* |
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures (handles pad rotation) |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 | `check_drc.py` | DRC checker for detecting clearance violations |
-| `visualize_routing.py` | Matplotlib visualization of A* search progress |
+| `visualize_routing.py` | Matplotlib visualization of routing progress |
 | `bga_fanout.py` | BGA fanout stub generation |
 | `qfn_fanout.py` | QFN fanout stub generation |
 | `apply_fanouts.py` | Apply generated fanouts to PCB file |
+| `rust_router/` | Rust A* implementation with Python bindings |
 
 ## Quick Start
 
@@ -120,17 +142,17 @@ GridRouteConfig(
 
 Tested on 32 DATA nets with BGA fanout:
 
-| Tracks | Success Rate | Time | Notes |
-|--------|-------------|------|-------|
-| 1 | 100% | 24ms | 160 iterations |
-| 4 | 100% | 116ms | 160-893 iterations |
-| 8 | 100% | 908ms | 160-12873 iterations |
-| 16 | 56% | 2.6s | Some routes blocked |
-| 32 (with stub avoidance) | **97-100%** | **53-65s** | 31-32/32 successful |
+| Metric | Value |
+|--------|-------|
+| Success Rate | **32/32 (100%)** |
+| Total Time | ~7 seconds |
+| Total Iterations | ~285,000 |
+| DRC Violations | 0 (DATA nets) |
 
 **Key features for high success rates:**
 - **Stub proximity avoidance**: Routes are penalized for passing near unrouted stub endpoints, preventing early routes from blocking later ones
 - **Smart direction search**: Try forward direction quickly (5000 iterations), then reverse with full iterations, then forward with full iterations. This finds the "easy" direction faster.
+- **Rectangular pad blocking**: Proper clearance for non-square pads (e.g., QFN 0.2x0.875mm pads)
 
 ### Iterative Retry Strategy
 
@@ -165,7 +187,9 @@ The net being routed is excluded from obstacles.
 
 **Pad Rotation Handling**: The parser correctly transforms pad dimensions based on rotation. For example, QFN pads defined as (0.875 x 0.2)mm with 90° rotation become (0.2 x 0.875)mm in board coordinates, ensuring rectangular via blocking zones are correctly oriented.
 
-### 3. A* Search
+**Via Blocking**: Uses `int()` instead of `round()` for grid discretization to avoid over-blocking valid via positions.
+
+### 3. A* Search (Rust)
 
 States are `(grid_x, grid_y, layer_index)` tuples. Moves include:
 - 8 directions on same layer (orthogonal + diagonal)
@@ -173,9 +197,14 @@ States are `(grid_x, grid_y, layer_index)` tuples. Moves include:
 
 Cost = distance + via penalty + **stub proximity penalty**. Heuristic = octile distance to goal.
 
+The Rust implementation uses:
+- FxHashSet for O(1) obstacle lookups
+- BinaryHeap with counter-based tie-breaking for deterministic ordering
+- Packed u64 state keys for fast hashing
+
 ### 4. Path Output
 
-The grid path is simplified (collinear points merged) and converted back to mm coordinates. Segments and vias are generated for the KiCad file.
+The grid path is converted back to mm coordinates. Segments and vias are generated for the KiCad file.
 
 ## Limitations
 
@@ -200,33 +229,7 @@ The checker reports:
 
 Note: Pre-existing differential pair routing (e.g., LVDS signals) may intentionally have tight spacing and will show as violations.
 
-## Rust Router (Recommended)
-
-For faster routing (~10x speedup), use the Rust implementation in the `rust_router/` directory.
-
-See [rust_router/README.md](rust_router/README.md) for build instructions and usage.
-
-```bash
-cd rust_router
-python benchmark_full.py
-```
-
-Results: **32/32 nets routed** in ~7 seconds with proper rectangular pad clearance checking.
-
-## Code Synchronization
-
-**IMPORTANT**: The Python router (`grid_astar_router.py`) and the Rust-accelerated router (`rust_router/benchmark_full.py`) must be kept in sync. Both implementations share the same obstacle map construction logic:
-
-- **Rectangular pad blocking**: Pads are blocked with proper rectangular bounds based on `size_x` and `size_y` (already rotated by `kicad_parser.py`)
-- **Via blocking near pads**: Uses `int()` instead of `round()` for grid discretization to avoid over-blocking
-- **Pad rotation handling**: `kicad_parser.py` swaps `size_x`/`size_y` for 90° rotated pads
-
-When fixing bugs or adding features to obstacle map construction, update both:
-1. `grid_astar_router.py` - `GridObstacleMap._build_from_pads()`
-2. `rust_router/benchmark_full.py` - `build_obstacle_map()`
-
 ## Dependencies
 
 - Python 3.7+
-- No external packages required for Python router
-- Rust toolchain required for Rust router (see rust_router/README.md)
+- Rust toolchain (for building the router module)

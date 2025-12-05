@@ -38,25 +38,24 @@ cargo build --release
 
 ### Installing the Python Module
 
-After building, copy the compiled library to the Python path:
+After building, copy the compiled library to this directory:
 
 **Windows:**
 ```bash
 cp target/release/grid_router.dll grid_router.pyd
-cp target/release/grid_router.dll ../grid_router.pyd
 ```
 
 **Linux:**
 ```bash
 cp target/release/libgrid_router.so grid_router.so
-cp target/release/libgrid_router.so ../grid_router.so
 ```
 
 **macOS:**
 ```bash
 cp target/release/libgrid_router.dylib grid_router.so
-cp target/release/libgrid_router.dylib ../grid_router.so
 ```
+
+The `batch_grid_router.py` script automatically adds this directory to the Python path.
 
 ### Using maturin (alternative)
 
@@ -109,11 +108,11 @@ else:
 
 ## Benchmark
 
-Run the full 32-net benchmark:
+Run the full 32-net benchmark from the parent directory:
 
 ```bash
-cd rust_router
-python benchmark_full.py
+python batch_grid_router.py fanout_starting_point.kicad_pcb routed.kicad_pcb \
+  "Net-(U2A-DATA_23)" "Net-(U2A-DATA_20)" ...
 ```
 
 ### Performance Results
@@ -173,7 +172,7 @@ Methods:
 
 ## Pad Rotation and Rectangular Blocking
 
-The `benchmark_full.py` script uses rectangular pad blocking with proper rotation handling:
+The `batch_grid_router.py` script uses rectangular pad blocking with proper rotation handling:
 
 ```python
 # Pads are blocked with rectangular bounds based on their rotated dimensions
@@ -184,8 +183,9 @@ The `benchmark_full.py` script uses rectangular pad blocking with proper rotatio
 
 for pad in pads:
     # size_x and size_y are already rotated by kicad_parser.py
-    via_expand_x = coord.to_grid_dist(pad.size_x / 2 + via_clear_mm)
-    via_expand_y = coord.to_grid_dist(pad.size_y / 2 + via_clear_mm)
+    # Use int() instead of round() to avoid over-blocking
+    via_expand_x = int((pad.size_x / 2 + via_clear_mm) / grid_step)
+    via_expand_y = int((pad.size_y / 2 + via_clear_mm) / grid_step)
     for ex in range(-via_expand_x, via_expand_x + 1):
         for ey in range(-via_expand_y, via_expand_y + 1):
             obstacles.add_blocked_via(gx + ex, gy + ey)
