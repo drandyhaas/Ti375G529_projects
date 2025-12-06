@@ -11,7 +11,9 @@ A fast Rust-accelerated A* autorouter for KiCad PCB files using integer grid coo
 - **Rectangular pad blocking** - Proper clearance for non-square pads with rotation handling
 - **Auto-detected BGA exclusion zones** - Prevents vias under BGA packages (detected from footprint)
 - **Auto-detected component types** - BGA and QFN/QFP components detected by footprint pattern
+- **Multiple net ordering strategies** - Inside-out (default), MPS (crossing conflicts), or original order
 - **Inside-out BGA routing** - Nets with BGA pads are automatically sorted by distance from center
+- **MPS ordering** - Maximum Planar Subset algorithm minimizes crossing conflicts between nets
 - **Via-to-via clearance** - Proper spacing between vias (separate from track clearance)
 - **Batch routing** - Routes multiple nets sequentially, each avoiding previously routed tracks
 - **Stub proximity avoidance** - Penalizes routes near unrouted stubs to prevent blocking
@@ -51,6 +53,7 @@ See [rust_router/README.md](rust_router/README.md) for detailed build instructio
 | `apply_fanouts.py` | Apply generated fanouts to PCB file |
 | `rust_router/` | Rust A* implementation with Python bindings |
 | `pygame_visualizer/` | Real-time visualization of routing algorithm |
+| `MPS.html` | Interactive visualization of MPS crossing conflict algorithm |
 
 ## Quick Start
 
@@ -74,6 +77,32 @@ python batch_grid_router.py input.kicad_pcb output.kicad_pcb "*CLK*"
 # Mix wildcards and explicit names
 python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" "Net-(U2A-CLK)"
 ```
+
+### Net Ordering Strategies
+
+The router supports three net ordering strategies via the `--ordering` flag:
+
+```bash
+# Inside-out ordering (default) - best for BGA fanout routing
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering inside_out
+
+# MPS ordering - minimizes crossing conflicts between nets
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering mps
+
+# Original ordering - routes nets in the order specified
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering original
+```
+
+#### Strategy Comparison (32 DATA nets)
+
+| Metric | inside_out | mps | original |
+|--------|-----------|-----|----------|
+| Success Rate | 32/32 (100%) | 32/32 (100%) | 32/32 (100%) |
+| Time | 4.08s | 4.06s | 4.60s |
+| Iterations | 723,666 | 1,029,824 | 1,071,958 |
+| Via Count | 47 | 52 | 50 |
+
+**Recommendation**: Use `inside_out` (default) for BGA fanout routing. The MPS algorithm is better suited for scenarios with actual crossing conflicts (e.g., connections between two rows of pins where net paths interleave).
 
 ### Route 32 DATA Nets (Inside-Out Ordering is Automatic)
 
@@ -124,6 +153,7 @@ GridRouteConfig(
 - **stub_proximity_radius/cost**: Routes passing near unrouted stub endpoints incur extra cost. This prevents early routes from blocking later ones. Vias near stubs are penalized 2x.
 - **bga_exclusion_zones**: Automatically detected from BGA footprints in the PCB. Can be overridden manually if needed.
 - **inside-out ordering**: Nets with pads inside a BGA zone are automatically sorted by distance from BGA center (closest first). This improves routing success for BGA escape routing.
+- **mps ordering**: Maximum Planar Subset algorithm that detects crossing conflicts between nets and orders them to minimize blocking. See [MPS Algorithm](#mps-algorithm) section below.
 
 ## Performance
 
@@ -195,6 +225,41 @@ The Rust implementation uses:
 ### 4. Path Output
 
 The grid path is converted back to mm coordinates. Segments and vias are generated for the KiCad file.
+
+## MPS Algorithm
+
+The Maximum Planar Subset (MPS) ordering strategy identifies crossing conflicts between nets and orders them to minimize blocking. This is useful when nets have paths that geometrically cross each other.
+
+### How It Works
+
+1. **Find endpoints**: For each net, identify the two stub endpoint centroids (source and target)
+2. **Angular projection**: Project all endpoints onto a circular boundary centered on the routing region
+3. **Detect crossings**: Two nets A and B cross if their endpoints interleave on the boundary:
+   - Order A1, B1, A2, B2 means the paths must cross
+   - Order A1, A2, B1, B2 means paths don't cross (can be routed without conflict)
+4. **Build conflict graph**: Create edges between all pairs of crossing nets
+5. **Greedy ordering**: In rounds:
+   - Select nets with fewest active conflicts
+   - Add them to the routing order
+   - Remove conflicting neighbors (they go to next round)
+6. **Output**: Ordered list where non-conflicting nets are routed first
+
+### Interactive Visualization
+
+Open `MPS.html` in a browser to see the algorithm in action:
+- Draw nets by clicking pairs of pins on the circular boundary
+- Click "Convert to Graph" to build the conflict graph
+- Click "Run Micro-Step" repeatedly to watch the greedy selection process
+- Green nets are selected for "Layer 1" (route first), red nets go to "Layer 2" (route later)
+
+### When to Use MPS
+
+MPS ordering is most effective when:
+- Nets connect pins that are interleaved (e.g., alternating connections between two chip edges)
+- Routes would naturally cross if drawn as straight lines
+- The routing region is relatively flat (not radial like BGA fanout)
+
+For BGA fanout routing where nets radiate from center, `inside_out` ordering typically performs better.
 
 ## Limitations
 

@@ -144,6 +144,193 @@ def get_stub_endpoints(pcb_data: PCBData, net_ids: List[int]) -> List[Tuple[floa
     return stubs
 
 
+def get_net_stub_centroids(pcb_data: PCBData, net_id: int) -> List[Tuple[float, float]]:
+    """
+    Get centroids of each connected stub group for a net.
+    Returns list of (x, y) centroids, typically 2 for a 2-point net.
+    """
+    net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+    if len(net_segments) < 2:
+        return []
+    groups = find_connected_groups(net_segments)
+    if len(groups) < 2:
+        return []
+
+    centroids = []
+    for group in groups:
+        points = []
+        for seg in group:
+            points.append((seg.start_x, seg.start_y))
+            points.append((seg.end_x, seg.end_y))
+        if points:
+            cx = sum(p[0] for p in points) / len(points)
+            cy = sum(p[1] for p in points) / len(points)
+            centroids.append((cx, cy))
+    return centroids
+
+
+def compute_mps_net_ordering(pcb_data: PCBData, net_ids: List[int],
+                              center: Tuple[float, float] = None) -> List[int]:
+    """
+    Compute optimal net routing order using Maximum Planar Subset (MPS) algorithm.
+
+    The MPS approach identifies crossing conflicts between nets and orders them
+    so that non-conflicting nets are routed first. This reduces routing failures
+    caused by earlier routes blocking later ones.
+
+    Algorithm:
+    1. For each net, find its two stub endpoint centroids
+    2. Project all endpoints onto a circular boundary centered on the routing region
+    3. Assign each endpoint an angular position on the boundary
+    4. Detect crossing conflicts: nets A and B cross if their endpoints alternate
+       on the boundary (A1, B1, A2, B2 or B1, A1, B2, A2 ordering)
+    5. Build a conflict graph where edges connect crossing nets
+    6. Use greedy algorithm: repeatedly select net with fewest active conflicts,
+       add to result, and remove its neighbors from consideration for this round
+    7. Continue until all nets are ordered (multiple rounds/layers)
+
+    Args:
+        pcb_data: PCB data with segments
+        net_ids: List of net IDs to order
+        center: Optional center point for angular projection (auto-computed if None)
+
+    Returns:
+        Ordered list of net IDs, with least-conflicting nets first
+    """
+    import math
+
+    # Step 1: Get stub centroids for each net
+    net_endpoints = {}  # net_id -> [(x1, y1), (x2, y2)]
+    for net_id in net_ids:
+        centroids = get_net_stub_centroids(pcb_data, net_id)
+        if len(centroids) >= 2:
+            # Take the first two centroids (source and target)
+            net_endpoints[net_id] = centroids[:2]
+
+    if not net_endpoints:
+        print("MPS: No nets with valid stub endpoints found")
+        return list(net_ids)
+
+    # Step 2: Compute center if not provided (centroid of all endpoints)
+    if center is None:
+        all_points = []
+        for endpoints in net_endpoints.values():
+            all_points.extend(endpoints)
+        if all_points:
+            center = (
+                sum(p[0] for p in all_points) / len(all_points),
+                sum(p[1] for p in all_points) / len(all_points)
+            )
+        else:
+            center = (0, 0)
+
+    # Step 3: Compute angular position for each endpoint
+    def angle_from_center(point: Tuple[float, float]) -> float:
+        """Compute angle from center to point in radians [0, 2*pi)."""
+        dx = point[0] - center[0]
+        dy = point[1] - center[1]
+        ang = math.atan2(dy, dx)
+        if ang < 0:
+            ang += 2 * math.pi
+        return ang
+
+    # For each net, get angles of both endpoints and normalize order
+    net_angles = {}  # net_id -> (angle1, angle2) where angle1 < angle2
+    for net_id, endpoints in net_endpoints.items():
+        a1 = angle_from_center(endpoints[0])
+        a2 = angle_from_center(endpoints[1])
+        # Normalize: always store with smaller angle first
+        if a1 > a2:
+            a1, a2 = a2, a1
+        net_angles[net_id] = (a1, a2)
+
+    # Step 4: Detect crossing conflicts
+    # Two nets cross if their intervals on the circle interleave
+    # Net A with (a1, a2) and Net B with (b1, b2) cross if:
+    #   a1 < b1 < a2 < b2  OR  b1 < a1 < b2 < a2
+    def nets_cross(net_a: int, net_b: int) -> bool:
+        """Check if two nets have crossing paths on the circular boundary."""
+        a1, a2 = net_angles[net_a]
+        b1, b2 = net_angles[net_b]
+
+        # Check interleaving: one net's interval partially overlaps the other's
+        # a1 < b1 < a2 < b2 means A starts, B starts, A ends, B ends = crossing
+        if a1 < b1 < a2 < b2:
+            return True
+        if b1 < a1 < b2 < a2:
+            return True
+        return False
+
+    # Build conflict graph
+    net_list = list(net_angles.keys())
+    conflicts = {net_id: set() for net_id in net_list}
+
+    for i, net_a in enumerate(net_list):
+        for net_b in net_list[i+1:]:
+            if nets_cross(net_a, net_b):
+                conflicts[net_a].add(net_b)
+                conflicts[net_b].add(net_a)
+
+    # Count total conflicts for reporting
+    total_conflicts = sum(len(c) for c in conflicts.values()) // 2
+    print(f"MPS: {len(net_list)} nets with {total_conflicts} crossing conflicts detected")
+
+    # Step 5: Greedy ordering - repeatedly pick net with fewest active conflicts
+    ordered = []
+    remaining = set(net_list)
+    round_num = 0
+
+    while remaining:
+        round_num += 1
+        round_winners = []
+        round_losers = set()
+        active_conflicts = {net_id: len(conflicts[net_id] & remaining)
+                           for net_id in remaining}
+
+        # Process this round: pick nets with minimal conflicts
+        round_remaining = set(remaining)
+        while round_remaining:
+            # Find net with minimum active conflicts among round_remaining
+            min_conflicts = float('inf')
+            best_net = None
+            for net_id in round_remaining:
+                # Active conflicts = conflicts with nets still in round_remaining
+                active = len(conflicts[net_id] & round_remaining)
+                if active < min_conflicts:
+                    min_conflicts = active
+                    best_net = net_id
+
+            if best_net is None:
+                break
+
+            # This net wins this round
+            round_winners.append(best_net)
+            round_remaining.discard(best_net)
+
+            # All its conflicting neighbors in round_remaining become losers
+            for loser in conflicts[best_net] & round_remaining:
+                round_losers.add(loser)
+                round_remaining.discard(loser)
+
+        # Add winners to ordered list, then losers go to next round
+        ordered.extend(round_winners)
+        remaining = round_losers
+
+        if round_winners:
+            net_names = [pcb_data.nets[nid].name for nid in round_winners[:3]]
+            suffix = f"... (+{len(round_winners)-3} more)" if len(round_winners) > 3 else ""
+            print(f"MPS Round {round_num}: {len(round_winners)} nets selected "
+                  f"({', '.join(net_names)}{suffix})")
+
+    # Add any nets that weren't in net_angles (no valid stubs) at the end
+    nets_without_stubs = [nid for nid in net_ids if nid not in net_angles]
+    if nets_without_stubs:
+        print(f"MPS: {len(nets_without_stubs)} nets without valid stubs appended at end")
+        ordered.extend(nets_without_stubs)
+
+    return ordered
+
+
 def build_base_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
                             nets_to_route: List[int]) -> GridObstacleMap:
     """Build base obstacle map with static obstacles (BGA zones, pads, pre-existing tracks/vias).
@@ -796,7 +983,8 @@ def add_route_to_pcb_data(pcb_data: PCBData, result: dict) -> None:
 def batch_route(input_file: str, output_file: str, net_names: List[str],
                 layers: List[str] = None,
                 bga_exclusion_zones: Optional[List[Tuple[float, float, float, float]]] = None,
-                direction_order: str = None) -> Tuple[int, int, float]:
+                direction_order: str = None,
+                ordering_strategy: str = "inside_out") -> Tuple[int, int, float]:
     """
     Route multiple nets using the Rust router.
 
@@ -809,6 +997,10 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         bga_exclusion_zones: Optional list of BGA exclusion zones (auto-detected if None)
         direction_order: Direction search order - "forward", "backwards", or "random"
                         (None = use GridRouteConfig default)
+        ordering_strategy: Net ordering strategy:
+            - "inside_out": Sort BGA nets by distance from BGA center (default)
+            - "mps": Use Maximum Planar Subset algorithm to minimize crossing conflicts
+            - "original": Keep nets in original order
 
     Returns:
         (successful_count, failed_count, total_time)
@@ -867,9 +1059,19 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         print("No valid nets to route!")
         return 0, 0, 0.0
 
-    # Sort nets inside-out from BGA center(s) for better escape routing
-    # Only applies to nets that have pads inside a BGA zone
-    if bga_exclusion_zones:
+    # Apply net ordering strategy
+    if ordering_strategy == "mps":
+        # Use Maximum Planar Subset algorithm to minimize crossing conflicts
+        print(f"\nUsing MPS ordering strategy...")
+        all_net_ids = [nid for _, nid in net_ids]
+        ordered_ids = compute_mps_net_ordering(pcb_data, all_net_ids)
+        # Rebuild net_ids in the new order
+        id_to_name = {nid: name for name, nid in net_ids}
+        net_ids = [(id_to_name[nid], nid) for nid in ordered_ids if nid in id_to_name]
+
+    elif ordering_strategy == "inside_out" and bga_exclusion_zones:
+        # Sort nets inside-out from BGA center(s) for better escape routing
+        # Only applies to nets that have pads inside a BGA zone
         def pad_in_bga_zone(pad):
             """Check if a pad is inside any BGA zone."""
             for zone in bga_exclusion_zones:
@@ -911,6 +1113,9 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
 
         if bga_nets:
             print(f"\nSorted {len(bga_nets)} BGA nets inside-out ({len(non_bga_nets)} non-BGA nets unchanged)")
+
+    elif ordering_strategy == "original":
+        print(f"\nUsing original net order (no sorting)")
 
     print(f"\nRouting {len(net_ids)} nets...")
     print("=" * 60)
@@ -1046,23 +1251,37 @@ def expand_net_patterns(pcb_data: PCBData, patterns: List[str]) -> List[str]:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Usage: python batch_grid_router.py input.kicad_pcb output.kicad_pcb net1 [net2 net3 ...]")
-        print("\nWildcard patterns supported:")
-        print('  "Net-(U2A-DATA_*)"  - matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.')
-        print('  "Net-(*CLK*)"       - matches any net containing CLK')
-        print("\nExample:")
-        print('  python batch_grid_router.py fanout_starting_point.kicad_pcb routed.kicad_pcb "Net-(U2A-DATA_*)"')
-        sys.exit(1)
+    import argparse
 
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
-    net_patterns = sys.argv[3:]
+    parser = argparse.ArgumentParser(
+        description="Batch PCB Router - Routes multiple nets using Rust-accelerated A*",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Wildcard patterns supported:
+  "Net-(U2A-DATA_*)"  - matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.
+  "Net-(*CLK*)"       - matches any net containing CLK
+
+Examples:
+  python batch_grid_router.py fanout_starting_point.kicad_pcb routed.kicad_pcb "Net-(U2A-DATA_*)"
+  python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering mps
+"""
+    )
+    parser.add_argument("input_file", help="Input KiCad PCB file")
+    parser.add_argument("output_file", help="Output KiCad PCB file")
+    parser.add_argument("net_patterns", nargs="+", help="Net names or wildcard patterns to route")
+    parser.add_argument("--ordering", "-o", choices=["inside_out", "mps", "original"],
+                        default="inside_out",
+                        help="Net ordering strategy: inside_out (default), mps (crossing conflicts), or original")
+    parser.add_argument("--direction", "-d", choices=["forward", "backwards", "random"],
+                        default=None,
+                        help="Direction search order for each net route")
+
+    args = parser.parse_args()
 
     # Load PCB to expand wildcards
-    print(f"Loading {input_file} to expand net patterns...")
-    pcb_data = parse_kicad_pcb(input_file)
-    net_names = expand_net_patterns(pcb_data, net_patterns)
+    print(f"Loading {args.input_file} to expand net patterns...")
+    pcb_data = parse_kicad_pcb(args.input_file)
+    net_names = expand_net_patterns(pcb_data, args.net_patterns)
 
     if not net_names:
         print("No nets matched the given patterns!")
@@ -1070,4 +1289,6 @@ if __name__ == "__main__":
 
     print(f"Routing {len(net_names)} nets: {net_names[:5]}{'...' if len(net_names) > 5 else ''}")
 
-    batch_route(input_file, output_file, net_names)
+    batch_route(args.input_file, args.output_file, net_names,
+                direction_order=args.direction,
+                ordering_strategy=args.ordering)

@@ -2,7 +2,7 @@
 
 High-performance A* grid router implemented in Rust with Python bindings via PyO3.
 
-**Current Version: 0.2.1**
+**Current Version: 0.3.0**
 
 ## Features
 
@@ -145,6 +145,7 @@ Methods:
 - `is_blocked(gx, gy, layer)` - Check if cell is blocked
 - `is_via_blocked(gx, gy)` - Check if via position is blocked
 - `get_stub_proximity_cost(gx, gy)` - Get proximity cost for a cell
+- `clone()` - Create a deep copy of the obstacle map (for incremental caching)
 
 ### GridRouter
 
@@ -166,6 +167,7 @@ Methods:
 
 ## Version History
 
+- **0.3.0**: Added `clone()` method for GridObstacleMap to support incremental obstacle caching
 - **0.2.1**: Fixed `is_blocked()` to check blocked_cells before allowed_cells (prevents allowed_cells from overriding regular obstacles)
 - **0.2.0**: Added `add_allowed_cell()` for BGA zone overrides, added `__version__` attribute
 - **0.1.0**: Initial release with basic A* routing
