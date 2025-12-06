@@ -176,7 +176,8 @@ def build_base_obstacle_map(
         if net_id in nets_to_route_set:
             continue
         for pad in pads:
-            _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid, blocked_cells, blocked_vias)
+            _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid,
+                              blocked_cells, blocked_vias, grid_step=grid_step)
 
     return obstacles, blocked_cells, blocked_vias, bga_zones_grid
 
@@ -234,26 +235,32 @@ def _add_via_obstacle(obstacles, via, coord, num_layers, via_track_expansion, vi
 
 
 def _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid,
-                      blocked_cells, blocked_vias):
-    """Add a pad as obstacle."""
+                      blocked_cells, blocked_vias, grid_step=0.1, clearance=0.1, via_size=0.3):
+    """Add a pad as obstacle (matches build_obstacle_map_with_cache logic)."""
     gx, gy = coord.to_grid(pad.global_x, pad.global_y)
-    half_w = max(1, coord.to_grid_dist(pad.size_x / 2 + 0.1))  # 0.1mm clearance
-    half_h = max(1, coord.to_grid_dist(pad.size_y / 2 + 0.1))
+    half_x_mm = pad.size_x / 2 + clearance
+    half_y_mm = pad.size_y / 2 + clearance
+    expand_x = coord.to_grid_dist(half_x_mm)
+    expand_y = coord.to_grid_dist(half_y_mm)
 
     for layer_name in pad.layers:
         layer_idx = layer_map.get(layer_name)
         if layer_idx is None:
             continue
-        for dx in range(-half_w, half_w + 1):
-            for dy in range(-half_h, half_h + 1):
+        for dx in range(-expand_x, expand_x + 1):
+            for dy in range(-expand_y, expand_y + 1):
                 obstacles.add_blocked_cell(gx + dx, gy + dy, layer_idx)
                 blocked_cells[layer_idx].add((gx + dx, gy + dy))
 
-    # Block vias around pad
-    for dx in range(-half_w - via_block_grid, half_w + via_block_grid + 1):
-        for dy in range(-half_h - via_block_grid, half_h + via_block_grid + 1):
-            obstacles.add_blocked_via(gx + dx, gy + dy)
-            blocked_vias.add((gx + dx, gy + dy))
+    # Block vias around pad only if pad is on F.Cu or B.Cu
+    if 'F.Cu' in pad.layers or 'B.Cu' in pad.layers:
+        via_clear_mm = via_size / 2 + clearance
+        via_expand_x = int((pad.size_x / 2 + via_clear_mm) / grid_step)
+        via_expand_y = int((pad.size_y / 2 + via_clear_mm) / grid_step)
+        for dx in range(-via_expand_x, via_expand_x + 1):
+            for dy in range(-via_expand_y, via_expand_y + 1):
+                obstacles.add_blocked_via(gx + dx, gy + dy)
+                blocked_vias.add((gx + dx, gy + dy))
 
 
 def add_routed_net_obstacles(obstacles, pcb_data, net_id, layers, grid_step,
@@ -595,6 +602,18 @@ def run_visualization(
     all_net_ids = [net_id for _, net_id in net_queue]
     global_bounds = get_bounds(pcb_data, all_net_ids, padding=5.0)
 
+    # Build base obstacle map once (excludes all nets we'll route)
+    # This contains: BGA zones, pads/segments/vias from OTHER nets (not in our queue)
+    import time
+    print("\nBuilding base obstacle map...")
+    t0 = time.time()
+    base_obstacles, base_blocked_cells, base_blocked_vias, base_bga_zones_grid = build_base_obstacle_map(
+        pcb_data, all_net_ids, layers,
+        grid_step=grid_step,
+        bga_zones=bga_zones
+    )
+    print(f"  Base obstacle map built in {time.time() - t0:.2f}s")
+
     # Track added segments/vias per net for restart capability
     # Key: net_idx, Value: (num_segments_added, num_vias_added)
     added_geometry = {}
@@ -681,23 +700,74 @@ def run_visualization(
             print("  No valid source/target points, skipping")
             return False
 
-        # Get unrouted stubs for proximity avoidance (same as batch router)
+        # Get all other net IDs in queue (not including current net)
+        # This includes both already-routed nets and not-yet-routed nets
+        other_net_ids = [nid for _, nid in net_queue if nid != net_id]
+
+        # Get unrouted stubs for proximity avoidance (nets after current in queue)
         remaining_net_ids = [nid for _, nid in net_queue[net_idx+1:]]
         unrouted_stubs = get_stub_endpoints(pcb_data, remaining_net_ids)
 
-        # Build obstacle map from scratch for this net (slower but correct)
+        # Build obstacle map by cloning base and adding all other nets' geometry
         import time
         t0 = time.time()
-        obstacles, blocked_cells, blocked_vias, bga_zones_grid = build_obstacle_map_with_cache(
-            pcb_data, net_id, layers,
-            grid_step=grid_step,
-            bga_zones=bga_zones,
-            unrouted_stubs=unrouted_stubs,
-            stub_proximity_radius=1.0,
-            stub_proximity_cost=3.0
-        )
+
+        # Clone base obstacle map (contains BGA zones and non-queue nets' obstacles)
+        obstacles = base_obstacles.clone()
+        blocked_cells = [set(bc) for bc in base_blocked_cells]
+        blocked_vias = set(base_blocked_vias)
+        bga_zones_grid = base_bga_zones_grid
+
+        # Add all other nets in queue (segments, vias, pads) - but not current net
+        # This includes both already-routed nets AND not-yet-routed nets
+        expansion_grid = max(1, coord.to_grid_dist(0.1 / 2 + 0.1))
+        via_block_grid = max(1, coord.to_grid_dist(0.3 / 2 + 0.1 / 2 + 0.1))
+        via_track_expansion = max(1, coord.to_grid_dist(0.3 / 2 + 0.1 / 2 + 0.1))
+        via_via_expansion = max(1, coord.to_grid_dist(0.3 + 0.1))
+
+        for other_net_id in other_net_ids:
+            # Add segments
+            for seg in pcb_data.segments:
+                if seg.net_id != other_net_id:
+                    continue
+                layer_idx = layer_map.get(seg.layer)
+                if layer_idx is None:
+                    continue
+                _add_segment_obstacle(obstacles, seg, coord, layer_idx, expansion_grid, via_block_grid,
+                                      blocked_cells, blocked_vias)
+            # Add vias
+            for via in pcb_data.vias:
+                if via.net_id != other_net_id:
+                    continue
+                _add_via_obstacle(obstacles, via, coord, len(layers), via_track_expansion, via_via_expansion,
+                                  blocked_cells, blocked_vias)
+            # Add pads
+            pads = pcb_data.pads_by_net.get(other_net_id, [])
+            for pad in pads:
+                _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid,
+                                  blocked_cells, blocked_vias, grid_step=grid_step)
+
+        # Add stub proximity costs for remaining (not yet routed) nets
+        # Must match build_obstacle_map_with_cache logic exactly
+        if unrouted_stubs:
+            stub_proximity_radius = 1.0
+            stub_proximity_cost = 3.0
+            stub_radius_grid = coord.to_grid_dist(stub_proximity_radius)
+            stub_cost_grid = int(stub_proximity_cost * 1000 / grid_step)  # Same as working version
+            for (sx, sy) in unrouted_stubs:
+                gx, gy = coord.to_grid(sx, sy)
+                for dx in range(-stub_radius_grid, stub_radius_grid + 1):
+                    for dy in range(-stub_radius_grid, stub_radius_grid + 1):
+                        dist_sq = dx * dx + dy * dy
+                        if dist_sq <= stub_radius_grid * stub_radius_grid:
+                            dist = dist_sq ** 0.5
+                            proximity = 1.0 - (dist / stub_radius_grid) if stub_radius_grid > 0 else 1.0
+                            cost = int(proximity * stub_cost_grid)
+                            if cost > 0:
+                                obstacles.set_stub_proximity(gx + dx, gy + dy, cost)
+
         build_time = time.time() - t0
-        print(f"  Obstacle map built in {build_time:.3f}s")
+        print(f"  Obstacle map cloned+built in {build_time:.3f}s")
 
         # Debug: show layer distribution and obstacle info
         source_layers = set(s[2] for s in sources)

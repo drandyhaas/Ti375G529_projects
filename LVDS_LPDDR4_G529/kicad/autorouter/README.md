@@ -291,13 +291,18 @@ Watch the A* algorithm explore the routing grid in real-time using the PyGame vi
 ```bash
 pip install pygame-ce
 python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-DATA_0)"
+
+# Auto-advance mode for benchmarking (no manual N key needed)
+python pygame_visualizer/run_visualizer.py --auto input.kicad_pcb "Net-(U2A-DATA_*)"
 ```
 
 Features:
-- Same Rust router as batch mode (zero performance impact on normal routing)
+- Same Rust router as batch mode (produces identical results)
 - Pause, step, zoom, pan controls
-- Speed control with 2x scaling (1x, 2x, 4x, 8x...)
+- Speed control with 2x scaling (1x, 2x, 4x, 8x... up to 65536x)
 - Layer filtering and legend display
+- Persistent route display (completed routes remain visible)
+- Incremental obstacle caching for fast net setup
 
 See [pygame_visualizer/README.md](pygame_visualizer/README.md) for full documentation.
 
