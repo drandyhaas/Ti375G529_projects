@@ -109,6 +109,28 @@ impl GridObstacleMap {
         }
     }
 
+    /// Create a deep copy of this obstacle map
+    fn clone(&self) -> Self {
+        Self {
+            blocked_cells: self.blocked_cells.clone(),
+            blocked_vias: self.blocked_vias.clone(),
+            stub_proximity: self.stub_proximity.clone(),
+            num_layers: self.num_layers,
+            bga_zone: self.bga_zone,
+            allowed_cells: self.allowed_cells.clone(),
+        }
+    }
+
+    /// Clear stub proximity costs (for reuse with different stubs)
+    fn clear_stub_proximity(&mut self) {
+        self.stub_proximity.clear();
+    }
+
+    /// Clear allowed cells (for reuse with different source/target)
+    fn clear_allowed_cells(&mut self) {
+        self.allowed_cells.clear();
+    }
+
     /// Add an allowed cell that overrides BGA zone blocking
     fn add_allowed_cell(&mut self, gx: i32, gy: i32) {
         self.allowed_cells.insert(pack_xy(gx, gy));
