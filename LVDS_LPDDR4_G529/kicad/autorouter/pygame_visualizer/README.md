@@ -157,16 +157,7 @@ This approach has **zero impact on the normal batch router** - `GridRouter.route
 - Snapshots are created only when needed (configurable iterations per frame)
 - Cell lists are limited to 50,000 entries to prevent memory issues
 - Pre-rendered obstacle surface is cached for efficient rendering
-
-### Headless Mode
-
-Use `--headless` for benchmarking without visualization:
-
-```bash
-python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)" --headless
-```
-
-The headless mode produces identical results to the batch router but rebuilds obstacles from scratch for each net. The batch router uses incremental obstacle caching and is ~7x faster.
+- Base obstacle map is built once at startup, then cloned per-net for fast setup
 
 ## Integration
 

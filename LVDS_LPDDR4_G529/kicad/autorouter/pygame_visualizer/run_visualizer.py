@@ -105,6 +105,194 @@ class GridCoord:
         return round(dist_mm * self.inv_step)
 
 
+def build_base_obstacle_map(
+    pcb_data: PCBData,
+    nets_to_route: List[int],
+    layers: List[str],
+    grid_step: float = 0.1,
+    track_width: float = 0.1,
+    clearance: float = 0.1,
+    via_size: float = 0.3,
+    bga_zones: List[Tuple[float, float, float, float]] = None,
+) -> Tuple[GridObstacleMap, List[Set[Tuple[int, int]]], Set[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
+    """
+    Build base obstacle map with static obstacles, excluding all nets to be routed.
+    This is built once at startup and cloned for each net.
+
+    Returns:
+        (obstacles, blocked_cells_per_layer, blocked_vias, bga_zones_grid)
+    """
+    coord = GridCoord(grid_step)
+    num_layers = len(layers)
+    layer_map = {name: idx for idx, name in enumerate(layers)}
+    nets_to_route_set = set(nets_to_route)
+
+    obstacles = GridObstacleMap(num_layers)
+
+    # Caches for visualization
+    blocked_cells: List[Set[Tuple[int, int]]] = [set() for _ in range(num_layers)]
+    blocked_vias: Set[Tuple[int, int]] = set()
+    bga_zones_grid: List[Tuple[int, int, int, int]] = []
+
+    # Add BGA exclusion zones - block ALL layers
+    if bga_zones:
+        for zone in bga_zones:
+            min_x, min_y, max_x, max_y = zone
+            gmin_x, gmin_y = coord.to_grid(min_x, min_y)
+            gmax_x, gmax_y = coord.to_grid(max_x, max_y)
+            obstacles.set_bga_zone(gmin_x, gmin_y, gmax_x, gmax_y)
+            bga_zones_grid.append((gmin_x, gmin_y, gmax_x, gmax_y))
+            for layer_idx in range(num_layers):
+                for gx in range(gmin_x, gmax_x + 1):
+                    for gy in range(gmin_y, gmax_y + 1):
+                        obstacles.add_blocked_cell(gx, gy, layer_idx)
+                        blocked_cells[layer_idx].add((gx, gy))
+
+    # Precompute expansions
+    expansion_mm = track_width / 2 + clearance
+    expansion_grid = max(1, coord.to_grid_dist(expansion_mm))
+    via_block_mm = via_size / 2 + track_width / 2 + clearance
+    via_block_grid = max(1, coord.to_grid_dist(via_block_mm))
+    via_track_expansion = max(1, coord.to_grid_dist(via_size / 2 + track_width / 2 + clearance))
+    via_via_expansion = max(1, coord.to_grid_dist(via_size + clearance))
+
+    # Add segments as obstacles (excluding nets we'll route)
+    for seg in pcb_data.segments:
+        if seg.net_id in nets_to_route_set:
+            continue
+        layer_idx = layer_map.get(seg.layer)
+        if layer_idx is None:
+            continue
+        _add_segment_obstacle(obstacles, seg, coord, layer_idx, expansion_grid, via_block_grid, blocked_cells, blocked_vias)
+
+    # Add vias as obstacles (excluding nets we'll route)
+    for via in pcb_data.vias:
+        if via.net_id in nets_to_route_set:
+            continue
+        _add_via_obstacle(obstacles, via, coord, num_layers, via_track_expansion, via_via_expansion, blocked_cells, blocked_vias)
+
+    # Add pads as obstacles (excluding nets we'll route)
+    for net_id, pads in pcb_data.pads_by_net.items():
+        if net_id in nets_to_route_set:
+            continue
+        for pad in pads:
+            _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid, blocked_cells, blocked_vias)
+
+    return obstacles, blocked_cells, blocked_vias, bga_zones_grid
+
+
+def _add_segment_obstacle(obstacles, seg, coord, layer_idx, expansion_grid, via_block_grid,
+                          blocked_cells, blocked_vias):
+    """Add a segment as obstacle."""
+    gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
+    gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
+
+    dx = abs(gx2 - gx1)
+    dy = abs(gy2 - gy1)
+    sx = 1 if gx1 < gx2 else -1
+    sy = 1 if gy1 < gy2 else -1
+    err = dx - dy
+
+    gx, gy = gx1, gy1
+    while True:
+        for ex in range(-expansion_grid, expansion_grid + 1):
+            for ey in range(-expansion_grid, expansion_grid + 1):
+                obstacles.add_blocked_cell(gx + ex, gy + ey, layer_idx)
+                blocked_cells[layer_idx].add((gx + ex, gy + ey))
+        for ex in range(-via_block_grid, via_block_grid + 1):
+            for ey in range(-via_block_grid, via_block_grid + 1):
+                if ex * ex + ey * ey <= via_block_grid * via_block_grid:
+                    obstacles.add_blocked_via(gx + ex, gy + ey)
+                    blocked_vias.add((gx + ex, gy + ey))
+
+        if gx == gx2 and gy == gy2:
+            break
+        e2 = 2 * err
+        if e2 > -dy:
+            err -= dy
+            gx += sx
+        if e2 < dx:
+            err += dx
+            gy += sy
+
+
+def _add_via_obstacle(obstacles, via, coord, num_layers, via_track_expansion, via_via_expansion,
+                      blocked_cells, blocked_vias):
+    """Add a via as obstacle."""
+    gx, gy = coord.to_grid(via.x, via.y)
+    for ex in range(-via_track_expansion, via_track_expansion + 1):
+        for ey in range(-via_track_expansion, via_track_expansion + 1):
+            if ex * ex + ey * ey <= via_track_expansion * via_track_expansion:
+                for layer_idx in range(num_layers):
+                    obstacles.add_blocked_cell(gx + ex, gy + ey, layer_idx)
+                    blocked_cells[layer_idx].add((gx + ex, gy + ey))
+    for ex in range(-via_via_expansion, via_via_expansion + 1):
+        for ey in range(-via_via_expansion, via_via_expansion + 1):
+            if ex * ex + ey * ey <= via_via_expansion * via_via_expansion:
+                obstacles.add_blocked_via(gx + ex, gy + ey)
+                blocked_vias.add((gx + ex, gy + ey))
+
+
+def _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid,
+                      blocked_cells, blocked_vias):
+    """Add a pad as obstacle."""
+    gx, gy = coord.to_grid(pad.global_x, pad.global_y)
+    half_w = max(1, coord.to_grid_dist(pad.size_x / 2 + 0.1))  # 0.1mm clearance
+    half_h = max(1, coord.to_grid_dist(pad.size_y / 2 + 0.1))
+
+    for layer_name in pad.layers:
+        layer_idx = layer_map.get(layer_name)
+        if layer_idx is None:
+            continue
+        for dx in range(-half_w, half_w + 1):
+            for dy in range(-half_h, half_h + 1):
+                obstacles.add_blocked_cell(gx + dx, gy + dy, layer_idx)
+                blocked_cells[layer_idx].add((gx + dx, gy + dy))
+
+    # Block vias around pad
+    for dx in range(-half_w - via_block_grid, half_w + via_block_grid + 1):
+        for dy in range(-half_h - via_block_grid, half_h + via_block_grid + 1):
+            obstacles.add_blocked_via(gx + dx, gy + dy)
+            blocked_vias.add((gx + dx, gy + dy))
+
+
+def add_routed_net_obstacles(obstacles, pcb_data, net_id, layers, grid_step,
+                             track_width=0.1, clearance=0.1, via_size=0.3,
+                             blocked_cells=None, blocked_vias=None):
+    """Add a routed net's segments, vias, and pads as obstacles (for incremental building)."""
+    coord = GridCoord(grid_step)
+    num_layers = len(layers)
+    layer_map = {name: idx for idx, name in enumerate(layers)}
+
+    expansion_grid = max(1, coord.to_grid_dist(track_width / 2 + clearance))
+    via_block_grid = max(1, coord.to_grid_dist(via_size / 2 + track_width / 2 + clearance))
+    via_track_expansion = max(1, coord.to_grid_dist(via_size / 2 + track_width / 2 + clearance))
+    via_via_expansion = max(1, coord.to_grid_dist(via_size + clearance))
+
+    if blocked_cells is None:
+        blocked_cells = [set() for _ in range(num_layers)]
+    if blocked_vias is None:
+        blocked_vias = set()
+
+    for seg in pcb_data.segments:
+        if seg.net_id != net_id:
+            continue
+        layer_idx = layer_map.get(seg.layer)
+        if layer_idx is None:
+            continue
+        _add_segment_obstacle(obstacles, seg, coord, layer_idx, expansion_grid, via_block_grid, blocked_cells, blocked_vias)
+
+    for via in pcb_data.vias:
+        if via.net_id != net_id:
+            continue
+        _add_via_obstacle(obstacles, via, coord, num_layers, via_track_expansion, via_via_expansion, blocked_cells, blocked_vias)
+
+    # Add pads as obstacles (same as batch_grid_router)
+    pads = pcb_data.pads_by_net.get(net_id, [])
+    for pad in pads:
+        _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid, blocked_cells, blocked_vias)
+
+
 def build_obstacle_map_with_cache(
     pcb_data: PCBData,
     exclude_net_id: int,
@@ -315,9 +503,13 @@ def run_visualization(
     net_names: List[str],
     layers: List[str] = None,
     grid_step: float = 0.1,
-    max_iterations: int = 100000
+    max_iterations: int = 100000,
+    auto_advance: bool = False
 ):
-    """Run the visualization for multiple nets using the Rust router."""
+    """Run the visualization for multiple nets using the Rust router.
+
+    If auto_advance is True, automatically proceed to next net without waiting for N key.
+    """
     print(f"Loading {pcb_file}...")
     pcb_data = parse_kicad_pcb(pcb_file)
 
@@ -411,6 +603,10 @@ def run_visualization(
     config = VisualizerConfig(layers=layers)
     visualizer = RoutingVisualizer(config)
 
+    # In auto-advance mode, use maximum speed
+    if auto_advance:
+        visualizer.iterations_per_frame = config.max_speed
+
     # Routing state
     current_net_idx = 0
     router = None
@@ -489,8 +685,9 @@ def run_visualization(
         remaining_net_ids = [nid for _, nid in net_queue[net_idx+1:]]
         unrouted_stubs = get_stub_endpoints(pcb_data, remaining_net_ids)
 
-        # Build obstacles with cache for visualization
-        print("  Building obstacle map...")
+        # Build obstacle map from scratch for this net (slower but correct)
+        import time
+        t0 = time.time()
         obstacles, blocked_cells, blocked_vias, bga_zones_grid = build_obstacle_map_with_cache(
             pcb_data, net_id, layers,
             grid_step=grid_step,
@@ -499,15 +696,14 @@ def run_visualization(
             stub_proximity_radius=1.0,
             stub_proximity_cost=3.0
         )
+        build_time = time.time() - t0
+        print(f"  Obstacle map built in {build_time:.3f}s")
 
         # Debug: show layer distribution and obstacle info
         source_layers = set(s[2] for s in sources)
         target_layers = set(t[2] for t in targets)
         print(f"  Source points: {len(sources)} on layers {[layers[l] for l in source_layers]}")
         print(f"  Target points: {len(targets)} on layers {[layers[l] for l in target_layers]}")
-        print(f"  Obstacle map num_layers: {obstacles.num_layers}")
-        print(f"  Blocked cells per layer: {[len(bc) for bc in blocked_cells]}")
-        print(f"  Blocked vias count: {len(blocked_vias)}")
 
         # Debug: check how many vias are blocked in the region around source/target
         all_pts = sources + targets
@@ -726,7 +922,8 @@ def run_visualization(
                     waiting_for_next = True
 
             # Check for N key to advance to next net or try reverse
-            if waiting_for_next and visualizer.next_net_requested:
+            # In auto_advance mode, automatically proceed without waiting
+            if waiting_for_next and (visualizer.next_net_requested or auto_advance):
                 visualizer.next_net_requested = False
                 waiting_for_next = False
 
@@ -760,7 +957,11 @@ def run_visualization(
                         print(f"{short_name:<30} {iters:>12} {path_len:>10} {direction:>6} {status:>8}")
                     print("-" * 78)
                     print(f"{'TOTAL':<30} {total_iterations:>12}")
-                    print("\nPress Q to quit or close window")
+                    if auto_advance:
+                        # Auto quit when done in auto mode
+                        visualizer.running = False
+                    else:
+                        print("\nPress Q to quit or close window")
                     router = None  # Stop routing
                 # Continue to next iteration (whether we set up a new net or finished all)
                 continue
@@ -802,240 +1003,6 @@ def run_visualization(
     return successful, failed, total_iterations, net_results
 
 
-def run_headless(
-    pcb_file: str,
-    net_names: List[str],
-    layers: List[str] = None,
-    grid_step: float = 0.1,
-    max_iterations: int = 100000
-):
-    """
-    Run routing without visualization - just print iteration counts.
-    Uses VisualRouter (same as visualizer) for apples-to-apples comparison.
-    """
-    import time
-
-    print(f"Loading {pcb_file}...")
-    pcb_data = parse_kicad_pcb(pcb_file)
-
-    if layers is None:
-        layers = ['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu']
-
-    print(f"Using layers: {layers}")
-
-    # Auto-detect BGA zones
-    bga_zones = auto_detect_bga_exclusion_zones(pcb_data, margin=0.5)
-    if bga_zones:
-        print(f"Detected {len(bga_zones)} BGA exclusion zone(s)")
-
-    # Find all net IDs
-    net_queue = []
-    for net_name in net_names:
-        net_id = None
-        for nid, net in pcb_data.nets.items():
-            if net.name == net_name:
-                net_id = nid
-                break
-        if net_id is None:
-            print(f"Warning: Net '{net_name}' not found, skipping")
-        else:
-            net_queue.append((net_name, net_id))
-
-    if not net_queue:
-        print("No valid nets to route!")
-        return
-
-    # Sort nets inside-out from BGA center (same as batch router)
-    if bga_zones:
-        def get_min_distance_to_bga_center(net_id):
-            pads = pcb_data.pads_by_net.get(net_id, [])
-            if not pads:
-                return float('inf')
-            min_dist = float('inf')
-            for zone in bga_zones:
-                center_x = (zone[0] + zone[2]) / 2
-                center_y = (zone[1] + zone[3]) / 2
-                for pad in pads:
-                    if zone[0] <= pad.global_x <= zone[2] and zone[1] <= pad.global_y <= zone[3]:
-                        dist = ((pad.global_x - center_x) ** 2 + (pad.global_y - center_y) ** 2) ** 0.5
-                        min_dist = min(min_dist, dist)
-            return min_dist
-
-        def pad_in_bga_zone(pad):
-            for zone in bga_zones:
-                if zone[0] <= pad.global_x <= zone[2] and zone[1] <= pad.global_y <= zone[3]:
-                    return True
-            return False
-
-        bga_nets = []
-        non_bga_nets = []
-        for net_name, net_id in net_queue:
-            pads = pcb_data.pads_by_net.get(net_id, [])
-            if any(pad_in_bga_zone(pad) for pad in pads):
-                bga_nets.append((net_name, net_id))
-            else:
-                non_bga_nets.append((net_name, net_id))
-
-        bga_nets.sort(key=lambda x: get_min_distance_to_bga_center(x[1]))
-        net_queue = bga_nets + non_bga_nets
-
-        if bga_nets:
-            print(f"Sorted {len(bga_nets)} BGA nets inside-out")
-
-    coord = GridCoord(grid_step)
-    layer_map = {name: idx for idx, name in enumerate(layers)}
-
-    print(f"\nRouting {len(net_queue)} nets (headless mode - VisualRouter)...")
-    print("=" * 70)
-
-    successful = 0
-    failed = 0
-    total_iterations = 0
-    total_vias = 0
-    total_time = 0.0
-
-    for net_idx, (net_name, net_id) in enumerate(net_queue):
-        print(f"\n[{net_idx + 1}/{len(net_queue)}] {net_name}")
-
-        # Get segments for this net
-        net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
-        if len(net_segments) < 2:
-            print(f"  SKIP: Only {len(net_segments)} segments")
-            continue
-
-        groups = find_connected_groups(net_segments)
-        if len(groups) < 2:
-            print(f"  SKIP: Already connected ({len(groups)} group)")
-            continue
-
-        groups.sort(key=len, reverse=True)
-        source_segs = groups[0]
-        target_segs = groups[1]
-
-        # Build sources and targets
-        sources = []
-        for seg in source_segs:
-            layer_idx = layer_map.get(seg.layer)
-            if layer_idx is not None:
-                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-                sources.append((gx1, gy1, layer_idx))
-                if (gx1, gy1) != (gx2, gy2):
-                    sources.append((gx2, gy2, layer_idx))
-
-        targets = []
-        for seg in target_segs:
-            layer_idx = layer_map.get(seg.layer)
-            if layer_idx is not None:
-                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-                targets.append((gx1, gy1, layer_idx))
-                if (gx1, gy1) != (gx2, gy2):
-                    targets.append((gx2, gy2, layer_idx))
-
-        if not sources or not targets:
-            print(f"  SKIP: No valid source/target points")
-            continue
-
-        start_time = time.time()
-
-        # Get unrouted stubs for proximity avoidance (same as batch router)
-        remaining_net_ids = [nid for _, nid in net_queue[net_idx+1:]]
-        unrouted_stubs = get_stub_endpoints(pcb_data, remaining_net_ids)
-
-        # Build obstacles (no cache needed for headless)
-        obstacles, _, _, _ = build_obstacle_map_with_cache(
-            pcb_data, net_id, layers,
-            grid_step=grid_step,
-            bga_zones=bga_zones,
-            unrouted_stubs=unrouted_stubs,
-            stub_proximity_radius=1.0,
-            stub_proximity_cost=3.0
-        )
-
-        # Add allowed cells around sources/targets
-        allow_radius = 10
-        for gx, gy, _ in sources + targets:
-            for dx in range(-allow_radius, allow_radius + 1):
-                for dy in range(-allow_radius, allow_radius + 1):
-                    obstacles.add_allowed_cell(gx + dx, gy + dy)
-
-        # Route using VisualRouter (same as visualizer)
-        # Use same "smart direction search" as batch router:
-        # 1. Try forward with quick check (5000 iterations)
-        # 2. If fails, try reverse with full iterations
-        # 3. If still fails, try forward with full iterations
-        via_cost = 25 * 1000
-        h_weight = 1.5
-        max_iter = 100000
-
-        # Try forward direction first
-        router = VisualRouter(via_cost=via_cost, h_weight=h_weight)
-        router.init(sources, targets, max_iter)
-
-        while not router.is_done():
-            router.step(obstacles, 10000)
-
-        fwd_iter = router.get_iterations()
-        path = router.get_path()
-        direction = "forward"
-        iterations = fwd_iter
-
-        # If forward failed, try reverse
-        if path is None:
-            router = VisualRouter(via_cost=via_cost, h_weight=h_weight)
-            router.init(targets, sources, max_iter)
-
-            while not router.is_done():
-                router.step(obstacles, 10000)
-
-            rev_iter = router.get_iterations()
-            path = router.get_path()
-            direction = "reverse"
-            iterations = fwd_iter + rev_iter
-
-        elapsed = time.time() - start_time
-
-        if path:
-            # Count vias in path
-            via_count = sum(1 for i in range(len(path) - 1) if path[i][2] != path[i + 1][2])
-            print(f"  SUCCESS: {iterations} iterations, path length {len(path)}, {via_count} vias, {direction} ({elapsed:.2f}s)")
-            successful += 1
-            total_iterations += iterations
-            total_vias += via_count
-
-            # Add path to pcb_data for subsequent routes
-            from kicad_parser import Segment, Via
-            for i in range(len(path) - 1):
-                gx1, gy1, layer1 = path[i]
-                gx2, gy2, layer2 = path[i + 1]
-                x1, y1 = coord.to_float(gx1, gy1)
-                x2, y2 = coord.to_float(gx2, gy2)
-
-                if layer1 != layer2:
-                    via = Via(x=x1, y=y1, size=0.3, drill=0.2,
-                              layers=[layers[layer1], layers[layer2]], net_id=net_id)
-                    pcb_data.vias.append(via)
-                else:
-                    if (x1, y1) != (x2, y2):
-                        seg = Segment(start_x=x1, start_y=y1, end_x=x2, end_y=y2,
-                                      width=0.1, layer=layers[layer1], net_id=net_id)
-                        pcb_data.segments.append(seg)
-        else:
-            print(f"  FAILED: No path after {iterations} iterations ({elapsed:.2f}s)")
-            failed += 1
-
-        total_time += elapsed
-
-    print("\n" + "=" * 70)
-    print(f"Results: {successful} successful, {failed} failed")
-    print(f"Total iterations: {total_iterations}")
-    print(f"Total vias: {total_vias}")
-    print(f"Total time: {total_time:.2f}s")
-
-    return successful, failed
-
-
 def expand_net_pattern(pcb_data: PCBData, pattern: str) -> List[str]:
     """
     Expand a wildcard pattern to matching net names.
@@ -1056,19 +1023,19 @@ def expand_net_pattern(pcb_data: PCBData, pattern: str) -> List[str]:
 
 
 def main():
-    # Check for --headless flag
-    headless = '--headless' in sys.argv
-    args = [a for a in sys.argv[1:] if a != '--headless']
+    # Check for --auto flag
+    auto_advance = '--auto' in sys.argv
+    args = [a for a in sys.argv[1:] if a != '--auto']
 
     if len(args) < 2:
-        print("Usage: python run_visualizer.py [--headless] input.kicad_pcb \"Net-Pattern\" [\"Net-Pattern2\" ...]")
+        print("Usage: python run_visualizer.py [--auto] input.kicad_pcb \"Net-Pattern\" [\"Net-Pattern2\" ...]")
         print("\nOptions:")
-        print("  --headless  Run without GUI, just print iteration counts for comparison")
+        print("  --auto  Automatically advance to next net (no waiting for N key)")
         print("\nWildcard patterns supported:")
         print('  "Net-(U2A-DATA_*)"  - matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.')
         print("\nExample:")
         print('  python run_visualizer.py fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
-        print('  python run_visualizer.py --headless fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
+        print('  python run_visualizer.py --auto fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
         sys.exit(1)
 
     pcb_file = args[0]
@@ -1106,12 +1073,9 @@ def main():
             print(f"  ... and {len(pcb_data.nets) - 20} more")
         sys.exit(1)
 
-    print(f"\nWill {'benchmark' if headless else 'visualize'} routing of {len(all_nets)} nets")
+    print(f"\nWill visualize routing of {len(all_nets)} nets" + (" (auto-advance)" if auto_advance else ""))
 
-    if headless:
-        run_headless(pcb_file, all_nets)
-    else:
-        run_visualization(pcb_file, all_nets)
+    run_visualization(pcb_file, all_nets, auto_advance=auto_advance)
 
 
 if __name__ == "__main__":
