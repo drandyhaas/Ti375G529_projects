@@ -7,6 +7,7 @@ Real-time visualization of the A* routing algorithm for PCB autorouting.
 - **Real-time A* visualization** - Watch the Rust router explore the grid
 - **Same algorithm as batch router** - Uses the exact same Rust A* implementation
 - **Layer-based coloring** - Each copper layer has a distinct color
+- **Persistent route display** - Completed routes remain visible when routing subsequent nets
 - **Interactive controls** - Pause, step, zoom, pan, adjust speed
 - **Search state display** - See open set (frontier), closed set (explored), final path
 
@@ -68,7 +69,7 @@ python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-
 | B | Force backwards direction (restart track & route backwards) |
 | R | Restart current net |
 | Ctrl+R | Restart all nets from beginning |
-| +/- | Double/Halve speed (1x, 2x, 4x, 8x...) |
+| +/- | Double/Halve speed (1x to 65536x) |
 | 1-4 | Show layer 1-4 only |
 | 0 | Show all layers |
 | G | Toggle grid lines |
@@ -98,14 +99,20 @@ python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-
 - **Bright colors** - Open set (cells in priority queue)
 - **Dark colors** - Closed set (already explored)
 - **Yellow** - Current node being expanded
-- **Bright Green** - Final path found
 - **Cyan-green circles** - Source points
 - **Red circles** - Target points
 
+### Routes
+- **Wide layer-colored lines** - Current net's route
+- **Normal layer-colored lines** - Previously completed routes
+- **White circles** - Vias (larger for current route)
+
 ### Obstacles
-- **Dark red area** - BGA exclusion zone
-- **Dark gray** - Blocked cells (tracks, pads)
-- **Purple** - Blocked via positions
+- **Light gray outline** - BGA exclusion zone
+- **Gray outline** - Blocked cells (tracks, pads)
+- **Gray X marks** - Blocked via positions
+
+Note: Blocked cell/via indicators are hidden where completed routes exist for better visibility.
 
 ## Architecture
 

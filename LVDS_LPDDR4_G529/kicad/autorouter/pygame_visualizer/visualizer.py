@@ -158,6 +158,10 @@ class RoutingVisualizer:
         self._blocked_cells_cache: List[Set[Tuple[int, int]]] = []
         self._blocked_vias_cache: Set[Tuple[int, int]] = set()
 
+        # Completed routes from previous nets
+        # Each entry is a dict with 'path' (list of (gx, gy, layer)) and 'vias' (list of (gx, gy))
+        self.completed_routes: List[dict] = []
+
     def set_routing_context(
         self,
         rust_obstacles,  # GridObstacleMap from Rust module
@@ -201,6 +205,38 @@ class RoutingVisualizer:
         self.current_net_num = net_num
         self.total_nets = total_nets
 
+    def add_completed_route(self, path: List[Tuple[int, int, int]]):
+        """
+        Add a completed route to be drawn persistently.
+
+        Args:
+            path: List of (gx, gy, layer) tuples representing the routed path
+        """
+        if not path:
+            return
+
+        # Extract via positions (where layer changes)
+        vias = []
+        for i in range(len(path) - 1):
+            gx1, gy1, layer1 = path[i]
+            gx2, gy2, layer2 = path[i + 1]
+            if layer1 != layer2:
+                vias.append((gx1, gy1))
+
+        self.completed_routes.append({
+            'path': list(path),
+            'vias': vias,
+        })
+
+    def clear_completed_routes(self):
+        """Clear all completed routes (for restart all)."""
+        self.completed_routes = []
+
+    def remove_last_completed_route(self):
+        """Remove the most recently added completed route (for restart current net)."""
+        if self.completed_routes:
+            self.completed_routes.pop()
+
     def grid_to_screen(self, gx: int, gy: int) -> Tuple[int, int]:
         """Convert grid coordinates to screen coordinates."""
         cell_size = self.config.cell_size
@@ -208,8 +244,73 @@ class RoutingVisualizer:
         wy = gy * cell_size
         return self.camera.world_to_screen(wx, wy)
 
-    def _render_obstacles_to_surface(self) -> Optional[Surface]:
-        """Pre-render obstacles to a surface for efficiency."""
+    def _render_route_with_layer_colors(self, path: List[Tuple[int, int, int]],
+                                         line_width: int, via_radius: int,
+                                         alpha_factor: float = 1.0):
+        """
+        Render a route path with each segment colored by its layer.
+
+        Args:
+            path: List of (gx, gy, layer) tuples
+            line_width: Width of the route lines
+            via_radius: Radius of via circles
+            alpha_factor: Color brightness factor (1.0 = full, <1.0 = dimmer for old routes)
+        """
+        if not path or len(path) < 2:
+            return
+
+        cell_size = self.config.cell_size
+        half_cell = int(cell_size * self.camera.zoom // 2)
+
+        # Draw segments between consecutive points
+        for i in range(len(path) - 1):
+            gx1, gy1, layer1 = path[i]
+            gx2, gy2, layer2 = path[i + 1]
+
+            sx1, sy1 = self.grid_to_screen(gx1, gy1)
+            sx2, sy2 = self.grid_to_screen(gx2, gy2)
+            sx1 += half_cell
+            sy1 += half_cell
+            sx2 += half_cell
+            sy2 += half_cell
+
+            if layer1 == layer2:
+                # Same layer - draw segment with layer color
+                color = LayerColors.get_layer_color_by_index(layer1)
+                # Apply alpha factor for dimming old routes
+                color = tuple(int(c * alpha_factor) for c in color)
+                pygame.draw.line(self.screen, color, (sx1, sy1), (sx2, sy2), line_width)
+            else:
+                # Layer change - draw via
+                via_color = (255, 255, 255) if alpha_factor >= 1.0 else (180, 180, 180)
+                pygame.draw.circle(self.screen, via_color, (sx1, sy1), via_radius)
+
+    def _get_completed_route_cells(self) -> Set[Tuple[int, int]]:
+        """Get set of all grid cells covered by completed routes."""
+        cells = set()
+        for route_info in self.completed_routes:
+            path = route_info['path']
+            for gx, gy, layer in path:
+                cells.add((gx, gy))
+        return cells
+
+    def _render_completed_routes(self):
+        """Render all previously completed routes with bright layer colors."""
+        # Draw previous routes with normal line width and bright colors
+        old_line_width = max(2, int(3 * self.camera.zoom))
+        old_via_radius = max(2, int(3 * self.camera.zoom))
+
+        for route_info in self.completed_routes:
+            path = route_info['path']
+            # Use full brightness (alpha_factor=1.0) for previous routes
+            self._render_route_with_layer_colors(path, old_line_width, old_via_radius, alpha_factor=1.0)
+
+    def _render_obstacles_to_surface(self, skip_cells: Set[Tuple[int, int]] = None) -> Optional[Surface]:
+        """Pre-render obstacles to a surface for efficiency.
+
+        Args:
+            skip_cells: Set of (gx, gy) cells to skip drawing (e.g., where routes exist)
+        """
         min_gx = int(self.bounds[0] / self.grid_step) - 10
         min_gy = int(self.bounds[1] / self.grid_step) - 10
         max_gx = int(self.bounds[2] / self.grid_step) + 10
@@ -223,10 +324,57 @@ class RoutingVisualizer:
         if width > max_size or height > max_size:
             return None
 
+        if skip_cells is None:
+            skip_cells = set()
+
         surface = Surface((width, height))
         surface.fill(SearchColors.BACKGROUND)
 
-        # Render BGA zones
+        # Render blocked cells from cache as gray outlines (skip cells with routes)
+        layer_idx = self.config.current_layer
+        num_layers = len(self._blocked_cells_cache)
+        blocked_cell_color = (80, 80, 80)  # Gray for blocked cells
+
+        if layer_idx >= 0 and layer_idx < num_layers:
+            for gx, gy in self._blocked_cells_cache[layer_idx]:
+                if (gx, gy) in skip_cells:
+                    continue  # Skip cells with completed routes
+                if min_gx <= gx <= max_gx and min_gy <= gy <= max_gy:
+                    rect = Rect(
+                        (gx - min_gx) * cell_size,
+                        (gy - min_gy) * cell_size,
+                        cell_size, cell_size
+                    )
+                    pygame.draw.rect(surface, blocked_cell_color, rect, 1)  # Outline only
+        else:
+            for layer in range(num_layers):
+                for gx, gy in self._blocked_cells_cache[layer]:
+                    if (gx, gy) in skip_cells:
+                        continue  # Skip cells with completed routes
+                    if min_gx <= gx <= max_gx and min_gy <= gy <= max_gy:
+                        rect = Rect(
+                            (gx - min_gx) * cell_size,
+                            (gy - min_gy) * cell_size,
+                            cell_size, cell_size
+                        )
+                        pygame.draw.rect(surface, blocked_cell_color, rect, 1)  # Outline only
+
+        # Render blocked vias as small X marks (gray), skip cells with routes
+        via_blocked_color = (70, 70, 70)  # Slightly darker gray for via X marks
+        for gx, gy in self._blocked_vias_cache:
+            if (gx, gy) in skip_cells:
+                continue  # Skip cells with completed routes
+            if min_gx <= gx <= max_gx and min_gy <= gy <= max_gy:
+                x = (gx - min_gx) * cell_size
+                y = (gy - min_gy) * cell_size
+                # Draw X (two diagonal lines)
+                pygame.draw.line(surface, via_blocked_color,
+                               (x + 1, y + 1), (x + cell_size - 2, y + cell_size - 2), 1)
+                pygame.draw.line(surface, via_blocked_color,
+                               (x + cell_size - 2, y + 1), (x + 1, y + cell_size - 2), 1)
+
+        # Render BGA zones as lighter gray outline (on top of blocked cells)
+        bga_zone_color = (120, 120, 120)  # Lighter gray for BGA zones
         for zone in self.bga_zones:
             zmin_gx, zmin_gy, zmax_gx, zmax_gy = zone
             rect = Rect(
@@ -235,46 +383,7 @@ class RoutingVisualizer:
                 (zmax_gx - zmin_gx + 1) * cell_size,
                 (zmax_gy - zmin_gy + 1) * cell_size
             )
-            pygame.draw.rect(surface, SearchColors.BGA_ZONE, rect)
-
-        # Render blocked cells from cache
-        layer_idx = self.config.current_layer
-        num_layers = len(self._blocked_cells_cache)
-
-        if layer_idx >= 0 and layer_idx < num_layers:
-            color = LayerColors.get_layer_color_by_index(layer_idx)
-            color = tuple(c // 3 for c in color)
-            for gx, gy in self._blocked_cells_cache[layer_idx]:
-                if min_gx <= gx <= max_gx and min_gy <= gy <= max_gy:
-                    rect = Rect(
-                        (gx - min_gx) * cell_size,
-                        (gy - min_gy) * cell_size,
-                        cell_size, cell_size
-                    )
-                    pygame.draw.rect(surface, color, rect)
-        else:
-            for layer in range(num_layers):
-                color = LayerColors.get_layer_color_by_index(layer)
-                color = tuple(c // 4 for c in color)
-                for gx, gy in self._blocked_cells_cache[layer]:
-                    if min_gx <= gx <= max_gx and min_gy <= gy <= max_gy:
-                        rect = Rect(
-                            (gx - min_gx) * cell_size,
-                            (gy - min_gy) * cell_size,
-                            cell_size, cell_size
-                        )
-                        pygame.draw.rect(surface, color, rect)
-
-        # Render blocked vias as small X marks
-        for gx, gy in self._blocked_vias_cache:
-            if min_gx <= gx <= max_gx and min_gy <= gy <= max_gy:
-                x = (gx - min_gx) * cell_size
-                y = (gy - min_gy) * cell_size
-                # Draw X (two diagonal lines)
-                pygame.draw.line(surface, SearchColors.VIA_BLOCKED,
-                               (x + 1, y + 1), (x + cell_size - 2, y + cell_size - 2), 1)
-                pygame.draw.line(surface, SearchColors.VIA_BLOCKED,
-                               (x + cell_size - 2, y + 1), (x + 1, y + cell_size - 2), 1)
+            pygame.draw.rect(surface, bga_zone_color, rect, 2)  # Outline only, width=2
 
         self._obstacle_offset = (min_gx, min_gy)
         return surface
@@ -284,10 +393,13 @@ class RoutingVisualizer:
         self.screen.fill(SearchColors.BACKGROUND)
         cell_size = self.config.cell_size
 
-        # Render pre-cached obstacles
-        if self._obstacle_dirty:
-            self._obstacle_surface = self._render_obstacles_to_surface()
-            self._obstacle_dirty = False
+        # Render pre-cached obstacles (skip cells where completed routes exist)
+        if self._obstacle_dirty or self.completed_routes:
+            # Always re-render when we have completed routes to skip their cells
+            skip_cells = self._get_completed_route_cells()
+            self._obstacle_surface = self._render_obstacles_to_surface(skip_cells)
+            if not self.completed_routes:
+                self._obstacle_dirty = False
 
         if self._obstacle_surface and self.config.show_obstacles:
             min_gx, min_gy = self._obstacle_offset
@@ -299,6 +411,9 @@ class RoutingVisualizer:
             if scaled_size[0] > 0 and scaled_size[1] > 0:
                 scaled = pygame.transform.scale(self._obstacle_surface, scaled_size)
                 self.screen.blit(scaled, (dest_x, dest_y))
+
+        # Render completed routes from previous nets (thinner, dimmer)
+        self._render_completed_routes()
 
         # Render search state from Rust snapshot
         if self.snapshot:
@@ -331,22 +446,14 @@ class RoutingVisualizer:
                         rect = Rect(sx, sy, max(1, size), max(1, size))
                         pygame.draw.rect(self.screen, color, rect)
 
-            # Final path
+            # Final path - draw with bold, layer-colored segments (wider than previous routes)
             if snapshot.path and len(snapshot.path) > 1:
-                points = []
-                prev_layer = snapshot.path[0][2]
-                for gx, gy, layer in snapshot.path:
-                    sx, sy = self.grid_to_screen(gx, gy)
-                    sx += int(cell_size * self.camera.zoom // 2)
-                    sy += int(cell_size * self.camera.zoom // 2)
-
-                    if layer != prev_layer:
-                        pygame.draw.circle(self.screen, (255, 255, 255), (sx, sy), max(3, int(4 * self.camera.zoom)))
-                    points.append((sx, sy))
-                    prev_layer = layer
-
-                if len(points) > 1:
-                    pygame.draw.lines(self.screen, SearchColors.PATH_FOUND, False, points, max(2, int(3 * self.camera.zoom)))
+                # Use wider lines and larger vias for current route
+                current_line_width = max(4, int(6 * self.camera.zoom))
+                current_via_radius = max(5, int(6 * self.camera.zoom))
+                self._render_route_with_layer_colors(
+                    snapshot.path, current_line_width, current_via_radius, alpha_factor=1.0
+                )
 
             # Current node
             if snapshot.current:
@@ -450,7 +557,7 @@ class RoutingVisualizer:
         swatch_size = 12
 
         # Background box for legend
-        legend_height = 280
+        legend_height = 340  # Fits all sections
         legend_rect = Rect(x_offset - 10, y_offset - 5, 220, legend_height)
         pygame.draw.rect(self.screen, (40, 40, 45), legend_rect)
         pygame.draw.rect(self.screen, (80, 80, 85), legend_rect, 1)
@@ -477,8 +584,6 @@ class RoutingVisualizer:
             (SearchColors.CURRENT, "Current node"),
             (open_color, "Open set (frontier)"),
             (closed_color, "Closed set (explored)"),
-            (SearchColors.PATH_FOUND, "Final path"),
-            ((255, 255, 255), "Via (layer change)"),
         ]
 
         for color, label in legend_items:
@@ -493,15 +598,36 @@ class RoutingVisualizer:
 
         y_offset += 5
 
+        # Routes section
+        text = self.font.render("Routes:", True, (180, 180, 180))
+        self.screen.blit(text, (x_offset, y_offset))
+        y_offset += line_height
+
+        route_items = [
+            (layer_color, "Current (wide)"),
+            (layer_color, "Previous"),
+            ((255, 255, 255), "Via"),
+        ]
+
+        for color, label in route_items:
+            swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+            pygame.draw.rect(self.screen, color, swatch_rect)
+            pygame.draw.rect(self.screen, (100, 100, 100), swatch_rect, 1)
+            text = self.font.render(label, True, (200, 200, 200))
+            self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+            y_offset += line_height
+
+        y_offset += 5
+
         # Obstacles section
         text = self.font.render("Obstacles:", True, (180, 180, 180))
         self.screen.blit(text, (x_offset, y_offset))
         y_offset += line_height
 
         obstacle_items = [
-            (SearchColors.BGA_ZONE, "BGA exclusion zone"),
-            ((60, 40, 40), "Blocked cells"),
-            (SearchColors.VIA_BLOCKED, "Blocked via positions"),
+            ((120, 120, 120), "BGA exclusion zone"),
+            ((80, 80, 80), "Blocked cells"),
+            ((70, 70, 70), "Blocked via positions"),
         ]
 
         for color, label in obstacle_items:

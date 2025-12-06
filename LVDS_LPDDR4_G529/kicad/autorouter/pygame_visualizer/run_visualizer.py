@@ -641,6 +641,11 @@ def run_visualization(
                 # Reset pcb_data to original state
                 pcb_data.segments = list(original_segments)
                 pcb_data.vias = list(original_vias)
+                # Clear completed routes display
+                visualizer.clear_completed_routes()
+                added_geometry.clear()
+                net_results.clear()
+                total_iterations = 0
                 # Reset counters and start from first net
                 current_net_idx = 0
                 successful = 0
@@ -656,7 +661,10 @@ def run_visualization(
                 visualizer.restart_requested = False
                 waiting_for_next = False  # Cancel any wait state
                 # Remove any geometry added by this net before restarting
-                remove_net_geometry(current_net_idx)
+                if current_net_idx in added_geometry:
+                    remove_net_geometry(current_net_idx)
+                    # Also remove from visualizer's completed routes
+                    visualizer.remove_last_completed_route()
                 # Re-setup the current net
                 if current_net_idx < len(net_queue):
                     setup_net(current_net_idx)
@@ -667,7 +675,10 @@ def run_visualization(
                 visualizer.backwards_requested = False
                 waiting_for_next = False  # Cancel any wait state
                 # Remove any geometry added by this net
-                remove_net_geometry(current_net_idx)
+                if current_net_idx in added_geometry:
+                    remove_net_geometry(current_net_idx)
+                    # Also remove from visualizer's completed routes
+                    visualizer.remove_last_completed_route()
                 # Re-setup the current net but immediately switch to backwards
                 if current_net_idx < len(net_queue):
                     setup_net(current_net_idx)
@@ -692,18 +703,24 @@ def run_visualization(
                     net_name, net_id = net_queue[current_net_idx]
                     current_net_iterations += snapshot.iteration
                     path_len = len(snapshot.path) if snapshot.path else 0
-                    direction = "backwards" if forward_done else "forward"
+                    direction = "back" if forward_done else "fwd"
                     print(f"\nPath found for {net_name} in {current_net_iterations} iterations ({direction})!")
                     print(f"Path length: {path_len}")
                     print("Press N to continue to next net, or B to try backwards")
                     visualizer.status_message = f"Path found ({direction}) - N=next, B=try backwards"
                     successful += 1
                     total_iterations += current_net_iterations
-                    net_results.append((net_name, current_net_iterations, path_len, True))
+                    net_results.append((net_name, current_net_iterations, path_len, True, direction))
 
                     # Add path to pcb_data for subsequent routes
                     if snapshot.path:
                         add_path_to_pcb(snapshot.path, net_id, current_net_idx)
+                        # Also add to visualizer for persistent display
+                        visualizer.add_completed_route(snapshot.path)
+
+                    # Route succeeded - mark both directions done so N goes to next net
+                    forward_done = True
+                    reverse_done = True
 
                     # Wait for user to press N before next net
                     waiting_for_next = True
@@ -730,21 +747,22 @@ def run_visualization(
                     current_net_idx += 1
 
                 if current_net_idx >= len(net_queue):
-                    print(f"\n{'='*70}")
+                    print(f"\n{'='*78}")
                     print(f"All nets processed: {successful} successful, {failed} failed")
                     print(f"Total iterations: {total_iterations}")
                     print(f"\nResults summary:")
-                    print(f"{'Net Name':<30} {'Iterations':>12} {'Path Len':>10} {'Status':>8}")
-                    print("-" * 70)
-                    for name, iters, path_len, success in net_results:
+                    print(f"{'Net Name':<30} {'Iterations':>12} {'Path Len':>10} {'Dir':>6} {'Status':>8}")
+                    print("-" * 78)
+                    for name, iters, path_len, success, direction in net_results:
                         status = "OK" if success else "FAIL"
                         # Shorten net name if too long
                         short_name = name if len(name) <= 28 else "..." + name[-25:]
-                        print(f"{short_name:<30} {iters:>12} {path_len:>10} {status:>8}")
-                    print("-" * 70)
+                        print(f"{short_name:<30} {iters:>12} {path_len:>10} {direction:>6} {status:>8}")
+                    print("-" * 78)
                     print(f"{'TOTAL':<30} {total_iterations:>12}")
                     print("\nPress Q to quit or close window")
                     router = None  # Stop routing
+                # Continue to next iteration (whether we set up a new net or finished all)
                 continue
 
             # Check if current route is done (found or exhausted)
@@ -771,7 +789,7 @@ def run_visualization(
                         visualizer.status_message = "Both directions failed - Press N for next net"
                         failed += 1
                         total_iterations += current_net_iterations
-                        net_results.append((net_name, current_net_iterations, 0, False))
+                        net_results.append((net_name, current_net_iterations, 0, False, "both"))
                         waiting_for_next = True
 
             # Render

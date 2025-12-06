@@ -101,7 +101,7 @@ class VisualizerConfig:
 
     # Speed control (2x scale: 1, 2, 4, 8, 16, 32, ...)
     min_speed: int = 1           # Minimum iterations per frame
-    max_speed: int = 8192        # Maximum iterations per frame (2^13)
+    max_speed: int = 65536       # Maximum iterations per frame (2^16)
 
     # Display options
     show_open_set: bool = True   # Show cells in open set (priority queue)

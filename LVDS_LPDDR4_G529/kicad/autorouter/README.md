@@ -52,7 +52,7 @@ See [rust_router/README.md](rust_router/README.md) for detailed build instructio
 | `qfn_fanout.py` | QFN fanout stub generation |
 | `apply_fanouts.py` | Apply generated fanouts to PCB file |
 | `rust_router/` | Rust A* implementation with Python bindings |
-| `pygame_visualizer/` | Real-time visualization of routing algorithm |
+| `pygame_visualizer/` | Real-time visualization with persistent route display |
 | `MPS.html` | Interactive visualization of MPS crossing conflict algorithm |
 
 ## Quick Start
