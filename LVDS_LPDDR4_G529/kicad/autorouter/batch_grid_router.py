@@ -124,7 +124,7 @@ def find_connected_groups(segments: List[Segment], tolerance: float = 0.01) -> L
 
 def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> Tuple[List, List, str]:
     """
-    Find source and target endpoints for a net, considering both segments and pads.
+    Find source and target endpoints for a net, considering segments, pads, and existing vias.
 
     Returns:
         (sources, targets, error_message)
@@ -137,6 +137,7 @@ def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -
 
     net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
     net_pads = pcb_data.pads_by_net.get(net_id, [])
+    net_vias = [v for v in pcb_data.vias if v.net_id == net_id]
 
     # Case 1: Multiple segment groups - use segments as before
     if len(net_segments) >= 2:
@@ -214,6 +215,26 @@ def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -
                         layer_idx = layer_map.get(layer)
                         if layer_idx is not None:
                             targets.append((gx, gy, layer_idx, pad.global_x, pad.global_y))
+
+                # Add existing vias as endpoints - they can be routed to on any layer
+                # Determine if via is near stub (add to sources) or near unconnected pads (add to targets)
+                # Note: All vias are through-hole, connecting ALL routing layers
+                for via in net_vias:
+                    gx, gy = coord.to_grid(via.x, via.y)
+                    # Check if via is near any unconnected pad
+                    near_unconnected = False
+                    for pad in unconnected_pads:
+                        if abs(via.x - pad.global_x) < 0.1 and abs(via.y - pad.global_y) < 0.1:
+                            near_unconnected = True
+                            break
+                    # Add via as endpoint on ALL routing layers (vias are through-hole)
+                    for layer in config.layers:
+                        layer_idx = layer_map.get(layer)
+                        if layer_idx is not None:
+                            if near_unconnected:
+                                targets.append((gx, gy, layer_idx, via.x, via.y))
+                            else:
+                                sources.append((gx, gy, layer_idx, via.x, via.y))
 
                 if sources and targets:
                     return sources, targets, None
@@ -303,6 +324,83 @@ def get_net_stub_centroids(pcb_data: PCBData, net_id: int) -> List[Tuple[float, 
     return centroids
 
 
+def get_net_routing_endpoints(pcb_data: PCBData, net_id: int) -> List[Tuple[float, float]]:
+    """
+    Get the two routing endpoints for a net, for MPS conflict detection.
+
+    This handles multiple cases:
+    1. Two stub groups -> use stub centroids
+    2. One stub group + unconnected pads -> use stub centroid + pad centroid
+    3. No stubs, just pads -> use pad positions
+
+    Returns list of (x, y) positions, typically 2 for source and target.
+    """
+    net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+    net_pads = pcb_data.pads_by_net.get(net_id, [])
+
+    # Case 1: Multiple stub groups - use their centroids
+    if len(net_segments) >= 2:
+        groups = find_connected_groups(net_segments)
+        if len(groups) >= 2:
+            centroids = []
+            for group in groups:
+                points = []
+                for seg in group:
+                    points.append((seg.start_x, seg.start_y))
+                    points.append((seg.end_x, seg.end_y))
+                if points:
+                    cx = sum(p[0] for p in points) / len(points)
+                    cy = sum(p[1] for p in points) / len(points)
+                    centroids.append((cx, cy))
+            return centroids[:2]
+
+    # Case 2: One stub group + pads - find unconnected pads
+    if len(net_segments) >= 1 and len(net_pads) >= 1:
+        groups = find_connected_groups(net_segments)
+        if len(groups) == 1:
+            # Get stub centroid
+            group = groups[0]
+            seg_points = set()
+            for seg in group:
+                seg_points.add((round(seg.start_x, 3), round(seg.start_y, 3)))
+                seg_points.add((round(seg.end_x, 3), round(seg.end_y, 3)))
+
+            stub_pts = []
+            for seg in group:
+                stub_pts.append((seg.start_x, seg.start_y))
+                stub_pts.append((seg.end_x, seg.end_y))
+            stub_cx = sum(p[0] for p in stub_pts) / len(stub_pts)
+            stub_cy = sum(p[1] for p in stub_pts) / len(stub_pts)
+
+            # Find unconnected pads
+            unconnected_pads = []
+            for pad in net_pads:
+                pad_pos = (round(pad.global_x, 3), round(pad.global_y, 3))
+                connected = False
+                for sp in seg_points:
+                    if abs(pad_pos[0] - sp[0]) < 0.05 and abs(pad_pos[1] - sp[1]) < 0.05:
+                        connected = True
+                        break
+                if not connected:
+                    unconnected_pads.append(pad)
+
+            if unconnected_pads:
+                # Compute centroid of unconnected pads
+                pad_cx = sum(p.global_x for p in unconnected_pads) / len(unconnected_pads)
+                pad_cy = sum(p.global_y for p in unconnected_pads) / len(unconnected_pads)
+                return [(stub_cx, stub_cy), (pad_cx, pad_cy)]
+
+    # Case 3: No stubs, just pads - use first pad and centroid of rest
+    if len(net_segments) == 0 and len(net_pads) >= 2:
+        first_pad = net_pads[0]
+        other_pads = net_pads[1:]
+        other_cx = sum(p.global_x for p in other_pads) / len(other_pads)
+        other_cy = sum(p.global_y for p in other_pads) / len(other_pads)
+        return [(first_pad.global_x, first_pad.global_y), (other_cx, other_cy)]
+
+    return []
+
+
 def compute_mps_net_ordering(pcb_data: PCBData, net_ids: List[int],
                               center: Tuple[float, float] = None) -> List[int]:
     """
@@ -333,16 +431,16 @@ def compute_mps_net_ordering(pcb_data: PCBData, net_ids: List[int],
     """
     import math
 
-    # Step 1: Get stub centroids for each net
+    # Step 1: Get routing endpoints for each net (stubs, pads, or both)
     net_endpoints = {}  # net_id -> [(x1, y1), (x2, y2)]
     for net_id in net_ids:
-        centroids = get_net_stub_centroids(pcb_data, net_id)
-        if len(centroids) >= 2:
-            # Take the first two centroids (source and target)
-            net_endpoints[net_id] = centroids[:2]
+        endpoints = get_net_routing_endpoints(pcb_data, net_id)
+        if len(endpoints) >= 2:
+            # Take the first two endpoints (source and target)
+            net_endpoints[net_id] = endpoints[:2]
 
     if not net_endpoints:
-        print("MPS: No nets with valid stub endpoints found")
+        print("MPS: No nets with valid routing endpoints found")
         return list(net_ids)
 
     # Step 2: Compute center if not provided (centroid of all endpoints)
@@ -456,11 +554,12 @@ def compute_mps_net_ordering(pcb_data: PCBData, net_ids: List[int],
             print(f"MPS Round {round_num}: {len(round_winners)} nets selected "
                   f"({', '.join(net_names)}{suffix})")
 
-    # Add any nets that weren't in net_angles (no valid stubs) at the end
-    nets_without_stubs = [nid for nid in net_ids if nid not in net_angles]
-    if nets_without_stubs:
-        print(f"MPS: {len(nets_without_stubs)} nets without valid stubs appended at end")
-        ordered.extend(nets_without_stubs)
+    # Add any nets that weren't in net_angles (no valid endpoints) at the end
+    # These are nets we couldn't determine routing endpoints for
+    nets_without_endpoints = [nid for nid in net_ids if nid not in net_angles]
+    if nets_without_endpoints:
+        print(f"MPS: {len(nets_without_endpoints)} nets without valid endpoints appended at end")
+        ordered.extend(nets_without_endpoints)
 
     return ordered
 
@@ -568,6 +667,30 @@ def add_net_vias_as_obstacles(obstacles: GridObstacleMap, pcb_data: PCBData,
         if via.net_id != net_id:
             continue
         _add_via_obstacle(obstacles, via, coord, num_layers, via_track_expansion_grid, via_via_expansion_grid)
+
+
+def add_same_net_via_clearance(obstacles: GridObstacleMap, pcb_data: PCBData,
+                                net_id: int, config: GridRouteConfig):
+    """Add via-via clearance blocking for same-net vias.
+
+    This blocks only via placement (not track routing) near existing vias on the same net,
+    enforcing DRC via-via clearance even within a single net.
+    """
+    coord = GridCoord(config.grid_step)
+
+    # Via-via clearance: center-to-center distance must be >= via_size + clearance
+    # So we block via placement within this radius of existing vias
+    via_via_expansion_grid = max(1, coord.to_grid_dist(config.via_size + config.clearance))
+
+    for via in pcb_data.vias:
+        if via.net_id != net_id:
+            continue
+        gx, gy = coord.to_grid(via.x, via.y)
+        # Only block via placement, not track routing (tracks can pass through same-net vias)
+        for ex in range(-via_via_expansion_grid, via_via_expansion_grid + 1):
+            for ey in range(-via_via_expansion_grid, via_via_expansion_grid + 1):
+                if ex*ex + ey*ey <= via_via_expansion_grid * via_via_expansion_grid:
+                    obstacles.add_blocked_via(gx + ex, gy + ey)
 
 
 def _add_segment_obstacle(obstacles: GridObstacleMap, seg, coord: GridCoord,
@@ -734,6 +857,9 @@ def build_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
     # Add stub proximity costs
     if unrouted_stubs:
         add_stub_proximity_costs(obstacles, unrouted_stubs, config)
+
+    # Add same-net via clearance blocking (for DRC - vias can't be too close even on same net)
+    add_same_net_via_clearance(obstacles, pcb_data, exclude_net_id, config)
 
     return obstacles
 
@@ -1262,6 +1388,9 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         if unrouted_stubs:
             add_stub_proximity_costs(obstacles, unrouted_stubs, config)
 
+        # Add same-net via clearance blocking (for DRC - vias can't be too close even on same net)
+        add_same_net_via_clearance(obstacles, pcb_data, net_id, config)
+
         # Route the net using the prepared obstacles
         result = route_net_with_obstacles(pcb_data, net_id, config, obstacles)
         elapsed = time.time() - start_time
@@ -1383,6 +1512,9 @@ Examples:
                         help="Direction search order for each net route")
     parser.add_argument("--no-bga-zones", action="store_true",
                         help="Disable BGA exclusion zone detection (allows routing through BGA areas)")
+    parser.add_argument("--layers", "-l", nargs="+",
+                        default=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
+                        help="Routing layers to use (default: F.Cu In1.Cu In2.Cu B.Cu)")
 
     args = parser.parse_args()
 
@@ -1400,4 +1532,5 @@ Examples:
     batch_route(args.input_file, args.output_file, net_names,
                 direction_order=args.direction,
                 ordering_strategy=args.ordering,
-                disable_bga_zones=args.no_bga_zones)
+                disable_bga_zones=args.no_bga_zones,
+                layers=args.layers)

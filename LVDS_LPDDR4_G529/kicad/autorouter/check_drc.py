@@ -174,14 +174,15 @@ def run_drc(pcb_file: str, clearance: float = 0.1):
                             'seg_loc': (seg.start_x, seg.start_y, seg.end_x, seg.end_y),
                         })
 
-    # Check via-to-via violations (different nets only)
+    # Check via-to-via violations (all nets, including same-net)
     print("Checking via-to-via clearances...")
     for i, net1 in enumerate(via_net_ids):
         for net2 in via_net_ids[i+1:]:
-            if net1 == net2:
-                continue
             for via1 in vias_by_net[net1]:
                 for via2 in vias_by_net[net2]:
+                    # Skip if same via (can happen with same-net checking)
+                    if via1 is via2:
+                        continue
                     has_violation, overlap = check_via_via_overlap(via1, via2, clearance)
                     if has_violation:
                         net1_name = pcb_data.nets.get(net1, None)
@@ -189,9 +190,28 @@ def run_drc(pcb_file: str, clearance: float = 0.1):
                         net1_str = net1_name.name if net1_name else f"net_{net1}"
                         net2_str = net2_name.name if net2_name else f"net_{net2}"
                         violations.append({
-                            'type': 'via-via',
+                            'type': 'via-via' if net1 != net2 else 'via-via-same-net',
                             'net1': net1_str,
                             'net2': net2_str,
+                            'overlap_mm': overlap,
+                            'loc1': (via1.x, via1.y),
+                            'loc2': (via2.x, via2.y),
+                        })
+        # Also check same-net via pairs
+        if net1 in vias_by_net:
+            vias_list = vias_by_net[net1]
+            for j in range(len(vias_list)):
+                for k in range(j + 1, len(vias_list)):
+                    via1 = vias_list[j]
+                    via2 = vias_list[k]
+                    has_violation, overlap = check_via_via_overlap(via1, via2, clearance)
+                    if has_violation:
+                        net1_name = pcb_data.nets.get(net1, None)
+                        net1_str = net1_name.name if net1_name else f"net_{net1}"
+                        violations.append({
+                            'type': 'via-via-same-net',
+                            'net1': net1_str,
+                            'net2': net1_str,
                             'overlap_mm': overlap,
                             'loc1': (via1.x, via1.y),
                             'loc2': (via2.x, via2.y),
