@@ -315,7 +315,7 @@ def build_obstacle_map_with_cache(
     via_size: float = 0.3,
     bga_zones: List[Tuple[float, float, float, float]] = None,
     unrouted_stubs: List[Tuple[float, float]] = None,
-    stub_proximity_radius: float = 1.0,
+    stub_proximity_radius: float = 1.5,
     stub_proximity_cost: float = 3.0
 ) -> Tuple[GridObstacleMap, List[Set[Tuple[int, int]]], Set[Tuple[int, int]], List[Tuple[int, int, int, int]]]:
     """
@@ -518,7 +518,15 @@ def run_visualization(
     max_iterations: int = 100000,
     auto_advance: bool = False,
     disable_bga_zones: bool = False,
-    ordering_strategy: str = "inside_out"
+    ordering_strategy: str = "inside_out",
+    track_width: float = 0.1,
+    clearance: float = 0.1,
+    via_size: float = 0.3,
+    via_drill: float = 0.2,
+    via_cost: int = 25,
+    heuristic_weight: float = 1.5,
+    stub_proximity_radius: float = 1.5,
+    stub_proximity_cost: float = 3.0
 ):
     """Run the visualization for multiple nets using the Rust router.
 
@@ -677,13 +685,16 @@ def run_visualization(
     original_sources = []
     original_targets = []
 
+    # Routing config (set by setup_net, used by main loop for backwards retry)
+    routing_config = None
+
     # Track routed/remaining nets to match batch router behavior
     routed_net_ids = []  # Nets that have been successfully routed
     remaining_net_ids = [nid for _, nid in net_queue]  # Nets not yet routed (or failed)
     def setup_net(net_idx: int) -> bool:
         """Set up routing for the net at the given index. Returns False if net should be skipped."""
         nonlocal router, sources, targets, obstacles, current_net_iterations
-        nonlocal forward_done, reverse_done, original_sources, original_targets
+        nonlocal forward_done, reverse_done, original_sources, original_targets, routing_config
 
         if net_idx >= len(net_queue):
             return False
@@ -692,10 +703,19 @@ def run_visualization(
         print(f"\n[{net_idx + 1}/{len(net_queue)}] Setting up {net_name}...")
         print(f"  PCB has {len(pcb_data.segments)} segments and {len(pcb_data.vias)} vias")
 
-        # Create a minimal config for get_net_endpoints (matches batch router)
+        # Create a config for get_net_endpoints (matches batch router)
         routing_config = GridRouteConfig(
             layers=layers,
-            grid_step=grid_step
+            grid_step=grid_step,
+            track_width=track_width,
+            clearance=clearance,
+            via_size=via_size,
+            via_drill=via_drill,
+            via_cost=via_cost,
+            max_iterations=max_iterations,
+            heuristic_weight=heuristic_weight,
+            stub_proximity_radius=stub_proximity_radius,
+            stub_proximity_cost=stub_proximity_cost
         )
 
         # Find endpoints (handles segments, pads, or both) - same as batch router
@@ -793,10 +813,8 @@ def run_visualization(
         # Add stub proximity costs for remaining unrouted nets
         # Must match batch router's add_stub_proximity_costs logic
         if unrouted_stubs:
-            stub_proximity_radius = 1.0
-            stub_proximity_cost = 3.0
-            stub_radius_grid = coord.to_grid_dist(stub_proximity_radius)
-            stub_cost_grid = int(stub_proximity_cost * 1000 / grid_step)  # Same as working version
+            stub_radius_grid = coord.to_grid_dist(routing_config.stub_proximity_radius)
+            stub_cost_grid = int(routing_config.stub_proximity_cost * 1000 / grid_step)
             for (sx, sy) in unrouted_stubs:
                 gx, gy = coord.to_grid(sx, sy)
                 for dx in range(-stub_radius_grid, stub_radius_grid + 1):
@@ -867,10 +885,8 @@ def run_visualization(
         original_targets = list(targets)
 
         # Initialize Rust VisualRouter
-        via_cost = 25 * 1000
-        h_weight = 1.5
-        router = VisualRouter(via_cost=via_cost, h_weight=h_weight)
-        router.init(sources, targets, max_iterations)
+        router = VisualRouter(via_cost=routing_config.via_cost * 1000, h_weight=routing_config.heuristic_weight)
+        router.init(sources, targets, routing_config.max_iterations)
 
         # Tell visualizer which net we're routing
         visualizer.set_current_net(net_name, net_idx + 1, len(net_queue))
@@ -1007,8 +1023,8 @@ def run_visualization(
                     sources, targets = original_targets, original_sources
                     forward_done = True  # Mark forward as done so we know we're in backwards mode
                     reverse_done = True  # Mark reverse as done so N goes to next net after this
-                    router = VisualRouter(via_cost=25 * 1000, h_weight=1.5)
-                    router.init(sources, targets, max_iterations)
+                    router = VisualRouter(via_cost=routing_config.via_cost * 1000, h_weight=routing_config.heuristic_weight)
+                    router.init(sources, targets, routing_config.max_iterations)
                 continue
 
             # Advance search if not paused and not done
@@ -1061,8 +1077,8 @@ def run_visualization(
                     print(f"\nTrying backwards direction...")
                     visualizer.status_message = "Trying backwards direction..."
                     sources, targets = original_targets, original_sources  # Swap
-                    router = VisualRouter(via_cost=25 * 1000, h_weight=1.5)
-                    router.init(sources, targets, max_iterations)
+                    router = VisualRouter(via_cost=routing_config.via_cost * 1000, h_weight=routing_config.heuristic_weight)
+                    router.init(sources, targets, routing_config.max_iterations)
                     continue
 
                 # Move to next net
@@ -1159,64 +1175,66 @@ def expand_net_pattern(pcb_data: PCBData, pattern: str) -> List[str]:
 
 
 def main():
-    # Check for flags
-    auto_advance = '--auto' in sys.argv
-    no_bga_zones = '--no-bga-zones' in sys.argv
+    import argparse
 
-    # Parse --ordering flag
-    ordering_strategy = "inside_out"
-    for i, arg in enumerate(sys.argv):
-        if arg in ('--ordering', '-o') and i + 1 < len(sys.argv):
-            ordering_strategy = sys.argv[i + 1]
-            if ordering_strategy not in ('inside_out', 'mps', 'original'):
-                print(f"Invalid ordering strategy: {ordering_strategy}")
-                print("Valid options: inside_out, mps, original")
-                sys.exit(1)
+    parser = argparse.ArgumentParser(description="Visualize PCB routing with A* algorithm")
+    parser.add_argument("input_file", help="Input KiCad PCB file")
+    parser.add_argument("net_patterns", nargs="+", help="Net names or wildcard patterns")
 
-    # Filter out known flags
-    args = []
-    skip_next = False
-    for i, a in enumerate(sys.argv[1:], 1):
-        if skip_next:
-            skip_next = False
-            continue
-        if a in ('--auto', '--no-bga-zones'):
-            continue
-        if a in ('--ordering', '-o'):
-            skip_next = True
-            continue
-        args.append(a)
+    # Visualizer-specific options
+    parser.add_argument("--auto", action="store_true",
+                        help="Automatically advance to next net (no waiting for N key)")
 
-    if len(args) < 2:
-        print("Usage: python run_visualizer.py [--auto] [--no-bga-zones] [--ordering STRATEGY] input.kicad_pcb \"Net-Pattern\" [\"Net-Pattern2\" ...]")
-        print("\nOptions:")
-        print("  --auto              Automatically advance to next net (no waiting for N key)")
-        print("  --no-bga-zones      Disable BGA exclusion zones (allows routing through BGA areas)")
-        print("  --ordering, -o      Net ordering strategy: inside_out (default), mps, or original")
-        print("\nWildcard patterns supported:")
-        print('  "Net-(U2A-DATA_*)"  - matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.')
-        print("\nExample:")
-        print('  python run_visualizer.py fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
-        print('  python run_visualizer.py --auto fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
-        print('  python run_visualizer.py --auto --ordering mps fanout_starting_point.kicad_pcb "Net-(U2A-*)"')
-        print('  python run_visualizer.py --no-bga-zones fanout_starting_point.kicad_pcb "*lvds*"')
-        sys.exit(1)
+    # Ordering and strategy options (same as batch_grid_router)
+    parser.add_argument("--ordering", "-o", choices=["inside_out", "mps", "original"],
+                        default="inside_out",
+                        help="Net ordering strategy: inside_out (default), mps, or original")
+    parser.add_argument("--no-bga-zones", action="store_true",
+                        help="Disable BGA exclusion zone detection")
+    parser.add_argument("--layers", "-l", nargs="+",
+                        default=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
+                        help="Routing layers to use (default: F.Cu In1.Cu In2.Cu B.Cu)")
 
-    pcb_file = args[0]
-    net_patterns = args[1:]
+    # Track and via geometry (same as batch_grid_router)
+    parser.add_argument("--track-width", type=float, default=0.1,
+                        help="Track width in mm (default: 0.1)")
+    parser.add_argument("--clearance", type=float, default=0.1,
+                        help="Clearance between tracks in mm (default: 0.1)")
+    parser.add_argument("--via-size", type=float, default=0.3,
+                        help="Via outer diameter in mm (default: 0.3)")
+    parser.add_argument("--via-drill", type=float, default=0.2,
+                        help="Via drill size in mm (default: 0.2)")
 
-    if not os.path.exists(pcb_file):
-        print(f"File not found: {pcb_file}")
+    # Router algorithm parameters (same as batch_grid_router)
+    parser.add_argument("--grid-step", type=float, default=0.1,
+                        help="Grid resolution in mm (default: 0.1)")
+    parser.add_argument("--via-cost", type=int, default=25,
+                        help="Penalty for placing a via in grid steps (default: 25)")
+    parser.add_argument("--max-iterations", type=int, default=100000,
+                        help="Max A* iterations before giving up (default: 100000)")
+    parser.add_argument("--heuristic-weight", type=float, default=1.5,
+                        help="A* heuristic weight (default: 1.5)")
+
+    # Stub proximity penalty (same as batch_grid_router)
+    parser.add_argument("--stub-proximity-radius", type=float, default=1.5,
+                        help="Radius around stubs to penalize routing in mm (default: 1.5)")
+    parser.add_argument("--stub-proximity-cost", type=float, default=3.0,
+                        help="Cost penalty near stubs in mm equivalent (default: 3.0)")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.input_file):
+        print(f"File not found: {args.input_file}")
         sys.exit(1)
 
     # Load PCB to expand wildcards
-    print(f"Loading {pcb_file}...")
-    pcb_data = parse_kicad_pcb(pcb_file)
+    print(f"Loading {args.input_file}...")
+    pcb_data = parse_kicad_pcb(args.input_file)
 
     # Expand all patterns
     all_nets = []
     seen = set()
-    for pattern in net_patterns:
+    for pattern in args.net_patterns:
         matching_nets = expand_net_pattern(pcb_data, pattern)
         if not matching_nets:
             print(f"Warning: Pattern '{pattern}' matched no nets")
@@ -1238,17 +1256,32 @@ def main():
         sys.exit(1)
 
     mode_info = []
-    if auto_advance:
+    if args.auto:
         mode_info.append("auto-advance")
-    if no_bga_zones:
+    if args.no_bga_zones:
         mode_info.append("no BGA zones")
-    if ordering_strategy != "inside_out":
-        mode_info.append(f"ordering={ordering_strategy}")
+    if args.ordering != "inside_out":
+        mode_info.append(f"ordering={args.ordering}")
     mode_str = f" ({', '.join(mode_info)})" if mode_info else ""
     print(f"\nWill visualize routing of {len(all_nets)} nets{mode_str}")
 
-    run_visualization(pcb_file, all_nets, auto_advance=auto_advance, disable_bga_zones=no_bga_zones,
-                      ordering_strategy=ordering_strategy)
+    run_visualization(
+        args.input_file, all_nets,
+        layers=args.layers,
+        grid_step=args.grid_step,
+        max_iterations=args.max_iterations,
+        auto_advance=args.auto,
+        disable_bga_zones=args.no_bga_zones,
+        ordering_strategy=args.ordering,
+        track_width=args.track_width,
+        clearance=args.clearance,
+        via_size=args.via_size,
+        via_drill=args.via_drill,
+        via_cost=args.via_cost,
+        heuristic_weight=args.heuristic_weight,
+        stub_proximity_radius=args.stub_proximity_radius,
+        stub_proximity_cost=args.stub_proximity_cost
+    )
 
 
 if __name__ == "__main__":

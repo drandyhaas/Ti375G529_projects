@@ -1560,8 +1560,8 @@ Examples:
                         help="A* heuristic weight, higher=faster but less optimal (default: 1.5)")
 
     # Stub proximity penalty
-    parser.add_argument("--stub-proximity-radius", type=float, default=1.0,
-                        help="Radius around stubs to penalize routing in mm (default: 1.0)")
+    parser.add_argument("--stub-proximity-radius", type=float, default=1.5,
+                        help="Radius around stubs to penalize routing in mm (default: 1.5)")
     parser.add_argument("--stub-proximity-cost", type=float, default=3.0,
                         help="Cost penalty near stubs in mm equivalent (default: 3.0)")
 

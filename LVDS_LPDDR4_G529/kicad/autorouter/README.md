@@ -171,7 +171,7 @@ python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" [OPTI
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--stub-proximity-radius` | `1.0` | Radius around stubs to penalize routing (mm) |
+| `--stub-proximity-radius` | `1.5` | Radius around stubs to penalize routing (mm) |
 | `--stub-proximity-cost` | `3.0` | Cost penalty near stubs (mm equivalent) |
 
 ### Example with Custom Parameters
@@ -348,10 +348,14 @@ python pygame_visualizer/run_visualizer.py --auto input.kicad_pcb "Net-(U2A-DATA
 
 # Disable BGA zones for pad-only nets (e.g., LVDS between BGAs)
 python pygame_visualizer/run_visualizer.py --no-bga-zones input.kicad_pcb "*lvds*"
+
+# Use same options as batch router
+python pygame_visualizer/run_visualizer.py --auto --ordering mps --via-cost 50 input.kicad_pcb "Net-(U2A-*)"
 ```
 
 Features:
 - **Identical results to batch router** - Same Rust A* engine, same obstacle handling, same iteration counts
+- **Same command-line options** - All batch_grid_router.py parameters supported
 - Pause, step, zoom, pan controls
 - Speed control with 2x scaling (1x, 2x, 4x, 8x... up to 65536x)
 - Layer filtering and legend display

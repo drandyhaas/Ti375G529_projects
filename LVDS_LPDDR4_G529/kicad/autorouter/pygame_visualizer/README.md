@@ -82,6 +82,66 @@ The visualizer can route nets that have only pads (no stub segments). These are 
 python pygame_visualizer/run_visualizer.py fanout_starting_point.kicad_pcb "Net-(U2A-DATA_0)"
 ```
 
+## Command-Line Options
+
+The visualizer supports the same command-line arguments as `batch_grid_router.py`:
+
+```bash
+python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-*)" [OPTIONS]
+```
+
+### Visualizer-Specific Options
+
+| Option | Description |
+|--------|-------------|
+| `--auto` | Automatically advance to next net (no waiting for N key) |
+
+### Ordering and Strategy Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ordering`, `-o` | `inside_out` | Net ordering: `inside_out`, `mps`, or `original` |
+| `--no-bga-zones` | (disabled) | Disable BGA exclusion zone detection |
+| `--layers`, `-l` | `F.Cu In1.Cu In2.Cu B.Cu` | Routing layers to use |
+
+### Track and Via Geometry
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--track-width` | `0.1` | Track width in mm |
+| `--clearance` | `0.1` | Clearance between tracks in mm |
+| `--via-size` | `0.3` | Via outer diameter in mm |
+| `--via-drill` | `0.2` | Via drill size in mm |
+
+### Router Algorithm Parameters
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--grid-step` | `0.1` | Grid resolution in mm |
+| `--via-cost` | `25` | Penalty for placing a via (in grid steps) |
+| `--max-iterations` | `100000` | Max A* iterations before giving up |
+| `--heuristic-weight` | `1.5` | A* heuristic weight (higher = faster but less optimal) |
+
+### Stub Proximity Penalty
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--stub-proximity-radius` | `1.5` | Radius around stubs to penalize routing (mm) |
+| `--stub-proximity-cost` | `3.0` | Cost penalty near stubs (mm equivalent) |
+
+### Example with Options
+
+```bash
+# Route with MPS ordering and auto-advance
+python pygame_visualizer/run_visualizer.py --auto --ordering mps input.kicad_pcb "Net-(U2A-*)"
+
+# Route with custom via cost (fewer layer changes)
+python pygame_visualizer/run_visualizer.py --via-cost 100 input.kicad_pcb "Net-(U2A-DATA_*)"
+
+# Route LVDS nets through BGA areas
+python pygame_visualizer/run_visualizer.py --no-bga-zones input.kicad_pcb "*lvds*"
+```
+
 ## Keyboard Controls
 
 | Key | Action |
@@ -180,8 +240,8 @@ This approach has **zero impact on the normal batch router** - `GridRouter.route
 - Snapshots are created only when needed (configurable iterations per frame)
 - Cell lists are limited to 50,000 entries to prevent memory issues
 - Pre-rendered obstacle surface is cached for efficient rendering
-- **Incremental obstacle caching** - Base obstacle map is built once at startup (~0.6s), then cloned and updated per-net (~0.15-0.4s vs ~1.2s without caching)
-- **Results match batch router exactly** - Verified on 47 U2A nets: 599,256 total iterations, identical success/failure
+- **Incremental obstacle caching** - Base obstacle map is built once at startup (~0.3s), then cloned and updated per-net (~0.15-0.6s vs ~1.2s without caching)
+- **Results match batch router exactly** - Verified on 47 U2A nets: 47/47 success, 1,073,811 total iterations
 
 Both routers use identical obstacle handling:
 - **Routed nets**: segments, vias, and pads added as obstacles
