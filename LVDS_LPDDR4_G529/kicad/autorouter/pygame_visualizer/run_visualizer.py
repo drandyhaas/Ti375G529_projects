@@ -32,7 +32,11 @@ from kicad_parser import (
     parse_kicad_pcb, PCBData, Segment,
     auto_detect_bga_exclusion_zones, find_components_by_type
 )
-from batch_grid_router import find_connected_groups, get_net_endpoints, GridRouteConfig
+from batch_grid_router import (
+    find_connected_groups, get_net_endpoints, GridRouteConfig,
+    compute_mps_net_ordering, get_net_routing_endpoints,
+    add_same_net_via_clearance
+)
 
 # Import Rust router
 try:
@@ -513,12 +517,14 @@ def run_visualization(
     grid_step: float = 0.1,
     max_iterations: int = 100000,
     auto_advance: bool = False,
-    disable_bga_zones: bool = False
+    disable_bga_zones: bool = False,
+    ordering_strategy: str = "inside_out"
 ):
     """Run the visualization for multiple nets using the Rust router.
 
     If auto_advance is True, automatically proceed to next net without waiting for N key.
     If disable_bga_zones is True, BGA exclusion zones are not applied.
+    ordering_strategy: "inside_out" (default), "mps", or "original"
     """
     print(f"Loading {pcb_file}...")
     pcb_data = parse_kicad_pcb(pcb_file)
@@ -565,9 +571,16 @@ def run_visualization(
         print("No valid nets to route!")
         return
 
-    # Sort nets inside-out from BGA center(s) for better escape routing
-    # (same logic as batch_grid_router.py)
-    if bga_zones:
+    # Apply net ordering strategy (same as batch_grid_router.py)
+    if ordering_strategy == "mps":
+        print("\nUsing MPS ordering strategy...")
+        net_ids_for_mps = [net_id for _, net_id in net_queue]
+        ordered_net_ids = compute_mps_net_ordering(pcb_data, net_ids_for_mps)
+        # Rebuild net_queue in MPS order
+        net_id_to_name = {net_id: net_name for net_name, net_id in net_queue}
+        net_queue = [(net_id_to_name[nid], nid) for nid in ordered_net_ids]
+    elif ordering_strategy == "inside_out" and bga_zones:
+        # Sort nets inside-out from BGA center(s) for better escape routing
         def pad_in_bga_zone(pad):
             """Check if a pad is inside any BGA zone."""
             for zone in bga_zones:
@@ -609,6 +622,8 @@ def run_visualization(
 
         if bga_nets:
             print(f"Sorted {len(bga_nets)} BGA nets inside-out ({len(non_bga_nets)} non-BGA nets unchanged)")
+    elif ordering_strategy == "original":
+        print("Using original net ordering")
 
     print(f"\nWill route {len(net_queue)} nets")
 
@@ -793,6 +808,9 @@ def run_visualization(
                             cost = int(proximity * stub_cost_grid)
                             if cost > 0:
                                 obstacles.set_stub_proximity(gx + dx, gy + dy, cost)
+
+        # Add same-net via clearance blocking (must match batch router)
+        add_same_net_via_clearance(obstacles, pcb_data, net_id, routing_config)
 
         build_time = time.time() - t0
         print(f"  Obstacle map cloned+built in {build_time:.3f}s")
@@ -1144,18 +1162,43 @@ def main():
     # Check for flags
     auto_advance = '--auto' in sys.argv
     no_bga_zones = '--no-bga-zones' in sys.argv
-    args = [a for a in sys.argv[1:] if a not in ('--auto', '--no-bga-zones')]
+
+    # Parse --ordering flag
+    ordering_strategy = "inside_out"
+    for i, arg in enumerate(sys.argv):
+        if arg in ('--ordering', '-o') and i + 1 < len(sys.argv):
+            ordering_strategy = sys.argv[i + 1]
+            if ordering_strategy not in ('inside_out', 'mps', 'original'):
+                print(f"Invalid ordering strategy: {ordering_strategy}")
+                print("Valid options: inside_out, mps, original")
+                sys.exit(1)
+
+    # Filter out known flags
+    args = []
+    skip_next = False
+    for i, a in enumerate(sys.argv[1:], 1):
+        if skip_next:
+            skip_next = False
+            continue
+        if a in ('--auto', '--no-bga-zones'):
+            continue
+        if a in ('--ordering', '-o'):
+            skip_next = True
+            continue
+        args.append(a)
 
     if len(args) < 2:
-        print("Usage: python run_visualizer.py [--auto] [--no-bga-zones] input.kicad_pcb \"Net-Pattern\" [\"Net-Pattern2\" ...]")
+        print("Usage: python run_visualizer.py [--auto] [--no-bga-zones] [--ordering STRATEGY] input.kicad_pcb \"Net-Pattern\" [\"Net-Pattern2\" ...]")
         print("\nOptions:")
-        print("  --auto          Automatically advance to next net (no waiting for N key)")
-        print("  --no-bga-zones  Disable BGA exclusion zones (allows routing through BGA areas)")
+        print("  --auto              Automatically advance to next net (no waiting for N key)")
+        print("  --no-bga-zones      Disable BGA exclusion zones (allows routing through BGA areas)")
+        print("  --ordering, -o      Net ordering strategy: inside_out (default), mps, or original")
         print("\nWildcard patterns supported:")
         print('  "Net-(U2A-DATA_*)"  - matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.')
         print("\nExample:")
         print('  python run_visualizer.py fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
         print('  python run_visualizer.py --auto fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
+        print('  python run_visualizer.py --auto --ordering mps fanout_starting_point.kicad_pcb "Net-(U2A-*)"')
         print('  python run_visualizer.py --no-bga-zones fanout_starting_point.kicad_pcb "*lvds*"')
         sys.exit(1)
 
@@ -1199,10 +1242,13 @@ def main():
         mode_info.append("auto-advance")
     if no_bga_zones:
         mode_info.append("no BGA zones")
+    if ordering_strategy != "inside_out":
+        mode_info.append(f"ordering={ordering_strategy}")
     mode_str = f" ({', '.join(mode_info)})" if mode_info else ""
     print(f"\nWill visualize routing of {len(all_nets)} nets{mode_str}")
 
-    run_visualization(pcb_file, all_nets, auto_advance=auto_advance, disable_bga_zones=no_bga_zones)
+    run_visualization(pcb_file, all_nets, auto_advance=auto_advance, disable_bga_zones=no_bga_zones,
+                      ordering_strategy=ordering_strategy)
 
 
 if __name__ == "__main__":

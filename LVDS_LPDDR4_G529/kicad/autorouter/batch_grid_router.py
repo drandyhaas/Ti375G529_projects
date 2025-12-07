@@ -1094,7 +1094,7 @@ def route_net_with_obstacles(pcb_data: PCBData, net_id: int, config: GridRouteCo
 
     if path is None:
         print(f"No route found after {total_iterations} iterations (both directions)")
-        return None
+        return {'failed': True, 'iterations': total_iterations}
 
     print(f"Route found in {total_iterations} iterations, path length: {len(path)}")
 
@@ -1194,7 +1194,17 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
                 bga_exclusion_zones: Optional[List[Tuple[float, float, float, float]]] = None,
                 direction_order: str = None,
                 ordering_strategy: str = "inside_out",
-                disable_bga_zones: bool = False) -> Tuple[int, int, float]:
+                disable_bga_zones: bool = False,
+                track_width: float = 0.1,
+                clearance: float = 0.1,
+                via_size: float = 0.3,
+                via_drill: float = 0.2,
+                grid_step: float = 0.1,
+                via_cost: int = 25,
+                max_iterations: int = 100000,
+                heuristic_weight: float = 1.5,
+                stub_proximity_radius: float = 1.0,
+                stub_proximity_cost: float = 3.0) -> Tuple[int, int, float]:
     """
     Route multiple nets using the Rust router.
 
@@ -1211,6 +1221,16 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
             - "inside_out": Sort BGA nets by distance from BGA center (default)
             - "mps": Use Maximum Planar Subset algorithm to minimize crossing conflicts
             - "original": Keep nets in original order
+        track_width: Track width in mm (default: 0.1)
+        clearance: Clearance between tracks in mm (default: 0.1)
+        via_size: Via outer diameter in mm (default: 0.3)
+        via_drill: Via drill size in mm (default: 0.2)
+        grid_step: Grid resolution in mm (default: 0.1)
+        via_cost: Penalty for placing a via in grid steps (default: 25)
+        max_iterations: Max A* iterations before giving up (default: 100000)
+        heuristic_weight: A* heuristic weight, higher=faster but less optimal (default: 1.5)
+        stub_proximity_radius: Radius around stubs to penalize in mm (default: 1.0)
+        stub_proximity_cost: Cost penalty near stubs in mm equivalent (default: 3.0)
 
     Returns:
         (successful_count, failed_count, total_time)
@@ -1238,18 +1258,18 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
             print("No BGA components detected - no exclusion zones needed")
 
     config_kwargs = dict(
-        track_width=0.1,
-        clearance=0.1,
-        via_size=0.3,
-        via_drill=0.2,
-        grid_step=0.1,
-        via_cost=25,
+        track_width=track_width,
+        clearance=clearance,
+        via_size=via_size,
+        via_drill=via_drill,
+        grid_step=grid_step,
+        via_cost=via_cost,
         layers=layers,
-        max_iterations=100000,
-        heuristic_weight=1.5,
+        max_iterations=max_iterations,
+        heuristic_weight=heuristic_weight,
         bga_exclusion_zones=bga_exclusion_zones,
-        stub_proximity_radius=1.0,
-        stub_proximity_cost=3.0,
+        stub_proximity_radius=stub_proximity_radius,
+        stub_proximity_cost=stub_proximity_cost,
     )
     if direction_order is not None:
         config_kwargs['direction_order'] = direction_order
@@ -1396,7 +1416,7 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         elapsed = time.time() - start_time
         total_time += elapsed
 
-        if result:
+        if result and not result.get('failed'):
             print(f"  SUCCESS: {len(result['new_segments'])} segments, {len(result['new_vias'])} vias, {result['iterations']} iterations ({elapsed:.2f}s)")
             results.append(result)
             successful += 1
@@ -1405,8 +1425,10 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
             remaining_net_ids.remove(net_id)
             routed_net_ids.append(net_id)
         else:
+            iterations = result['iterations'] if result else 0
             print(f"  FAILED: Could not find route ({elapsed:.2f}s)")
             failed += 1
+            total_iterations += iterations
 
     print("\n" + "=" * 60)
     print(f"Routing complete: {successful} successful, {failed} failed")
@@ -1504,6 +1526,7 @@ Examples:
     parser.add_argument("input_file", help="Input KiCad PCB file")
     parser.add_argument("output_file", help="Output KiCad PCB file")
     parser.add_argument("net_patterns", nargs="+", help="Net names or wildcard patterns to route")
+    # Ordering and strategy options
     parser.add_argument("--ordering", "-o", choices=["inside_out", "mps", "original"],
                         default="inside_out",
                         help="Net ordering strategy: inside_out (default), mps (crossing conflicts), or original")
@@ -1515,6 +1538,32 @@ Examples:
     parser.add_argument("--layers", "-l", nargs="+",
                         default=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
                         help="Routing layers to use (default: F.Cu In1.Cu In2.Cu B.Cu)")
+
+    # Track and via geometry
+    parser.add_argument("--track-width", type=float, default=0.1,
+                        help="Track width in mm (default: 0.1)")
+    parser.add_argument("--clearance", type=float, default=0.1,
+                        help="Clearance between tracks in mm (default: 0.1)")
+    parser.add_argument("--via-size", type=float, default=0.3,
+                        help="Via outer diameter in mm (default: 0.3)")
+    parser.add_argument("--via-drill", type=float, default=0.2,
+                        help="Via drill size in mm (default: 0.2)")
+
+    # Router algorithm parameters
+    parser.add_argument("--grid-step", type=float, default=0.1,
+                        help="Grid resolution in mm (default: 0.1)")
+    parser.add_argument("--via-cost", type=int, default=25,
+                        help="Penalty for placing a via in grid steps (default: 25)")
+    parser.add_argument("--max-iterations", type=int, default=100000,
+                        help="Max A* iterations before giving up (default: 100000)")
+    parser.add_argument("--heuristic-weight", type=float, default=1.5,
+                        help="A* heuristic weight, higher=faster but less optimal (default: 1.5)")
+
+    # Stub proximity penalty
+    parser.add_argument("--stub-proximity-radius", type=float, default=1.0,
+                        help="Radius around stubs to penalize routing in mm (default: 1.0)")
+    parser.add_argument("--stub-proximity-cost", type=float, default=3.0,
+                        help="Cost penalty near stubs in mm equivalent (default: 3.0)")
 
     args = parser.parse_args()
 
@@ -1533,4 +1582,14 @@ Examples:
                 direction_order=args.direction,
                 ordering_strategy=args.ordering,
                 disable_bga_zones=args.no_bga_zones,
-                layers=args.layers)
+                layers=args.layers,
+                track_width=args.track_width,
+                clearance=args.clearance,
+                via_size=args.via_size,
+                via_drill=args.via_drill,
+                grid_step=args.grid_step,
+                via_cost=args.via_cost,
+                max_iterations=args.max_iterations,
+                heuristic_weight=args.heuristic_weight,
+                stub_proximity_radius=args.stub_proximity_radius,
+                stub_proximity_cost=args.stub_proximity_cost)

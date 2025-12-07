@@ -132,25 +132,66 @@ For nets that need to route directly between pads inside BGA areas (e.g., LVDS s
 python batch_grid_router.py input.kicad_pcb output.kicad_pcb "*lvds*" --no-bga-zones
 ```
 
-## Configuration
+## Command-Line Options
 
-Default parameters in `batch_grid_router.py`:
+All routing parameters can be configured via command-line arguments:
 
-```python
-GridRouteConfig(
-    track_width=0.1,        # mm - width of new tracks
-    clearance=0.1,          # mm - minimum edge-to-edge spacing
-    via_size=0.3,           # mm - via outer diameter
-    via_drill=0.2,          # mm - via drill size
-    grid_step=0.1,          # mm - routing grid resolution
-    via_cost=25,            # integer cost penalty (1000 = 1 grid step)
-    layers=['F.Cu', 'In1.Cu', 'In2.Cu', 'B.Cu'],
-    max_iterations=100000,  # max A* iterations per route
-    heuristic_weight=1.5,   # A* greediness (1.0=optimal, >1.0=faster)
-    bga_exclusion_zones=[],  # auto-detected from BGA footprints
-    stub_proximity_radius=1.0,  # mm - penalize routes near unrouted stubs
-    stub_proximity_cost=3.0,    # mm equivalent cost at stub center
-)
+```bash
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" [OPTIONS]
+```
+
+### Ordering and Strategy Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--ordering`, `-o` | `inside_out` | Net ordering: `inside_out`, `mps`, or `original` |
+| `--direction`, `-d` | `forward` | Search direction: `forward`, `backwards`, or `random` |
+| `--no-bga-zones` | (disabled) | Disable BGA exclusion zone detection |
+| `--layers`, `-l` | `F.Cu In1.Cu In2.Cu B.Cu` | Routing layers to use |
+
+### Track and Via Geometry
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--track-width` | `0.1` | Track width in mm |
+| `--clearance` | `0.1` | Clearance between tracks in mm |
+| `--via-size` | `0.3` | Via outer diameter in mm |
+| `--via-drill` | `0.2` | Via drill size in mm |
+
+### Router Algorithm Parameters
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--grid-step` | `0.1` | Grid resolution in mm |
+| `--via-cost` | `25` | Penalty for placing a via (in grid steps) |
+| `--max-iterations` | `100000` | Max A* iterations before giving up |
+| `--heuristic-weight` | `1.5` | A* heuristic weight (higher = faster but less optimal) |
+
+### Stub Proximity Penalty
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--stub-proximity-radius` | `1.0` | Radius around stubs to penalize routing (mm) |
+| `--stub-proximity-cost` | `3.0` | Cost penalty near stubs (mm equivalent) |
+
+### Example with Custom Parameters
+
+```bash
+# Route with wider tracks and larger clearance
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" \
+    --track-width 0.15 --clearance 0.15 --via-size 0.4 --via-drill 0.25
+
+# Route with higher via penalty (fewer layer changes)
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" \
+    --via-cost 100
+
+# Route with more iterations for difficult nets
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" \
+    --max-iterations 500000 --heuristic-weight 1.2
+
+# Use specific layers
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" \
+    --layers F.Cu In1.Cu In2.Cu In8.Cu B.Cu
 ```
 
 ### Parameter Notes
@@ -161,7 +202,7 @@ GridRouteConfig(
 - **max_iterations**: Increase for complex routes. Easy routes need ~200 iterations, hard routes may need 10,000+.
 - **via_cost**: Higher values discourage layer changes. 25 means a via costs as much as 0.025 grid steps of travel (encourages using vias freely for optimal routing).
 - **stub_proximity_radius/cost**: Routes passing near unrouted stub endpoints incur extra cost. This prevents early routes from blocking later ones. Vias near stubs are penalized 2x.
-- **bga_exclusion_zones**: Automatically detected from BGA footprints in the PCB. Can be overridden manually if needed.
+- **bga_exclusion_zones**: Automatically detected from BGA footprints in the PCB. Can be disabled with `--no-bga-zones`.
 - **inside-out ordering**: Nets with pads inside a BGA zone are automatically sorted by distance from BGA center (closest first). This improves routing success for BGA escape routing.
 - **mps ordering**: Maximum Planar Subset algorithm that detects crossing conflicts between nets and orders them to minimize blocking. See [MPS Algorithm](#mps-algorithm) section below.
 

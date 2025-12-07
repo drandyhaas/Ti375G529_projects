@@ -300,10 +300,10 @@ impl GridRouter {
         let mut iterations: u32 = 0;
 
         while let Some(current_entry) = open_set.pop() {
-            iterations += 1;
-            if iterations > max_iterations {
+            if iterations >= max_iterations {
                 break;
             }
+            iterations += 1;
 
             let current = current_entry.state;
             let current_key = current.as_key();
