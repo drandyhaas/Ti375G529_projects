@@ -84,11 +84,11 @@ python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" 
 The router supports three net ordering strategies via the `--ordering` flag:
 
 ```bash
-# Inside-out ordering (default) - best for BGA fanout routing
-python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering inside_out
-
-# MPS ordering - minimizes crossing conflicts between nets
+# MPS ordering (default) - minimizes crossing conflicts between nets
 python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering mps
+
+# Inside-out ordering - best for BGA fanout routing
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering inside_out
 
 # Original ordering - routes nets in the order specified
 python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering original
@@ -96,14 +96,14 @@ python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" 
 
 #### Strategy Comparison (32 DATA nets)
 
-| Metric | inside_out | mps | original |
-|--------|-----------|-----|----------|
+| Metric | mps | inside_out | original |
+|--------|-----|-----------|----------|
 | Success Rate | 32/32 (100%) | 32/32 (100%) | 32/32 (100%) |
-| Time | 4.08s | 4.06s | 4.60s |
-| Iterations | 723,666 | 1,029,824 | 1,071,958 |
-| Via Count | 47 | 52 | 50 |
+| Time | 4.06s | 4.08s | 4.60s |
+| Iterations | 1,029,824 | 723,666 | 1,071,958 |
+| Via Count | 52 | 47 | 50 |
 
-**Recommendation**: Use `inside_out` (default) for BGA fanout routing. The MPS algorithm is better suited for scenarios with actual crossing conflicts (e.g., connections between two rows of pins where net paths interleave).
+**Recommendation**: Use `mps` (default) for general routing. Use `inside_out` for pure BGA fanout routing where nets radiate from center.
 
 ### Route 32 DATA Nets (Inside-Out Ordering is Automatic)
 
@@ -144,7 +144,7 @@ python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" [OPTI
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--ordering`, `-o` | `inside_out` | Net ordering: `inside_out`, `mps`, or `original` |
+| `--ordering`, `-o` | `mps` | Net ordering: `mps`, `inside_out`, or `original` |
 | `--direction`, `-d` | `forward` | Search direction: `forward`, `backwards`, or `random` |
 | `--no-bga-zones` | (disabled) | Disable BGA exclusion zone detection |
 | `--layers`, `-l` | `F.Cu In1.Cu In2.Cu B.Cu` | Routing layers to use |
@@ -172,7 +172,7 @@ python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-*)" [OPTI
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--stub-proximity-radius` | `1.5` | Radius around stubs to penalize routing (mm) |
-| `--stub-proximity-cost` | `3.0` | Cost penalty near stubs (mm equivalent) |
+| `--stub-proximity-cost` | `2.0` | Cost penalty near stubs (mm equivalent) |
 
 ### Example with Custom Parameters
 

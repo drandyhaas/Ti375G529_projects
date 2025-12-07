@@ -100,7 +100,7 @@ python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-*)" [OPTION
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--ordering`, `-o` | `inside_out` | Net ordering: `inside_out`, `mps`, or `original` |
+| `--ordering`, `-o` | `mps` | Net ordering: `mps`, `inside_out`, or `original` |
 | `--no-bga-zones` | (disabled) | Disable BGA exclusion zone detection |
 | `--layers`, `-l` | `F.Cu In1.Cu In2.Cu B.Cu` | Routing layers to use |
 
@@ -127,7 +127,7 @@ python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-*)" [OPTION
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--stub-proximity-radius` | `1.5` | Radius around stubs to penalize routing (mm) |
-| `--stub-proximity-cost` | `3.0` | Cost penalty near stubs (mm equivalent) |
+| `--stub-proximity-cost` | `2.0` | Cost penalty near stubs (mm equivalent) |
 
 ### Example with Options
 

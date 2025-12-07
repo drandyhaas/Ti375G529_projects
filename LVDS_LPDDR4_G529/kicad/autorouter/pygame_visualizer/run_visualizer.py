@@ -1187,8 +1187,8 @@ def main():
 
     # Ordering and strategy options (same as batch_grid_router)
     parser.add_argument("--ordering", "-o", choices=["inside_out", "mps", "original"],
-                        default="inside_out",
-                        help="Net ordering strategy: inside_out (default), mps, or original")
+                        default="mps",
+                        help="Net ordering strategy: mps (default, crossing conflicts), inside_out, or original")
     parser.add_argument("--no-bga-zones", action="store_true",
                         help="Disable BGA exclusion zone detection")
     parser.add_argument("--layers", "-l", nargs="+",
@@ -1218,8 +1218,8 @@ def main():
     # Stub proximity penalty (same as batch_grid_router)
     parser.add_argument("--stub-proximity-radius", type=float, default=1.5,
                         help="Radius around stubs to penalize routing in mm (default: 1.5)")
-    parser.add_argument("--stub-proximity-cost", type=float, default=3.0,
-                        help="Cost penalty near stubs in mm equivalent (default: 3.0)")
+    parser.add_argument("--stub-proximity-cost", type=float, default=2.0,
+                        help="Cost penalty near stubs in mm equivalent (default: 2.0)")
 
     args = parser.parse_args()
 

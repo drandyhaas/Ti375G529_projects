@@ -1528,8 +1528,8 @@ Examples:
     parser.add_argument("net_patterns", nargs="+", help="Net names or wildcard patterns to route")
     # Ordering and strategy options
     parser.add_argument("--ordering", "-o", choices=["inside_out", "mps", "original"],
-                        default="inside_out",
-                        help="Net ordering strategy: inside_out (default), mps (crossing conflicts), or original")
+                        default="mps",
+                        help="Net ordering strategy: mps (default, crossing conflicts), inside_out, or original")
     parser.add_argument("--direction", "-d", choices=["forward", "backwards", "random"],
                         default=None,
                         help="Direction search order for each net route")
@@ -1562,8 +1562,8 @@ Examples:
     # Stub proximity penalty
     parser.add_argument("--stub-proximity-radius", type=float, default=1.5,
                         help="Radius around stubs to penalize routing in mm (default: 1.5)")
-    parser.add_argument("--stub-proximity-cost", type=float, default=3.0,
-                        help="Cost penalty near stubs in mm equivalent (default: 3.0)")
+    parser.add_argument("--stub-proximity-cost", type=float, default=2.0,
+                        help="Cost penalty near stubs in mm equivalent (default: 2.0)")
 
     args = parser.parse_args()
 
