@@ -517,8 +517,9 @@ def run_visualization(
     grid_step: float = 0.1,
     max_iterations: int = 100000,
     auto_advance: bool = False,
+    display_time: float = 0.0,
     disable_bga_zones: bool = False,
-    ordering_strategy: str = "inside_out",
+    ordering_strategy: str = "mps",
     track_width: float = 0.1,
     clearance: float = 0.1,
     via_size: float = 0.3,
@@ -526,13 +527,14 @@ def run_visualization(
     via_cost: int = 25,
     heuristic_weight: float = 1.5,
     stub_proximity_radius: float = 1.5,
-    stub_proximity_cost: float = 3.0
+    stub_proximity_cost: float = 2.0
 ):
     """Run the visualization for multiple nets using the Rust router.
 
     If auto_advance is True, automatically proceed to next net without waiting for N key.
+    display_time: seconds to display completed route before auto-advancing (only used with auto_advance).
     If disable_bga_zones is True, BGA exclusion zones are not applied.
-    ordering_strategy: "inside_out" (default), "mps", or "original"
+    ordering_strategy: "mps" (default), "inside_out", or "original"
     """
     print(f"Loading {pcb_file}...")
     pcb_data = parse_kicad_pcb(pcb_file)
@@ -675,6 +677,7 @@ def run_visualization(
     successful = 0
     failed = 0
     waiting_for_next = False  # Wait for 'N' key before next net
+    display_wait_start = None  # Time when display wait started (for --display-time)
     total_iterations = 0  # Track total iterations across all nets
     net_results = []  # Track results per net: (name, iterations, path_length, success)
     current_net_iterations = 0  # Track iterations for current net (across direction attempts)
@@ -1066,10 +1069,32 @@ def run_visualization(
                     waiting_for_next = True
 
             # Check for N key to advance to next net or try reverse
-            # In auto_advance mode, automatically proceed without waiting
-            if waiting_for_next and (visualizer.next_net_requested or auto_advance):
+            # In auto_advance mode, wait for display_time before proceeding
+            if waiting_for_next:
+                # Start display timer when entering wait state
+                if display_wait_start is None:
+                    display_wait_start = time.time()
+
+                # Check if we should advance
+                should_auto_advance = False
+                if auto_advance:
+                    elapsed = time.time() - display_wait_start
+                    if elapsed >= display_time:
+                        should_auto_advance = True
+                    else:
+                        # Update status message with countdown
+                        remaining = display_time - elapsed
+                        visualizer.status_message = f"Displaying route... ({remaining:.1f}s)"
+
+                if not (visualizer.next_net_requested or should_auto_advance):
+                    # Keep rendering while waiting
+                    visualizer.render()
+                    visualizer.tick()
+                    continue
+
                 visualizer.next_net_requested = False
                 waiting_for_next = False
+                display_wait_start = None  # Reset timer for next net
 
                 # Check if we need to try backwards direction (forward failed, haven't tried backwards yet)
                 if forward_done and not reverse_done:
@@ -1184,6 +1209,8 @@ def main():
     # Visualizer-specific options
     parser.add_argument("--auto", action="store_true",
                         help="Automatically advance to next net (no waiting for N key)")
+    parser.add_argument("--display-time", type=float, default=0.0,
+                        help="Time in seconds to display completed route before advancing (default: 0.0)")
 
     # Ordering and strategy options (same as batch_grid_router)
     parser.add_argument("--ordering", "-o", choices=["inside_out", "mps", "original"],
@@ -1258,9 +1285,11 @@ def main():
     mode_info = []
     if args.auto:
         mode_info.append("auto-advance")
+        if args.display_time > 0:
+            mode_info.append(f"display={args.display_time}s")
     if args.no_bga_zones:
         mode_info.append("no BGA zones")
-    if args.ordering != "inside_out":
+    if args.ordering != "mps":
         mode_info.append(f"ordering={args.ordering}")
     mode_str = f" ({', '.join(mode_info)})" if mode_info else ""
     print(f"\nWill visualize routing of {len(all_nets)} nets{mode_str}")
@@ -1271,6 +1300,7 @@ def main():
         grid_step=args.grid_step,
         max_iterations=args.max_iterations,
         auto_advance=args.auto,
+        display_time=args.display_time,
         disable_bga_zones=args.no_bga_zones,
         ordering_strategy=args.ordering,
         track_width=args.track_width,

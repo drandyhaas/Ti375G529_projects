@@ -92,9 +92,10 @@ python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-*)" [OPTION
 
 ### Visualizer-Specific Options
 
-| Option | Description |
-|--------|-------------|
-| `--auto` | Automatically advance to next net (no waiting for N key) |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--auto` | (disabled) | Automatically advance to next net (no waiting for N key) |
+| `--display-time` | `0.0` | Seconds to display completed route before advancing (with --auto) |
 
 ### Ordering and Strategy Options
 
@@ -132,8 +133,11 @@ python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-*)" [OPTION
 ### Example with Options
 
 ```bash
-# Route with MPS ordering and auto-advance
-python pygame_visualizer/run_visualizer.py --auto --ordering mps input.kicad_pcb "Net-(U2A-*)"
+# Route with auto-advance (MPS ordering is default)
+python pygame_visualizer/run_visualizer.py --auto input.kicad_pcb "Net-(U2A-*)"
+
+# Auto-advance with 2 second display of each completed route
+python pygame_visualizer/run_visualizer.py --auto --display-time 2.0 input.kicad_pcb "Net-(U2A-*)"
 
 # Route with custom via cost (fewer layer changes)
 python pygame_visualizer/run_visualizer.py --via-cost 100 input.kicad_pcb "Net-(U2A-DATA_*)"
