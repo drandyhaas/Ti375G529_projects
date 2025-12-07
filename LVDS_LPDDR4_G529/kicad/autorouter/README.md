@@ -18,6 +18,7 @@ A fast Rust-accelerated A* autorouter for KiCad PCB files using integer grid coo
 - **Batch routing** - Routes multiple nets sequentially, each avoiding previously routed tracks
 - **Stub proximity avoidance** - Penalizes routes near unrouted stubs to prevent blocking
 - **Incremental obstacle caching** - Base obstacles built once, cloned per-net for ~7x speedup
+- **Pad-only routing** - Routes nets with only pads (no stubs) or pad+stub combinations
 
 ## Requirements
 
@@ -120,6 +121,15 @@ Auto-detected 3 BGA exclusion zone(s):
   U1: (165.3, 95.5) to (175.5, 110.5)
 
 Sorted 32 BGA nets inside-out (0 non-BGA nets unchanged)
+```
+
+### Disable BGA Exclusion Zones
+
+For nets that need to route directly between pads inside BGA areas (e.g., LVDS signals between BGAs), use `--no-bga-zones` to disable the BGA exclusion zone blocking:
+
+```bash
+# Route LVDS nets that connect pads inside BGA packages
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "*lvds*" --no-bga-zones
 ```
 
 ## Configuration
@@ -294,15 +304,24 @@ python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-DATA_0)"
 
 # Auto-advance mode for benchmarking (no manual N key needed)
 python pygame_visualizer/run_visualizer.py --auto input.kicad_pcb "Net-(U2A-DATA_*)"
+
+# Disable BGA zones for pad-only nets (e.g., LVDS between BGAs)
+python pygame_visualizer/run_visualizer.py --no-bga-zones input.kicad_pcb "*lvds*"
 ```
 
 Features:
-- Same Rust router as batch mode (produces identical results)
+- **Identical results to batch router** - Same Rust A* engine, same obstacle handling, same iteration counts
 - Pause, step, zoom, pan controls
 - Speed control with 2x scaling (1x, 2x, 4x, 8x... up to 65536x)
 - Layer filtering and legend display
 - Persistent route display (completed routes remain visible)
 - Incremental obstacle caching for fast net setup
+- Pad-only routing support (nets with only pads, no stubs)
+
+Both routers use the same obstacle handling:
+- **Routed nets**: segments, vias, and pads added as obstacles
+- **Unrouted nets**: segments (stubs), vias (if any), and pads added as obstacles
+- **Stub proximity costs**: applied to all remaining unrouted nets
 
 See [pygame_visualizer/README.md](pygame_visualizer/README.md) for full documentation.
 

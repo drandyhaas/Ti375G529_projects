@@ -82,10 +82,13 @@ struct GridObstacleMap {
     /// Number of layers
     #[pyo3(get)]
     num_layers: usize,
-    /// BGA exclusion zone (min_gx, min_gy, max_gx, max_gy)
-    bga_zone: Option<(i32, i32, i32, i32)>,
-    /// Allowed cells that override BGA zone (for source/target points)
+    /// BGA exclusion zones (min_gx, min_gy, max_gx, max_gy) - multiple zones supported
+    bga_zones: Vec<(i32, i32, i32, i32)>,
+    /// Allowed cells that override BGA zone blocking (for source/target points inside BGA)
     allowed_cells: FxHashSet<u64>,
+    /// Source/target cells that can be routed to even if near obstacles
+    /// These override regular blocking but NOT BGA zone blocking
+    source_target_cells: FxHashSet<u64>,
 }
 
 #[inline]
@@ -104,9 +107,20 @@ impl GridObstacleMap {
             blocked_vias: FxHashSet::default(),
             stub_proximity: FxHashMap::default(),
             num_layers,
-            bga_zone: None,
+            bga_zones: Vec::new(),
             allowed_cells: FxHashSet::default(),
+            source_target_cells: FxHashSet::default(),
         }
+    }
+
+    /// Add a source/target cell that can be routed to even if near obstacles
+    fn add_source_target_cell(&mut self, gx: i32, gy: i32) {
+        self.source_target_cells.insert(pack_xy(gx, gy));
+    }
+
+    /// Clear all source/target cells
+    fn clear_source_target_cells(&mut self) {
+        self.source_target_cells.clear();
     }
 
     /// Create a deep copy of this obstacle map
@@ -116,8 +130,9 @@ impl GridObstacleMap {
             blocked_vias: self.blocked_vias.clone(),
             stub_proximity: self.stub_proximity.clone(),
             num_layers: self.num_layers,
-            bga_zone: self.bga_zone,
+            bga_zones: self.bga_zones.clone(),
             allowed_cells: self.allowed_cells.clone(),
+            source_target_cells: self.source_target_cells.clone(),
         }
     }
 
@@ -136,9 +151,9 @@ impl GridObstacleMap {
         self.allowed_cells.insert(pack_xy(gx, gy));
     }
 
-    /// Set BGA exclusion zone
+    /// Add a BGA exclusion zone (multiple zones supported)
     fn set_bga_zone(&mut self, min_gx: i32, min_gy: i32, max_gx: i32, max_gy: i32) {
-        self.bga_zone = Some((min_gx, min_gy, max_gx, max_gy));
+        self.bga_zones.push((min_gx, min_gy, max_gx, max_gy));
     }
 
     /// Add a blocked cell
@@ -165,18 +180,39 @@ impl GridObstacleMap {
     /// Check if cell is blocked
     #[inline]
     fn is_blocked(&self, gx: i32, gy: i32, layer: usize) -> bool {
-        // First check if blocked by regular obstacles (segments, vias, pads)
         if layer >= self.num_layers {
             return true;
         }
-        if self.blocked_cells[layer].contains(&pack_xy(gx, gy)) {
+
+        let key = pack_xy(gx, gy);
+
+        // Check if inside any BGA zone
+        let in_bga_zone = self.bga_zones.iter().any(|(min_gx, min_gy, max_gx, max_gy)| {
+            gx >= *min_gx && gx <= *max_gx && gy >= *min_gy && gy <= *max_gy
+        });
+
+        // Check if cell is in blocked_cells
+        let in_blocked_cells = self.blocked_cells[layer].contains(&key);
+
+        // If in BGA zone: allowed_cells overrides BOTH the zone blocking AND any blocked_cells
+        // added for the BGA zone (since Python adds BGA zone cells to blocked_cells too)
+        if in_bga_zone {
+            if self.allowed_cells.contains(&key) {
+                // Allowed cell inside BGA zone - permit routing here
+                return false;
+            }
+            // Not allowed - block on all layers inside BGA zone
             return true;
         }
 
-        // BGA zone only blocks F.Cu (layer 0) routing, not inner layers
-        // Vias are blocked separately by is_via_blocked()
-        // Inner layers can route freely through BGA zone
-        // (F.Cu blocking is handled by add_blocked_cell in Python)
+        // Outside BGA zone: check regular obstacles
+        // source_target_cells can override regular blocking to allow routing to start/end
+        if in_blocked_cells {
+            if self.source_target_cells.contains(&key) {
+                return false;
+            }
+            return true;
+        }
 
         false
     }
@@ -188,10 +224,11 @@ impl GridObstacleMap {
         if self.blocked_vias.contains(&pack_xy(gx, gy)) {
             return true;
         }
-        // Check BGA zone - vias blocked inside unless allowed
-        if let Some((min_gx, min_gy, max_gx, max_gy)) = self.bga_zone {
-            if gx >= min_gx && gx <= max_gx && gy >= min_gy && gy <= max_gy {
-                return !self.allowed_cells.contains(&pack_xy(gx, gy));
+        // Check BGA zones - vias blocked inside unless allowed
+        let key = pack_xy(gx, gy);
+        for (min_gx, min_gy, max_gx, max_gy) in &self.bga_zones {
+            if gx >= *min_gx && gx <= *max_gx && gy >= *min_gy && gy <= *max_gy {
+                return !self.allowed_cells.contains(&key);
             }
         }
         false

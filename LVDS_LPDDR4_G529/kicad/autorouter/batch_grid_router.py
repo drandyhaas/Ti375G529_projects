@@ -122,6 +122,140 @@ def find_connected_groups(segments: List[Segment], tolerance: float = 0.01) -> L
     return list(groups.values())
 
 
+def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> Tuple[List, List, str]:
+    """
+    Find source and target endpoints for a net, considering both segments and pads.
+
+    Returns:
+        (sources, targets, error_message)
+        - sources: List of (gx, gy, layer_idx, orig_x, orig_y)
+        - targets: List of (gx, gy, layer_idx, orig_x, orig_y)
+        - error_message: None if successful, otherwise describes why routing can't proceed
+    """
+    coord = GridCoord(config.grid_step)
+    layer_map = {name: idx for idx, name in enumerate(config.layers)}
+
+    net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+    net_pads = pcb_data.pads_by_net.get(net_id, [])
+
+    # Case 1: Multiple segment groups - use segments as before
+    if len(net_segments) >= 2:
+        groups = find_connected_groups(net_segments)
+        if len(groups) >= 2:
+            groups.sort(key=len, reverse=True)
+            source_segs = groups[0]
+            target_segs = groups[1]
+
+            sources = []
+            for seg in source_segs:
+                layer_idx = layer_map.get(seg.layer)
+                if layer_idx is None:
+                    continue
+                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
+                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
+                sources.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
+                if (gx1, gy1) != (gx2, gy2):
+                    sources.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
+
+            targets = []
+            for seg in target_segs:
+                layer_idx = layer_map.get(seg.layer)
+                if layer_idx is None:
+                    continue
+                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
+                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
+                targets.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
+                if (gx1, gy1) != (gx2, gy2):
+                    targets.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
+
+            if sources and targets:
+                return sources, targets, None
+
+    # Case 2: One segment group + unconnected pads
+    if len(net_segments) >= 1 and len(net_pads) >= 1:
+        groups = find_connected_groups(net_segments)
+        if len(groups) == 1:
+            # Check if any pad is NOT connected to the segment group
+            seg_group = groups[0]
+            seg_points = set()
+            for seg in seg_group:
+                seg_points.add((round(seg.start_x, 3), round(seg.start_y, 3)))
+                seg_points.add((round(seg.end_x, 3), round(seg.end_y, 3)))
+
+            unconnected_pads = []
+            for pad in net_pads:
+                pad_pos = (round(pad.global_x, 3), round(pad.global_y, 3))
+                # Check if pad is near any segment point
+                connected = False
+                for sp in seg_points:
+                    if abs(pad_pos[0] - sp[0]) < 0.05 and abs(pad_pos[1] - sp[1]) < 0.05:
+                        connected = True
+                        break
+                if not connected:
+                    unconnected_pads.append(pad)
+
+            if unconnected_pads:
+                # Use segment endpoints as source, unconnected pad(s) as target
+                sources = []
+                for seg in seg_group:
+                    layer_idx = layer_map.get(seg.layer)
+                    if layer_idx is None:
+                        continue
+                    gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
+                    gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
+                    sources.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
+                    if (gx1, gy1) != (gx2, gy2):
+                        sources.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
+
+                targets = []
+                for pad in unconnected_pads:
+                    gx, gy = coord.to_grid(pad.global_x, pad.global_y)
+                    for layer in pad.layers:
+                        layer_idx = layer_map.get(layer)
+                        if layer_idx is not None:
+                            targets.append((gx, gy, layer_idx, pad.global_x, pad.global_y))
+
+                if sources and targets:
+                    return sources, targets, None
+
+    # Case 3: No segments, just pads - route between pads
+    if len(net_segments) == 0 and len(net_pads) >= 2:
+        # Use first pad as source, rest as targets
+        sources = []
+        pad = net_pads[0]
+        gx, gy = coord.to_grid(pad.global_x, pad.global_y)
+        for layer in pad.layers:
+            layer_idx = layer_map.get(layer)
+            if layer_idx is not None:
+                sources.append((gx, gy, layer_idx, pad.global_x, pad.global_y))
+
+        targets = []
+        for pad in net_pads[1:]:
+            gx, gy = coord.to_grid(pad.global_x, pad.global_y)
+            for layer in pad.layers:
+                layer_idx = layer_map.get(layer)
+                if layer_idx is not None:
+                    targets.append((gx, gy, layer_idx, pad.global_x, pad.global_y))
+
+        if sources and targets:
+            return sources, targets, None
+
+    # Case 4: Single segment, check if it connects two pads already
+    if len(net_segments) == 1 and len(net_pads) >= 2:
+        # Segment already connects pads - nothing to route
+        return [], [], "Net has 1 segment connecting pads - already routed"
+
+    # Determine why we can't route
+    if len(net_segments) == 0 and len(net_pads) < 2:
+        return [], [], f"Net has no segments and only {len(net_pads)} pad(s) - need at least 2 endpoints"
+    if len(net_segments) >= 1:
+        groups = find_connected_groups(net_segments)
+        if len(groups) == 1:
+            return [], [], "Net segments are already connected (single group) with no unconnected pads"
+
+    return [], [], f"Cannot determine endpoints: {len(net_segments)} segments, {len(net_pads)} pads"
+
+
 def get_stub_endpoints(pcb_data: PCBData, net_ids: List[int]) -> List[Tuple[float, float]]:
     """Get centroid positions of unrouted net stubs for proximity avoidance."""
     stubs = []
@@ -607,50 +741,18 @@ def build_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
 def route_net(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
               unrouted_stubs: Optional[List[Tuple[float, float]]] = None) -> Optional[dict]:
     """Route a single net using the Rust router."""
-    net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
-    if len(net_segments) < 2:
-        print(f"  Net has only {len(net_segments)} segments, need at least 2")
+    # Find endpoints (segments or pads)
+    sources, targets, error = get_net_endpoints(pcb_data, net_id, config)
+    if error:
+        print(f"  {error}")
         return None
-
-    groups = find_connected_groups(net_segments)
-    if len(groups) < 2:
-        print(f"  Net segments are already connected (only {len(groups)} group)")
-        return None
-
-    groups.sort(key=len, reverse=True)
-    source_segs = groups[0]
-    target_segs = groups[1]
-
-    coord = GridCoord(config.grid_step)
-    layer_map = {name: idx for idx, name in enumerate(config.layers)}
-    layer_names = config.layers
-
-    # Sample source and target points - keep both grid and original coords
-    # Format: (gx, gy, layer_idx, original_x, original_y)
-    sources = []
-    for seg in source_segs:
-        layer_idx = layer_map.get(seg.layer)
-        if layer_idx is None:
-            continue
-        gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-        gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-        sources.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
-        if (gx1, gy1) != (gx2, gy2):
-            sources.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
-
-    targets = []
-    for seg in target_segs:
-        layer_idx = layer_map.get(seg.layer)
-        if layer_idx is None:
-            continue
-        gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-        gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-        targets.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
-        if (gx1, gy1) != (gx2, gy2):
-            targets.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
 
     if not sources or not targets:
+        print(f"  No valid source/target endpoints found")
         return None
+
+    coord = GridCoord(config.grid_step)
+    layer_names = config.layers
 
     # Extract grid-only coords for routing
     sources_grid = [(s[0], s[1], s[2]) for s in sources]
@@ -660,11 +762,17 @@ def route_net(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
     obstacles = build_obstacle_map(pcb_data, config, net_id, unrouted_stubs)
 
     # Add source and target positions as allowed cells to override BGA zone blocking
+    # This only affects BGA zone blocking, not regular obstacle blocking (tracks, stubs, pads)
     allow_radius = 10
     for gx, gy, _ in sources_grid + targets_grid:
         for dx in range(-allow_radius, allow_radius + 1):
             for dy in range(-allow_radius, allow_radius + 1):
                 obstacles.add_allowed_cell(gx + dx, gy + dy)
+
+    # Mark exact source/target cells so routing can start/end there even if blocked by
+    # adjacent track expansion (but NOT blocked by BGA zones - use allowed_cells for that)
+    for gx, gy, _ in sources_grid + targets_grid:
+        obstacles.add_source_target_cell(gx, gy)
 
     router = GridRouter(via_cost=config.via_cost * 1000, h_weight=config.heuristic_weight)
 
@@ -797,59 +905,34 @@ def route_net(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
 def route_net_with_obstacles(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
                               obstacles: GridObstacleMap) -> Optional[dict]:
     """Route a single net using pre-built obstacles (for incremental routing)."""
-    net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
-    if len(net_segments) < 2:
-        print(f"  Net has only {len(net_segments)} segments, need at least 2")
+    # Find endpoints (segments or pads)
+    sources, targets, error = get_net_endpoints(pcb_data, net_id, config)
+    if error:
+        print(f"  {error}")
         return None
-
-    groups = find_connected_groups(net_segments)
-    if len(groups) < 2:
-        print(f"  Net segments are already connected (only {len(groups)} group)")
-        return None
-
-    groups.sort(key=len, reverse=True)
-    source_segs = groups[0]
-    target_segs = groups[1]
-
-    coord = GridCoord(config.grid_step)
-    layer_map = {name: idx for idx, name in enumerate(config.layers)}
-    layer_names = config.layers
-
-    # Sample source and target points
-    sources = []
-    for seg in source_segs:
-        layer_idx = layer_map.get(seg.layer)
-        if layer_idx is None:
-            continue
-        gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-        gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-        sources.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
-        if (gx1, gy1) != (gx2, gy2):
-            sources.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
-
-    targets = []
-    for seg in target_segs:
-        layer_idx = layer_map.get(seg.layer)
-        if layer_idx is None:
-            continue
-        gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-        gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-        targets.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
-        if (gx1, gy1) != (gx2, gy2):
-            targets.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
 
     if not sources or not targets:
+        print(f"  No valid source/target endpoints found")
         return None
+
+    coord = GridCoord(config.grid_step)
+    layer_names = config.layers
 
     sources_grid = [(s[0], s[1], s[2]) for s in sources]
     targets_grid = [(t[0], t[1], t[2]) for t in targets]
 
     # Add source and target positions as allowed cells to override BGA zone blocking
+    # This only affects BGA zone blocking, not regular obstacle blocking (tracks, stubs, pads)
     allow_radius = 10
     for gx, gy, _ in sources_grid + targets_grid:
         for dx in range(-allow_radius, allow_radius + 1):
             for dy in range(-allow_radius, allow_radius + 1):
                 obstacles.add_allowed_cell(gx + dx, gy + dy)
+
+    # Mark exact source/target cells so routing can start/end there even if blocked by
+    # adjacent track expansion (but NOT blocked by BGA zones - use allowed_cells for that)
+    for gx, gy, _ in sources_grid + targets_grid:
+        obstacles.add_source_target_cell(gx, gy)
 
     router = GridRouter(via_cost=config.via_cost * 1000, h_weight=config.heuristic_weight)
 
@@ -984,7 +1067,8 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
                 layers: List[str] = None,
                 bga_exclusion_zones: Optional[List[Tuple[float, float, float, float]]] = None,
                 direction_order: str = None,
-                ordering_strategy: str = "inside_out") -> Tuple[int, int, float]:
+                ordering_strategy: str = "inside_out",
+                disable_bga_zones: bool = False) -> Tuple[int, int, float]:
     """
     Route multiple nets using the Rust router.
 
@@ -1014,7 +1098,10 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
     print(f"Using {len(layers)} routing layers: {layers}")
 
     # Auto-detect BGA exclusion zones if not specified
-    if bga_exclusion_zones is None:
+    if disable_bga_zones:
+        bga_exclusion_zones = []
+        print("BGA exclusion zones disabled")
+    elif bga_exclusion_zones is None:
         bga_exclusion_zones = auto_detect_bga_exclusion_zones(pcb_data, margin=0.5)
         if bga_exclusion_zones:
             bga_components = find_components_by_type(pcb_data, 'BGA')
@@ -1042,14 +1129,24 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         config_kwargs['direction_order'] = direction_order
     config = GridRouteConfig(**config_kwargs)
 
-    # Find net IDs
+    # Find net IDs - check both pcb.nets and pads_by_net
     net_ids = []
     for net_name in net_names:
         net_id = None
+        # First check pcb.nets
         for nid, net in pcb_data.nets.items():
             if net.name == net_name:
                 net_id = nid
                 break
+        # If not found, check pads_by_net (for nets not in pcb.nets)
+        if net_id is None:
+            for nid, pads in pcb_data.pads_by_net.items():
+                for pad in pads:
+                    if pad.net_name == net_name:
+                        net_id = nid
+                        break
+                if net_id is not None:
+                    break
         if net_id is None:
             print(f"Warning: Net '{net_name}' not found, skipping")
         else:
@@ -1153,10 +1250,11 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
             add_net_vias_as_obstacles(obstacles, pcb_data, routed_id, config)
             add_net_pads_as_obstacles(obstacles, pcb_data, routed_id, config)
 
-        # Add other unrouted nets' stubs and pads as obstacles (not the current net)
+        # Add other unrouted nets' stubs, vias, and pads as obstacles (not the current net)
         other_unrouted = [nid for nid in remaining_net_ids if nid != net_id]
         for other_net_id in other_unrouted:
             add_net_stubs_as_obstacles(obstacles, pcb_data, other_net_id, config)
+            add_net_vias_as_obstacles(obstacles, pcb_data, other_net_id, config)
             add_net_pads_as_obstacles(obstacles, pcb_data, other_net_id, config)
 
         # Add stub proximity costs for remaining unrouted nets
@@ -1225,7 +1323,15 @@ def expand_net_patterns(pcb_data: PCBData, patterns: List[str]) -> List[str]:
     Returns list of unique net names in sorted order for patterns,
     preserving order of non-pattern names.
     """
-    all_net_names = [net.name for net in pcb_data.nets.values()]
+    # Collect net names from both pcb.nets and pads_by_net
+    all_net_names = set(net.name for net in pcb_data.nets.values())
+    # Also include net names from pads (for nets not in pcb.nets)
+    for pads in pcb_data.pads_by_net.values():
+        for pad in pads:
+            if pad.net_name:
+                all_net_names.add(pad.net_name)
+                break  # Only need one pad's net_name per net
+    all_net_names = list(all_net_names)
     result = []
     seen = set()
 
@@ -1275,6 +1381,8 @@ Examples:
     parser.add_argument("--direction", "-d", choices=["forward", "backwards", "random"],
                         default=None,
                         help="Direction search order for each net route")
+    parser.add_argument("--no-bga-zones", action="store_true",
+                        help="Disable BGA exclusion zone detection (allows routing through BGA areas)")
 
     args = parser.parse_args()
 
@@ -1291,4 +1399,5 @@ Examples:
 
     batch_route(args.input_file, args.output_file, net_names,
                 direction_order=args.direction,
-                ordering_strategy=args.ordering)
+                ordering_strategy=args.ordering,
+                disable_bga_zones=args.no_bga_zones)

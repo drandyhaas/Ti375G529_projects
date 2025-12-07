@@ -5,11 +5,12 @@ Real-time visualization of the A* routing algorithm for PCB autorouting.
 ## Features
 
 - **Real-time A* visualization** - Watch the Rust router explore the grid
-- **Same algorithm as batch router** - Uses the exact same Rust A* implementation
+- **Identical results to batch router** - Same Rust A* engine, same obstacle handling, same iteration counts
 - **Layer-based coloring** - Each copper layer has a distinct color
 - **Persistent route display** - Completed routes remain visible when routing subsequent nets
 - **Interactive controls** - Pause, step, zoom, pan, adjust speed
 - **Search state display** - See open set (frontier), closed set (explored), final path
+- **Pad-only routing** - Routes nets with only pads (no stubs) directly between pads
 
 ## Installation
 
@@ -62,6 +63,18 @@ python pygame_visualizer/run_visualizer.py --auto fanout_starting_point.kicad_pc
 ```
 
 This is useful for benchmarking or batch visualization. The visualizer will quit automatically when all nets are processed.
+
+### Disable BGA Exclusion Zones
+
+Use `--no-bga-zones` to disable BGA exclusion zone blocking. This is needed for nets that connect pads inside BGA packages (like LVDS signals):
+
+```bash
+python pygame_visualizer/run_visualizer.py --no-bga-zones fanout_starting_point.kicad_pcb "*lvds*"
+```
+
+### Pad-Only Routing
+
+The visualizer can route nets that have only pads (no stub segments). These are nets where no fanout stubs have been created yet - the router will connect the pads directly.
 
 ### Example
 
@@ -168,7 +181,12 @@ This approach has **zero impact on the normal batch router** - `GridRouter.route
 - Cell lists are limited to 50,000 entries to prevent memory issues
 - Pre-rendered obstacle surface is cached for efficient rendering
 - **Incremental obstacle caching** - Base obstacle map is built once at startup (~0.6s), then cloned and updated per-net (~0.15-0.4s vs ~1.2s without caching)
-- Results match the batch router exactly (verified on 32 DATA nets: 723,666 iterations)
+- **Results match batch router exactly** - Verified on 47 U2A nets: 599,256 total iterations, identical success/failure
+
+Both routers use identical obstacle handling:
+- **Routed nets**: segments, vias, and pads added as obstacles
+- **Unrouted nets**: segments (stubs), vias (if any), and pads added as obstacles
+- **Stub proximity costs**: applied to all remaining unrouted nets
 
 ## Integration
 

@@ -578,23 +578,40 @@ class RoutingVisualizer:
         open_color = tuple(min(255, c + 80) for c in layer_color)
         closed_color = tuple(c // 3 for c in layer_color)
 
-        legend_items = [
-            (SearchColors.SOURCE, "Source (start)"),
-            (SearchColors.TARGET, "Target (goal)"),
-            (SearchColors.CURRENT, "Current node"),
-            (open_color, "Open set (frontier)"),
-            (closed_color, "Closed set (explored)"),
-        ]
+        # Source - circle
+        center = (x_offset + 5 + swatch_size // 2, y_offset + 2 + swatch_size // 2)
+        pygame.draw.circle(self.screen, SearchColors.SOURCE, center, swatch_size // 2)
+        text = self.font.render("Source (start)", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
 
-        for color, label in legend_items:
-            # Draw color swatch
-            swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
-            pygame.draw.rect(self.screen, color, swatch_rect)
-            pygame.draw.rect(self.screen, (100, 100, 100), swatch_rect, 1)
-            # Draw label
-            text = self.font.render(label, True, (200, 200, 200))
-            self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
-            y_offset += line_height
+        # Target - circle
+        center = (x_offset + 5 + swatch_size // 2, y_offset + 2 + swatch_size // 2)
+        pygame.draw.circle(self.screen, SearchColors.TARGET, center, swatch_size // 2)
+        text = self.font.render("Target (goal)", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
+
+        # Current node - filled rect
+        swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+        pygame.draw.rect(self.screen, SearchColors.CURRENT, swatch_rect)
+        text = self.font.render("Current node", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
+
+        # Open set - filled rect
+        swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+        pygame.draw.rect(self.screen, open_color, swatch_rect)
+        text = self.font.render("Open set (frontier)", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
+
+        # Closed set - filled rect
+        swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+        pygame.draw.rect(self.screen, closed_color, swatch_rect)
+        text = self.font.render("Closed set (explored)", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
 
         y_offset += 5
 
@@ -603,19 +620,29 @@ class RoutingVisualizer:
         self.screen.blit(text, (x_offset, y_offset))
         y_offset += line_height
 
-        route_items = [
-            (layer_color, "Current (wide)"),
-            (layer_color, "Previous"),
-            ((255, 255, 255), "Via"),
-        ]
+        # Current route - thick line
+        y_center = y_offset + 2 + swatch_size // 2
+        pygame.draw.line(self.screen, layer_color,
+                        (x_offset + 5, y_center), (x_offset + 5 + swatch_size, y_center), 4)
+        text = self.font.render("Current route", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
 
-        for color, label in route_items:
-            swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
-            pygame.draw.rect(self.screen, color, swatch_rect)
-            pygame.draw.rect(self.screen, (100, 100, 100), swatch_rect, 1)
-            text = self.font.render(label, True, (200, 200, 200))
-            self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
-            y_offset += line_height
+        # Previous route - thin line
+        y_center = y_offset + 2 + swatch_size // 2
+        dimmed_color = tuple(int(c * 0.6) for c in layer_color)
+        pygame.draw.line(self.screen, dimmed_color,
+                        (x_offset + 5, y_center), (x_offset + 5 + swatch_size, y_center), 2)
+        text = self.font.render("Previous routes", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
+
+        # Via - circle
+        center = (x_offset + 5 + swatch_size // 2, y_offset + 2 + swatch_size // 2)
+        pygame.draw.circle(self.screen, (255, 255, 255), center, swatch_size // 2)
+        text = self.font.render("Via", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
 
         y_offset += 5
 
@@ -624,19 +651,28 @@ class RoutingVisualizer:
         self.screen.blit(text, (x_offset, y_offset))
         y_offset += line_height
 
-        obstacle_items = [
-            ((120, 120, 120), "BGA exclusion zone"),
-            ((80, 80, 80), "Blocked cells"),
-            ((70, 70, 70), "Blocked via positions"),
-        ]
+        # BGA exclusion zone - unfilled square
+        swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+        pygame.draw.rect(self.screen, (120, 120, 120), swatch_rect, 1)
+        text = self.font.render("BGA exclusion zone", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
 
-        for color, label in obstacle_items:
-            swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
-            pygame.draw.rect(self.screen, color, swatch_rect)
-            pygame.draw.rect(self.screen, (100, 100, 100), swatch_rect, 1)
-            text = self.font.render(label, True, (200, 200, 200))
-            self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
-            y_offset += line_height
+        # Blocked cells - unfilled square
+        swatch_rect = Rect(x_offset + 5, y_offset + 2, swatch_size, swatch_size)
+        pygame.draw.rect(self.screen, (80, 80, 80), swatch_rect, 1)
+        text = self.font.render("Blocked cells", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
+
+        # Blocked via positions - X mark
+        x1, y1 = x_offset + 5, y_offset + 2
+        x2, y2 = x1 + swatch_size, y1 + swatch_size
+        pygame.draw.line(self.screen, (100, 100, 100), (x1, y1), (x2, y2), 2)
+        pygame.draw.line(self.screen, (100, 100, 100), (x1, y2), (x2, y1), 2)
+        text = self.font.render("Blocked via positions", True, (200, 200, 200))
+        self.screen.blit(text, (x_offset + swatch_size + 12, y_offset))
+        y_offset += line_height
 
         # Controls legend (bottom-right)
         self._render_controls_legend()

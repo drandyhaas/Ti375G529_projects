@@ -32,6 +32,7 @@ from kicad_parser import (
     parse_kicad_pcb, PCBData, Segment,
     auto_detect_bga_exclusion_zones, find_components_by_type
 )
+from batch_grid_router import find_connected_groups, get_net_endpoints, GridRouteConfig
 
 # Import Rust router
 try:
@@ -511,11 +512,13 @@ def run_visualization(
     layers: List[str] = None,
     grid_step: float = 0.1,
     max_iterations: int = 100000,
-    auto_advance: bool = False
+    auto_advance: bool = False,
+    disable_bga_zones: bool = False
 ):
     """Run the visualization for multiple nets using the Rust router.
 
     If auto_advance is True, automatically proceed to next net without waiting for N key.
+    If disable_bga_zones is True, BGA exclusion zones are not applied.
     """
     print(f"Loading {pcb_file}...")
     pcb_data = parse_kicad_pcb(pcb_file)
@@ -526,19 +529,33 @@ def run_visualization(
 
     print(f"Using layers: {layers}")
 
-    # Auto-detect BGA zones
-    bga_zones = auto_detect_bga_exclusion_zones(pcb_data, margin=0.5)
-    if bga_zones:
-        print(f"Detected {len(bga_zones)} BGA exclusion zone(s)")
+    # Auto-detect BGA zones (unless disabled)
+    if disable_bga_zones:
+        bga_zones = []
+        print("BGA exclusion zones disabled")
+    else:
+        bga_zones = auto_detect_bga_exclusion_zones(pcb_data, margin=0.5)
+        if bga_zones:
+            print(f"Detected {len(bga_zones)} BGA exclusion zone(s)")
 
-    # Find all net IDs and validate
+    # Find all net IDs and validate - check both pcb.nets and pads_by_net
     net_queue = []  # List of (net_name, net_id)
     for net_name in net_names:
         net_id = None
+        # First check pcb.nets
         for nid, net in pcb_data.nets.items():
             if net.name == net_name:
                 net_id = nid
                 break
+        # If not found, check pads_by_net (for nets not in pcb.nets)
+        if net_id is None:
+            for nid, pads in pcb_data.pads_by_net.items():
+                for pad in pads:
+                    if pad.net_name == net_name:
+                        net_id = nid
+                        break
+                if net_id is not None:
+                    break
         if net_id is None:
             print(f"Warning: Net '{net_name}' not found, skipping")
         else:
@@ -645,6 +662,9 @@ def run_visualization(
     original_sources = []
     original_targets = []
 
+    # Track routed/remaining nets to match batch router behavior
+    routed_net_ids = []  # Nets that have been successfully routed
+    remaining_net_ids = [nid for _, nid in net_queue]  # Nets not yet routed (or failed)
     def setup_net(net_idx: int) -> bool:
         """Set up routing for the net at the given index. Returns False if net should be skipped."""
         nonlocal router, sources, targets, obstacles, current_net_iterations
@@ -657,58 +677,42 @@ def run_visualization(
         print(f"\n[{net_idx + 1}/{len(net_queue)}] Setting up {net_name}...")
         print(f"  PCB has {len(pcb_data.segments)} segments and {len(pcb_data.vias)} vias")
 
-        # Get segments for this net
-        net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
-        if len(net_segments) < 2:
-            print(f"  Net has only {len(net_segments)} segments, skipping")
+        # Create a minimal config for get_net_endpoints (matches batch router)
+        routing_config = GridRouteConfig(
+            layers=layers,
+            grid_step=grid_step
+        )
+
+        # Find endpoints (handles segments, pads, or both) - same as batch router
+        sources_full, targets_full, error = get_net_endpoints(pcb_data, net_id, routing_config)
+        if error:
+            print(f"  {error}")
             return False
 
-        groups = find_connected_groups(net_segments)
-        if len(groups) < 2:
-            print(f"  Net already connected ({len(groups)} group), skipping")
-            return False
-
-        print(f"  Found {len(groups)} disconnected stub groups")
-
-        # Get source and target groups
-        groups.sort(key=len, reverse=True)
-        source_segs = groups[0]
-        target_segs = groups[1]
-
-        # Build sources and targets
-        sources = []
-        for seg in source_segs:
-            layer_idx = layer_map.get(seg.layer)
-            if layer_idx is not None:
-                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-                sources.append((gx1, gy1, layer_idx))
-                if (gx1, gy1) != (gx2, gy2):
-                    sources.append((gx2, gy2, layer_idx))
-
-        targets = []
-        for seg in target_segs:
-            layer_idx = layer_map.get(seg.layer)
-            if layer_idx is not None:
-                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-                targets.append((gx1, gy1, layer_idx))
-                if (gx1, gy1) != (gx2, gy2):
-                    targets.append((gx2, gy2, layer_idx))
-
-        if not sources or not targets:
+        if not sources_full or not targets_full:
             print("  No valid source/target points, skipping")
             return False
 
-        # Get all other net IDs in queue (not including current net)
-        # This includes both already-routed nets and not-yet-routed nets
-        other_net_ids = [nid for _, nid in net_queue if nid != net_id]
+        # Count groups for display
+        net_segments = [s for s in pcb_data.segments if s.net_id == net_id]
+        net_pads = pcb_data.pads_by_net.get(net_id, [])
+        if net_segments:
+            groups = find_connected_groups(net_segments)
+            print(f"  Found {len(groups)} disconnected stub groups")
+        else:
+            print(f"  Routing between {len(net_pads)} pads (no stubs)")
 
-        # Get unrouted stubs for proximity avoidance (nets after current in queue)
-        remaining_net_ids = [nid for _, nid in net_queue[net_idx+1:]]
-        unrouted_stubs = get_stub_endpoints(pcb_data, remaining_net_ids)
+        # Convert to grid-only format for routing (batch router does same thing internally)
+        sources = [(s[0], s[1], s[2]) for s in sources_full]
+        targets = [(t[0], t[1], t[2]) for t in targets_full]
 
-        # Build obstacle map by cloning base and adding all other nets' geometry
+        # Compute other unrouted nets (all remaining except current) - matches batch router
+        other_unrouted = [nid for nid in remaining_net_ids if nid != net_id]
+
+        # Get unrouted stubs for proximity avoidance - use all unrouted nets (not just future ones)
+        unrouted_stubs = get_stub_endpoints(pcb_data, other_unrouted)
+
+        # Build obstacle map by cloning base and adding other nets' geometry
         import time
         t0 = time.time()
 
@@ -718,15 +722,39 @@ def run_visualization(
         blocked_vias = set(base_blocked_vias)
         bga_zones_grid = base_bga_zones_grid
 
-        # Add all other nets in queue (segments, vias, pads) - but not current net
-        # This includes both already-routed nets AND not-yet-routed nets
+        # Precompute grid expansions
         expansion_grid = max(1, coord.to_grid_dist(0.1 / 2 + 0.1))
         via_block_grid = max(1, coord.to_grid_dist(0.3 / 2 + 0.1 / 2 + 0.1))
         via_track_expansion = max(1, coord.to_grid_dist(0.3 / 2 + 0.1 / 2 + 0.1))
         via_via_expansion = max(1, coord.to_grid_dist(0.3 + 0.1))
 
-        for other_net_id in other_net_ids:
-            # Add segments
+        # Add previously routed nets' segments/vias/pads as obstacles (from pcb_data)
+        # These nets have new geometry added via add_path_to_pcb
+        for routed_id in routed_net_ids:
+            # Add segments (stubs + routed path)
+            for seg in pcb_data.segments:
+                if seg.net_id != routed_id:
+                    continue
+                layer_idx = layer_map.get(seg.layer)
+                if layer_idx is None:
+                    continue
+                _add_segment_obstacle(obstacles, seg, coord, layer_idx, expansion_grid, via_block_grid,
+                                      blocked_cells, blocked_vias)
+            # Add vias (from routed path)
+            for via in pcb_data.vias:
+                if via.net_id != routed_id:
+                    continue
+                _add_via_obstacle(obstacles, via, coord, len(layers), via_track_expansion, via_via_expansion,
+                                  blocked_cells, blocked_vias)
+            # Add pads
+            pads = pcb_data.pads_by_net.get(routed_id, [])
+            for pad in pads:
+                _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid,
+                                  blocked_cells, blocked_vias, grid_step=grid_step)
+
+        # Add other unrouted nets' stubs, vias, and pads as obstacles (not the current net)
+        for other_net_id in other_unrouted:
+            # Add segments (stubs)
             for seg in pcb_data.segments:
                 if seg.net_id != other_net_id:
                     continue
@@ -735,7 +763,7 @@ def run_visualization(
                     continue
                 _add_segment_obstacle(obstacles, seg, coord, layer_idx, expansion_grid, via_block_grid,
                                       blocked_cells, blocked_vias)
-            # Add vias
+            # Add vias (in case they exist in input data)
             for via in pcb_data.vias:
                 if via.net_id != other_net_id:
                     continue
@@ -747,8 +775,8 @@ def run_visualization(
                 _add_pad_obstacle(obstacles, pad, coord, layer_map, expansion_grid, via_block_grid,
                                   blocked_cells, blocked_vias, grid_step=grid_step)
 
-        # Add stub proximity costs for remaining (not yet routed) nets
-        # Must match build_obstacle_map_with_cache logic exactly
+        # Add stub proximity costs for remaining unrouted nets
+        # Must match batch router's add_stub_proximity_costs logic
         if unrouted_stubs:
             stub_proximity_radius = 1.0
             stub_proximity_cost = 3.0
@@ -788,12 +816,18 @@ def run_visualization(
             print(f"  Blocked vias in routing region: {region_vias_blocked}")
             print(f"  Routing region: ({min_gx}, {min_gy}) to ({max_gx}, {max_gy})")
 
-        # Add allowed cells around sources/targets
+        # Add allowed cells around sources/targets to override BGA zone blocking
+        # This only affects BGA zone blocking, not regular obstacle blocking (tracks, stubs, pads)
         allow_radius = 10
         for gx, gy, _ in sources + targets:
             for dx in range(-allow_radius, allow_radius + 1):
                 for dy in range(-allow_radius, allow_radius + 1):
                     obstacles.add_allowed_cell(gx + dx, gy + dy)
+
+        # Mark exact source/target cells so routing can start/end there even if blocked by
+        # adjacent track expansion (but NOT blocked by BGA zones - use allowed_cells for that)
+        for gx, gy, _ in sources + targets:
+            obstacles.add_source_target_cell(gx, gy)
 
         # Update visualizer context (use global_bounds to show full routing area)
         visualizer.set_routing_context(
@@ -984,6 +1018,12 @@ def run_visualization(
                         # Also add to visualizer for persistent display
                         visualizer.add_completed_route(snapshot.path)
 
+                    # Update tracking lists to match batch router behavior
+                    if net_id in remaining_net_ids:
+                        remaining_net_ids.remove(net_id)
+                    if net_id not in routed_net_ids:
+                        routed_net_ids.append(net_id)
+
                     # Route succeeded - mark both directions done so N goes to next net
                     forward_done = True
                     reverse_done = True
@@ -1082,7 +1122,15 @@ def expand_net_pattern(pcb_data: PCBData, pattern: str) -> List[str]:
 
     Returns list of matching net names in sorted order.
     """
-    all_net_names = [net.name for net in pcb_data.nets.values()]
+    # Collect net names from both pcb.nets and pads_by_net
+    all_net_names = set(net.name for net in pcb_data.nets.values())
+    # Also include net names from pads (for nets not in pcb.nets)
+    for pads in pcb_data.pads_by_net.values():
+        for pad in pads:
+            if pad.net_name:
+                all_net_names.add(pad.net_name)
+                break  # Only need one pad's net_name per net
+    all_net_names = list(all_net_names)
 
     if '*' in pattern or '?' in pattern:
         matches = sorted([name for name in all_net_names if fnmatch.fnmatch(name, pattern)])
@@ -1093,19 +1141,22 @@ def expand_net_pattern(pcb_data: PCBData, pattern: str) -> List[str]:
 
 
 def main():
-    # Check for --auto flag
+    # Check for flags
     auto_advance = '--auto' in sys.argv
-    args = [a for a in sys.argv[1:] if a != '--auto']
+    no_bga_zones = '--no-bga-zones' in sys.argv
+    args = [a for a in sys.argv[1:] if a not in ('--auto', '--no-bga-zones')]
 
     if len(args) < 2:
-        print("Usage: python run_visualizer.py [--auto] input.kicad_pcb \"Net-Pattern\" [\"Net-Pattern2\" ...]")
+        print("Usage: python run_visualizer.py [--auto] [--no-bga-zones] input.kicad_pcb \"Net-Pattern\" [\"Net-Pattern2\" ...]")
         print("\nOptions:")
-        print("  --auto  Automatically advance to next net (no waiting for N key)")
+        print("  --auto          Automatically advance to next net (no waiting for N key)")
+        print("  --no-bga-zones  Disable BGA exclusion zones (allows routing through BGA areas)")
         print("\nWildcard patterns supported:")
         print('  "Net-(U2A-DATA_*)"  - matches Net-(U2A-DATA_0), Net-(U2A-DATA_1), etc.')
         print("\nExample:")
         print('  python run_visualizer.py fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
         print('  python run_visualizer.py --auto fanout_starting_point.kicad_pcb "Net-(U2A-DATA_*)"')
+        print('  python run_visualizer.py --no-bga-zones fanout_starting_point.kicad_pcb "*lvds*"')
         sys.exit(1)
 
     pcb_file = args[0]
@@ -1143,9 +1194,15 @@ def main():
             print(f"  ... and {len(pcb_data.nets) - 20} more")
         sys.exit(1)
 
-    print(f"\nWill visualize routing of {len(all_nets)} nets" + (" (auto-advance)" if auto_advance else ""))
+    mode_info = []
+    if auto_advance:
+        mode_info.append("auto-advance")
+    if no_bga_zones:
+        mode_info.append("no BGA zones")
+    mode_str = f" ({', '.join(mode_info)})" if mode_info else ""
+    print(f"\nWill visualize routing of {len(all_nets)} nets{mode_str}")
 
-    run_visualization(pcb_file, all_nets, auto_advance=auto_advance)
+    run_visualization(pcb_file, all_nets, auto_advance=auto_advance, disable_bga_zones=no_bga_zones)
 
 
 if __name__ == "__main__":
