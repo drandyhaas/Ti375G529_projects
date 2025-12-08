@@ -383,21 +383,46 @@ def get_pair_escape_options(p_pad_x: float, p_pad_y: float,
     result = [(ch, d) for ch, d, _ in options]
 
     # If requested, add alternate channels as fallback options
+    # IMPORTANT: Alternate channels must be in the OPPOSITE direction from track travel
+    # e.g., if tracks go RIGHT to reach channel, alternate must be to the LEFT of pads
+    # (so tracks can still reach it going right)
     if include_alternate_channels:
         # Add alternate vertical channels
         if v_channel:
             v_dir = 'up' if dist_up <= dist_down else 'down'
-            other_v_channels = [c for c in v_channels if c != v_channel]
-            other_v_channels.sort(key=lambda c: abs(c.position - v_channel.position))
-            for alt_ch in other_v_channels[:3]:  # Add up to 3 alternates
+            # If primary channel is to the right, tracks go right - alternate must be to LEFT
+            # If primary channel is to the left, tracks go left - alternate must be to RIGHT
+            if v_channel.position > center_x:
+                # Primary is right of pads - only consider channels to the LEFT as alternates
+                alt_candidates = [c for c in v_channels if c != v_channel and c.position < center_x]
+            else:
+                # Primary is left of pads - only consider channels to the RIGHT as alternates
+                alt_candidates = [c for c in v_channels if c != v_channel and c.position > center_x]
+            # Sort by closest to pads (furthest into the alternate direction)
+            if v_channel.position > center_x:
+                alt_candidates.sort(key=lambda c: c.position, reverse=True)  # Closest to pads from left
+            else:
+                alt_candidates.sort(key=lambda c: c.position)  # Closest to pads from right
+            for alt_ch in alt_candidates[:2]:  # Add up to 2 alternates
                 result.append((alt_ch, v_dir))
 
         # Add alternate horizontal channels
         if h_channel:
             h_dir = 'left' if dist_left <= dist_right else 'right'
-            other_h_channels = [c for c in h_channels if c != h_channel]
-            other_h_channels.sort(key=lambda c: abs(c.position - h_channel.position))
-            for alt_ch in other_h_channels[:3]:  # Add up to 3 alternates
+            # If primary channel is above, tracks go up - alternate must be BELOW
+            # If primary channel is below, tracks go down - alternate must be ABOVE
+            if h_channel.position < center_y:
+                # Primary is above pads - only consider channels BELOW as alternates
+                alt_candidates = [c for c in h_channels if c != h_channel and c.position > center_y]
+            else:
+                # Primary is below pads - only consider channels ABOVE as alternates
+                alt_candidates = [c for c in h_channels if c != h_channel and c.position < center_y]
+            # Sort by closest to pads
+            if h_channel.position < center_y:
+                alt_candidates.sort(key=lambda c: c.position)  # Closest to pads from below
+            else:
+                alt_candidates.sort(key=lambda c: c.position, reverse=True)  # Closest to pads from above
+            for alt_ch in alt_candidates[:2]:  # Add up to 2 alternates
                 result.append((alt_ch, h_dir))
 
     return result
