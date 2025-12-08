@@ -1195,7 +1195,9 @@ def generate_bga_fanout(footprint: Footprint,
                         clearance: float = 0.1,
                         diff_pair_gap: float = 0.1,
                         exit_margin: float = 0.5,
-                        primary_escape: str = 'horizontal') -> Tuple[List[Dict], List[Dict]]:
+                        primary_escape: str = 'horizontal',
+                        via_size: float = 0.3,
+                        via_drill: float = 0.2) -> Tuple[List[Dict], List[Dict], List[Dict]]:
     """
     Generate BGA fanout tracks for a footprint.
 
@@ -1203,6 +1205,7 @@ def generate_bga_fanout(footprint: Footprint,
     1. 45-degree stubs from pads to channels
     2. Channel segments extending to BGA boundary exit
     3. Differential pairs routed together on same layer
+    4. Vias at pads where routing starts on non-top layer
 
     Args:
         footprint: The BGA footprint
@@ -1215,9 +1218,11 @@ def generate_bga_fanout(footprint: Footprint,
         diff_pair_gap: Gap between P and N traces of a differential pair
         exit_margin: How far past BGA boundary to extend
         primary_escape: Primary escape direction preference ('horizontal' or 'vertical')
+        via_size: Size of vias to add at pads (default 0.3mm)
+        via_drill: Drill size for vias (default 0.2mm)
 
     Returns:
-        (tracks, vias) - tracks are the segments, vias is empty (pad vias assumed)
+        Tuple of (tracks, vias_to_add, vias_to_remove)
     """
     if layers is None:
         layers = ["F.Cu", "In1.Cu", "In2.Cu", "B.Cu"]
@@ -1225,7 +1230,7 @@ def generate_bga_fanout(footprint: Footprint,
     grid = analyze_bga_grid(footprint)
     if grid is None:
         print(f"Warning: {footprint.reference} doesn't appear to be a BGA")
-        return [], []
+        return [], [], []
 
     print(f"BGA Grid Analysis for {footprint.reference}:")
     print(f"  Pitch: {grid.pitch_x:.2f} x {grid.pitch_y:.2f} mm")
@@ -1752,7 +1757,7 @@ def generate_bga_fanout(footprint: Footprint,
         print(f"    {name}")
 
     if not routes:
-        return [], []
+        return [], [], []
 
     # Smart layer assignment (keeps diff pairs together)
     assign_layers_smart(routes, layers, track_width, clearance, diff_pair_gap)
@@ -2065,7 +2070,53 @@ def generate_bga_fanout(footprint: Footprint,
     for layer, count in sorted(layer_counts.items()):
         print(f"    {layer}: {count} routes")
 
-    return tracks, []
+    # Via management: add vias where needed, remove unnecessary ones
+    # Build lookup of existing vias at pad positions (with small tolerance)
+    top_layer = layers[0]  # F.Cu typically
+    tolerance = 0.01  # 0.01mm tolerance for position matching
+
+    existing_vias_at_pos: Dict[Tuple[float, float], 'Via'] = {}
+    for via in pcb_data.vias:
+        # Round to tolerance for lookup
+        key = (round(via.x / tolerance) * tolerance, round(via.y / tolerance) * tolerance)
+        existing_vias_at_pos[key] = via
+
+    vias_to_add: List[Dict] = []
+    vias_to_remove: List[Dict] = []
+
+    for route in routes:
+        pad_x, pad_y = route.pad_pos
+        key = (round(pad_x / tolerance) * tolerance, round(pad_y / tolerance) * tolerance)
+        existing_via = existing_vias_at_pos.get(key)
+
+        if route.layer == top_layer:
+            # Routing on top layer - no via needed at pad
+            # If there's an existing via at this pad for this net, remove it
+            if existing_via and existing_via.net_id == route.net_id:
+                vias_to_remove.append({
+                    'x': existing_via.x,
+                    'y': existing_via.y
+                })
+        else:
+            # Routing on inner/bottom layer - via needed to connect from pad (F.Cu) to route layer
+            if not existing_via:
+                # No existing via - add one (through all layers: F.Cu to B.Cu)
+                vias_to_add.append({
+                    'x': pad_x,
+                    'y': pad_y,
+                    'size': via_size,
+                    'drill': via_drill,
+                    'layers': ['F.Cu', 'B.Cu'],  # Through-hole via connecting all layers
+                    'net_id': route.net_id
+                })
+            # If existing via already exists, keep it (don't add duplicate)
+
+    if vias_to_add:
+        print(f"  Adding {len(vias_to_add)} vias at pads on non-top layers")
+    if vias_to_remove:
+        print(f"  Removing {len(vias_to_remove)} unnecessary vias at pads on top layer")
+
+    return tracks, vias_to_add, vias_to_remove
 
 
 def main():
@@ -2127,7 +2178,7 @@ def main():
     print(f"  Rotation: {footprint.rotation}deg")
     print(f"  Pads: {len(footprint.pads)}")
 
-    tracks, vias = generate_bga_fanout(
+    tracks, vias_to_add, vias_to_remove = generate_bga_fanout(
         footprint,
         pcb_data,
         net_filter=args.nets,
@@ -2142,7 +2193,11 @@ def main():
 
     if tracks:
         print(f"\nWriting {len(tracks)} tracks to {args.output}...")
-        add_tracks_and_vias_to_pcb(args.pcb, args.output, tracks, vias)
+        if vias_to_add:
+            print(f"  Adding {len(vias_to_add)} vias")
+        if vias_to_remove:
+            print(f"  Removing {len(vias_to_remove)} vias")
+        add_tracks_and_vias_to_pcb(args.pcb, args.output, tracks, vias_to_add, vias_to_remove)
         print("Done!")
     else:
         print("\nNo fanout tracks generated")
