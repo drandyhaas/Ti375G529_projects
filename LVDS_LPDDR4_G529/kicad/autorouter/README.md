@@ -337,6 +337,7 @@ python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
 | `--diff-pair-gap` | `0.1` | Gap between P/N traces in mm |
 | `--exit-margin` | `0.5` | Distance past BGA boundary for stub endpoints |
 | `--primary-escape`, `-p` | `horizontal` | Primary escape direction (`horizontal` or `vertical`) |
+| `--rebalance-escape` | (disabled) | Rebalance escape directions for even distribution around chip |
 
 ### Features
 
@@ -346,6 +347,7 @@ python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
 - **Collision detection and resolution**: Detects collisions and reassigns layers to resolve them
 - **Edge pair handling**: Pairs on BGA edges route directly outward
 - **Alternate channel fallback**: When a channel is blocked, uses neighboring channels in the opposite direction
+- **Escape rebalancing**: Optional rebalancing spreads exits evenly around chip perimeter for easier routing
 
 ### Example Output
 
