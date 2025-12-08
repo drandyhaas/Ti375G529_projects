@@ -428,6 +428,98 @@ def get_pair_escape_options(p_pad_x: float, p_pad_y: float,
     return result
 
 
+def find_existing_fanouts(pcb_data: PCBData, footprint: Footprint,
+                          grid: BGAGrid, channels: List[Channel],
+                          tolerance: float = 0.05) -> Tuple[Set[int], Dict[Tuple[str, str, float], str]]:
+    """
+    Find pads that already have fanout tracks and identify occupied channel positions.
+
+    A pad is considered to have an existing fanout if there's a segment that starts
+    or ends at the pad position.
+
+    Args:
+        pcb_data: Full PCB data with segments
+        footprint: The BGA footprint
+        grid: BGA grid structure
+        channels: List of routing channels
+        tolerance: Position matching tolerance in mm
+
+    Returns:
+        Tuple of:
+        - Set of net_ids that already have fanouts
+        - Dict of occupied exit positions: (layer, direction_axis, position) -> net_name
+    """
+    fanned_out_nets: Set[int] = set()
+    occupied_exits: Dict[Tuple[str, str, float], str] = {}
+
+    # Build a lookup of pad positions by net_id
+    pad_positions: Dict[int, Tuple[float, float]] = {}
+    net_names: Dict[int, str] = {}
+    for pad in footprint.pads:
+        if pad.net_id > 0:
+            pad_positions[pad.net_id] = (pad.global_x, pad.global_y)
+            net_names[pad.net_id] = pad.net_name
+
+    # Check each segment to see if it connects to a BGA pad
+    for segment in pcb_data.segments:
+        if segment.net_id not in pad_positions:
+            continue
+
+        pad_x, pad_y = pad_positions[segment.net_id]
+
+        # Check if segment starts or ends at the pad
+        starts_at_pad = (abs(segment.start_x - pad_x) < tolerance and
+                         abs(segment.start_y - pad_y) < tolerance)
+        ends_at_pad = (abs(segment.end_x - pad_x) < tolerance and
+                       abs(segment.end_y - pad_y) < tolerance)
+
+        if starts_at_pad or ends_at_pad:
+            fanned_out_nets.add(segment.net_id)
+
+            # Determine the exit direction and position from the segment
+            # The "other end" of the segment (not at pad) tells us the escape direction
+            if starts_at_pad:
+                other_x, other_y = segment.end_x, segment.end_y
+            else:
+                other_x, other_y = segment.start_x, segment.start_y
+
+            # Determine escape direction based on where the segment goes
+            dx = other_x - pad_x
+            dy = other_y - pad_y
+
+            # Find which channel/exit this segment uses
+            # For vertical escape (up/down), track X position
+            # For horizontal escape (left/right), track Y position
+            if abs(dy) > abs(dx):
+                # Primarily vertical movement
+                if dy < 0:
+                    direction = 'up'
+                else:
+                    direction = 'down'
+                # Find the vertical channel being used
+                for ch in channels:
+                    if ch.orientation == 'vertical':
+                        if abs(ch.position - other_x) < grid.pitch_x / 2:
+                            exit_key = (segment.layer, f'{direction}_v', round(ch.position, 1))
+                            occupied_exits[exit_key] = net_names.get(segment.net_id, f"net_{segment.net_id}")
+                            break
+            else:
+                # Primarily horizontal movement
+                if dx < 0:
+                    direction = 'left'
+                else:
+                    direction = 'right'
+                # Find the horizontal channel being used
+                for ch in channels:
+                    if ch.orientation == 'horizontal':
+                        if abs(ch.position - other_y) < grid.pitch_y / 2:
+                            exit_key = (segment.layer, f'{direction}_h', round(ch.position, 1))
+                            occupied_exits[exit_key] = net_names.get(segment.net_id, f"net_{segment.net_id}")
+                            break
+
+    return fanned_out_nets, occupied_exits
+
+
 def find_diff_pair_escape(p_pad_x: float, p_pad_y: float,
                           n_pad_x: float, n_pad_y: float,
                           grid: BGAGrid,
@@ -494,7 +586,8 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
                         primary_orientation: str = 'horizontal',
                         track_width: float = 0.1,
                         clearance: float = 0.1,
-                        rebalance: bool = False) -> Dict[str, Tuple[Optional[Channel], str]]:
+                        rebalance: bool = False,
+                        pre_occupied: Dict[Tuple[str, str, float], str] = None) -> Dict[str, Tuple[Optional[Channel], str]]:
     """
     Assign escape directions to all differential pairs, avoiding overlaps.
 
@@ -514,6 +607,7 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
         track_width: Track width for spacing calculation
         clearance: Clearance for spacing calculation
         rebalance: If True, rebalance directions to achieve even H/V mix
+        pre_occupied: Dict of already-occupied exit positions from existing fanouts
 
     Returns:
         Dictionary of pair_id -> (channel, escape_direction)
@@ -531,7 +625,8 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
     # Track occupied exit positions per layer
     # Key: (layer, direction_axis, position) where position is the channel/exit coordinate
     # Must be initialized BEFORE processing edge pairs so they get tracked
-    occupied: Dict[Tuple[str, str, float], str] = {}  # -> pair_id that occupies it
+    # Start with pre-occupied positions from existing fanouts
+    occupied: Dict[Tuple[str, str, float], str] = dict(pre_occupied) if pre_occupied else {}
 
     pair_spacing = track_width * 2 + clearance  # Minimum spacing between diff pairs
     edge_layer = layers[0]  # Edge pairs go on top layer (F.Cu)
@@ -1435,7 +1530,8 @@ def generate_bga_fanout(footprint: Footprint,
                         primary_escape: str = 'horizontal',
                         rebalance_escape: bool = False,
                         via_size: float = 0.3,
-                        via_drill: float = 0.2) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+                        via_drill: float = 0.2,
+                        check_for_previous: bool = False) -> Tuple[List[Dict], List[Dict], List[Dict]]:
     """
     Generate BGA fanout tracks for a footprint.
 
@@ -1458,6 +1554,7 @@ def generate_bga_fanout(footprint: Footprint,
         primary_escape: Primary escape direction preference ('horizontal' or 'vertical')
         via_size: Size of vias to add at pads (default 0.3mm)
         via_drill: Drill size for vias (default 0.2mm)
+        check_for_previous: If True, skip pads that already have fanout tracks
 
     Returns:
         Tuple of (tracks, vias_to_add, vias_to_remove)
@@ -1482,12 +1579,41 @@ def generate_bga_fanout(footprint: Footprint,
     print(f"  Channels: {h_count} horizontal, {v_count} vertical")
     print(f"  Available layers: {layers}")
 
+    # Check for existing fanouts if requested
+    fanned_out_nets: Set[int] = set()
+    pre_occupied_exits: Dict[Tuple[str, str, float], str] = {}
+    if check_for_previous:
+        fanned_out_nets, pre_occupied_exits = find_existing_fanouts(
+            pcb_data, footprint, grid, channels
+        )
+        if fanned_out_nets:
+            print(f"  Found {len(fanned_out_nets)} nets with existing fanouts (will skip)")
+        if pre_occupied_exits:
+            print(f"  Found {len(pre_occupied_exits)} occupied exit positions")
+
     # Find differential pairs if patterns specified
     diff_pairs: Dict[str, DiffPair] = {}
     pair_escape_assignments: Dict[str, Tuple[Optional[Channel], str]] = {}
     if diff_pair_patterns:
         diff_pairs = find_differential_pairs(footprint, diff_pair_patterns)
-        print(f"  Found {len(diff_pairs)} differential pairs")
+        original_pair_count = len(diff_pairs)
+
+        # Filter out pairs that already have fanouts
+        if check_for_previous and fanned_out_nets:
+            pairs_to_remove = []
+            for pair_id, pair in diff_pairs.items():
+                p_fanned = pair.p_pad and pair.p_pad.net_id in fanned_out_nets
+                n_fanned = pair.n_pad and pair.n_pad.net_id in fanned_out_nets
+                if p_fanned or n_fanned:
+                    pairs_to_remove.append(pair_id)
+            for pair_id in pairs_to_remove:
+                del diff_pairs[pair_id]
+            if pairs_to_remove:
+                print(f"  Found {original_pair_count} differential pairs ({len(pairs_to_remove)} already fanned out)")
+            else:
+                print(f"  Found {len(diff_pairs)} differential pairs")
+        else:
+            print(f"  Found {len(diff_pairs)} differential pairs")
 
         # Pre-assign escape directions for all pairs to avoid overlaps
         print(f"  Assigning escape directions (primary: {primary_escape})...")
@@ -1496,7 +1622,8 @@ def generate_bga_fanout(footprint: Footprint,
             primary_orientation=primary_escape,
             track_width=track_width,
             clearance=clearance,
-            rebalance=rebalance_escape
+            rebalance=rebalance_escape,
+            pre_occupied=pre_occupied_exits
         )
 
     # Build lookup from net_name to pair info
@@ -1523,6 +1650,10 @@ def generate_bga_fanout(footprint: Footprint,
             matched = any(fnmatch.fnmatch(pad.net_name, pattern) for pattern in net_filter)
             if not matched:
                 continue
+
+        # Skip if this pad already has a fanout (check_for_previous mode)
+        if check_for_previous and pad.net_id in fanned_out_nets:
+            continue
 
         # Check if this pad is part of a differential pair
         pair_id = None
@@ -2435,6 +2566,9 @@ def main():
                         help='Rebalance escape directions after initial assignment. '
                              'Pairs near secondary edge but far from primary edge will be '
                              'reassigned to secondary direction for more even distribution.')
+    parser.add_argument('--check-for-previous', action='store_true',
+                        help='Check for existing fanout tracks and skip pads that are already '
+                             'fanned out. Also avoids occupied channel positions.')
 
     args = parser.parse_args()
 
@@ -2476,7 +2610,8 @@ def main():
         diff_pair_gap=args.diff_pair_gap,
         exit_margin=args.exit_margin,
         primary_escape=args.primary_escape,
-        rebalance_escape=args.rebalance_escape
+        rebalance_escape=args.rebalance_escape,
+        check_for_previous=args.check_for_previous
     )
 
     if tracks:

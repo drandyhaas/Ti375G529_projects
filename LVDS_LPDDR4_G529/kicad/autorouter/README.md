@@ -338,6 +338,7 @@ python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
 | `--exit-margin` | `0.5` | Distance past BGA boundary for stub endpoints |
 | `--primary-escape`, `-p` | `horizontal` | Primary escape direction (`horizontal` or `vertical`) |
 | `--rebalance-escape` | (disabled) | Rebalance escape directions for even distribution around chip |
+| `--check-for-previous` | (disabled) | Skip pads with existing fanouts and avoid occupied channels |
 
 ### Features
 
@@ -348,6 +349,7 @@ python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
 - **Edge pair handling**: Pairs on BGA edges route directly outward
 - **Alternate channel fallback**: When a channel is blocked, uses neighboring channels in the opposite direction
 - **Escape rebalancing**: Optional rebalancing spreads exits evenly around chip perimeter for easier routing
+- **Incremental fanout**: With `--check-for-previous`, skips already-fanned-out pads and avoids occupied channels
 
 ### Example Output
 
