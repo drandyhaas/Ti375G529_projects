@@ -88,7 +88,8 @@ struct GridObstacleMap {
     allowed_cells: FxHashSet<u64>,
     /// Source/target cells that can be routed to even if near obstacles
     /// These override regular blocking but NOT BGA zone blocking
-    source_target_cells: FxHashSet<u64>,
+    /// Stored per-layer: layer -> set of (gx, gy) packed as u64
+    source_target_cells: Vec<FxHashSet<u64>>,
 }
 
 #[inline]
@@ -109,18 +110,22 @@ impl GridObstacleMap {
             num_layers,
             bga_zones: Vec::new(),
             allowed_cells: FxHashSet::default(),
-            source_target_cells: FxHashSet::default(),
+            source_target_cells: (0..num_layers).map(|_| FxHashSet::default()).collect(),
         }
     }
 
     /// Add a source/target cell that can be routed to even if near obstacles
-    fn add_source_target_cell(&mut self, gx: i32, gy: i32) {
-        self.source_target_cells.insert(pack_xy(gx, gy));
+    fn add_source_target_cell(&mut self, gx: i32, gy: i32, layer: usize) {
+        if layer < self.num_layers {
+            self.source_target_cells[layer].insert(pack_xy(gx, gy));
+        }
     }
 
     /// Clear all source/target cells
     fn clear_source_target_cells(&mut self) {
-        self.source_target_cells.clear();
+        for layer_set in &mut self.source_target_cells {
+            layer_set.clear();
+        }
     }
 
     /// Create a deep copy of this obstacle map
@@ -207,8 +212,9 @@ impl GridObstacleMap {
 
         // Outside BGA zone: check regular obstacles
         // source_target_cells can override regular blocking to allow routing to start/end
+        // NOTE: source_target_cells is now per-layer - only allows override on the specific layer
         if in_blocked_cells {
-            if self.source_target_cells.contains(&key) {
+            if self.source_target_cells[layer].contains(&key) {
                 return false;
             }
             return true;
@@ -361,6 +367,11 @@ impl GridRouter {
             if !obstacles.is_via_blocked(current.gx, current.gy) {
                 for layer in 0..obstacles.num_layers as u8 {
                     if layer == current.layer {
+                        continue;
+                    }
+
+                    // Check if destination layer is blocked at this position
+                    if obstacles.is_blocked(current.gx, current.gy, layer as usize) {
                         continue;
                     }
 
@@ -642,6 +653,11 @@ impl VisualRouter {
                         continue;
                     }
 
+                    // Check if destination layer is blocked at this position
+                    if obstacles.is_blocked(current.gx, current.gy, layer as usize) {
+                        continue;
+                    }
+
                     let neighbor = GridState::new(current.gx, current.gy, layer);
                     let neighbor_key = neighbor.as_key();
 
@@ -777,7 +793,7 @@ impl VisualRouter {
 }
 
 /// Module version
-const VERSION: &str = "0.3.0";
+const VERSION: &str = "0.3.2";
 
 /// Python module
 #[pymodule]

@@ -865,8 +865,9 @@ def run_visualization(
 
         # Mark exact source/target cells so routing can start/end there even if blocked by
         # adjacent track expansion (but NOT blocked by BGA zones - use allowed_cells for that)
-        for gx, gy, _ in sources + targets:
-            obstacles.add_source_target_cell(gx, gy)
+        # NOTE: Must pass layer to only allow override on the specific layer of the endpoint
+        for gx, gy, layer in sources + targets:
+            obstacles.add_source_target_cell(gx, gy, layer)
 
         # Update visualizer context (use global_bounds to show full routing area)
         visualizer.set_routing_context(

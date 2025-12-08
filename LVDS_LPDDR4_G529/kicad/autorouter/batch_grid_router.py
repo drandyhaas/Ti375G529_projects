@@ -897,8 +897,9 @@ def route_net(pcb_data: PCBData, net_id: int, config: GridRouteConfig,
 
     # Mark exact source/target cells so routing can start/end there even if blocked by
     # adjacent track expansion (but NOT blocked by BGA zones - use allowed_cells for that)
-    for gx, gy, _ in sources_grid + targets_grid:
-        obstacles.add_source_target_cell(gx, gy)
+    # NOTE: Must pass layer to only allow override on the specific layer of the endpoint
+    for gx, gy, layer in sources_grid + targets_grid:
+        obstacles.add_source_target_cell(gx, gy, layer)
 
     router = GridRouter(via_cost=config.via_cost * 1000, h_weight=config.heuristic_weight)
 
@@ -1057,8 +1058,9 @@ def route_net_with_obstacles(pcb_data: PCBData, net_id: int, config: GridRouteCo
 
     # Mark exact source/target cells so routing can start/end there even if blocked by
     # adjacent track expansion (but NOT blocked by BGA zones - use allowed_cells for that)
-    for gx, gy, _ in sources_grid + targets_grid:
-        obstacles.add_source_target_cell(gx, gy)
+    # NOTE: Must pass layer to only allow override on the specific layer of the endpoint
+    for gx, gy, layer in sources_grid + targets_grid:
+        obstacles.add_source_target_cell(gx, gy, layer)
 
     router = GridRouter(via_cost=config.via_cost * 1000, h_weight=config.heuristic_weight)
 
