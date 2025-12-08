@@ -71,6 +71,7 @@ class FanoutRoute:
     jog_extension: Tuple[float, float] = None  # Extension point for outside track of diff pair
     channel_point: Tuple[float, float] = None  # First channel point for half-edge inner pads (45° entry)
     channel_point2: Tuple[float, float] = None  # Second channel point (after horizontal segment)
+    pre_channel_jog: Tuple[float, float] = None  # Jog point before channel (for jogged routes to farther channel)
     channel: Optional[Channel] = None  # None for edge pads with direct escape
     escape_dir: str = ''  # 'left', 'right', 'up', 'down'
     is_edge: bool = False  # True for outer row/column pads
@@ -571,6 +572,222 @@ def try_reroute_single_ended(route: 'FanoutRoute',
                 is_p=None
             )
             return new_route, layer
+
+    return None
+
+
+def get_farther_channel(route: 'FanoutRoute', channels: List[Channel],
+                        grid: BGAGrid) -> Optional[Channel]:
+    """
+    Get a channel one unit farther from the escape edge than the current channel.
+
+    For a route escaping right with a horizontal channel at Y=105.0,
+    this returns the horizontal channel at Y=104.2 (one pitch closer to center,
+    i.e., farther from the right edge in terms of distance the track travels).
+    """
+    if route.channel is None:
+        return None
+
+    pitch = grid.pitch_y if route.channel.orientation == 'horizontal' else grid.pitch_x
+    pad_x, pad_y = route.pad_pos
+
+    if route.channel.orientation == 'horizontal':
+        # For left/right escape, find channel one pitch farther from edge
+        # "Farther from edge" means the route has to travel more vertically
+        same_orientation = [c for c in channels if c.orientation == 'horizontal' and c != route.channel]
+
+        if route.channel.position < pad_y:
+            # Current channel is above pad - farther means even more above (smaller Y)
+            candidates = [c for c in same_orientation if c.position < route.channel.position]
+            if candidates:
+                # Get closest to current channel (largest Y among those above)
+                return max(candidates, key=lambda c: c.position)
+        else:
+            # Current channel is below pad - farther means even more below (larger Y)
+            candidates = [c for c in same_orientation if c.position > route.channel.position]
+            if candidates:
+                # Get closest to current channel (smallest Y among those below)
+                return min(candidates, key=lambda c: c.position)
+    else:
+        # For up/down escape, find channel one pitch farther from edge
+        same_orientation = [c for c in channels if c.orientation == 'vertical' and c != route.channel]
+
+        if route.channel.position < pad_x:
+            # Current channel is left of pad - farther means even more left (smaller X)
+            candidates = [c for c in same_orientation if c.position < route.channel.position]
+            if candidates:
+                return max(candidates, key=lambda c: c.position)
+        else:
+            # Current channel is right of pad - farther means even more right (larger X)
+            candidates = [c for c in same_orientation if c.position > route.channel.position]
+            if candidates:
+                return min(candidates, key=lambda c: c.position)
+
+    return None
+
+
+def try_jogged_route(route: 'FanoutRoute',
+                     farther_channel: Channel,
+                     grid: BGAGrid,
+                     exit_margin: float,
+                     tracks: List[Dict],
+                     existing_tracks: List[Dict],
+                     available_layers: List[str],
+                     track_width: float,
+                     clearance: float,
+                     jog_length: float = None) -> Optional[Tuple['FanoutRoute', str, List[Dict]]]:
+    """
+    Try rerouting a signal through a farther channel using a jogged path.
+
+    The jogged path is: pad -> 45° stub -> vertical/horizontal jog -> farther channel -> exit -> jog_end
+
+    For example, for a right-escaping route with channel below the pad:
+    - 45° stub from pad to original channel position
+    - Vertical jog DOWN one pitch to the farther channel
+    - Horizontal along farther channel to exit
+    - 45° jog at exit
+
+    Args:
+        route: The current route to reroute
+        farther_channel: The channel one unit farther from the escape edge
+        grid: BGA grid
+        exit_margin: Exit margin from BGA boundary
+        tracks: Current track list (to check for collisions)
+        existing_tracks: Existing tracks from PCB
+        available_layers: Available layers to try
+        track_width: Track width
+        clearance: Required clearance
+        jog_length: Length of the 45° jog at exit (defaults to half pitch)
+
+    Returns:
+        (new_route, layer, new_tracks) if successful, None if no collision-free option found
+    """
+    min_spacing = track_width + clearance
+    pad_x, pad_y = route.pad_pos
+
+    if route.channel is None or farther_channel is None:
+        return None
+
+    # Default jog_length to half pitch
+    if jog_length is None:
+        jog_length = min(grid.pitch_x, grid.pitch_y) / 2
+
+    # Calculate the jogged path
+    # Step 1: 45° stub to original channel position (same as normal route)
+    stub_end = create_45_stub(pad_x, pad_y, route.channel, route.escape_dir)
+
+    # Step 2: Jog from stub_end to farther channel
+    if route.channel.orientation == 'horizontal':
+        # Jog is vertical (Y changes, X stays same)
+        jog_point = (stub_end[0], farther_channel.position)
+    else:
+        # Jog is horizontal (X changes, Y stays same)
+        jog_point = (farther_channel.position, stub_end[1])
+
+    # Step 3: Calculate exit position on farther channel
+    exit_pos = calculate_exit_point(jog_point, farther_channel, route.escape_dir, grid, exit_margin)
+
+    # Create track segments for collision checking
+    new_segments = [
+        {'start': route.pad_pos, 'end': stub_end},      # 45° stub
+        {'start': stub_end, 'end': jog_point},          # Vertical/horizontal jog
+        {'start': jog_point, 'end': exit_pos}           # Channel to exit
+    ]
+
+    # Check if this is an inner route (should avoid F.Cu)
+    is_edge, _ = is_edge_pad(pad_x, pad_y, grid)
+    if is_edge:
+        candidate_layers = available_layers
+    else:
+        candidate_layers = available_layers[1:] if len(available_layers) > 1 else available_layers
+
+    # Get other tracks (excluding this route's current tracks)
+    other_new_tracks = [t for t in tracks if t.get('net_id') != route.net_id]
+    all_other_tracks = other_new_tracks + existing_tracks
+
+    # Try each layer
+    for layer in candidate_layers:
+        has_collision = False
+        for seg in new_segments:
+            for other in all_other_tracks:
+                if other['layer'] != layer:
+                    continue
+                if other.get('net_id') == route.net_id:
+                    continue
+                if check_segment_collision(seg['start'], seg['end'],
+                                           other['start'], other['end'],
+                                           min_spacing):
+                    has_collision = True
+                    break
+            if has_collision:
+                break
+
+        if not has_collision:
+            # Calculate jog_end for the exit
+            jog_end, _ = calculate_jog_end(
+                exit_pos,
+                route.escape_dir,
+                layer,
+                available_layers,
+                jog_length,
+                is_diff_pair=route.pair_id is not None,
+                is_outside_track=False,
+                pair_spacing=0
+            )
+
+            # Found a collision-free route
+            new_route = FanoutRoute(
+                pad=route.pad,
+                pad_pos=route.pad_pos,
+                stub_end=stub_end,
+                exit_pos=exit_pos,
+                jog_end=jog_end,
+                pre_channel_jog=jog_point,
+                channel=farther_channel,
+                escape_dir=route.escape_dir,
+                is_edge=route.is_edge,
+                layer=layer,
+                pair_id=route.pair_id,
+                is_p=route.is_p
+            )
+
+            # Create track dicts for this route (including jog at exit)
+            new_tracks = [
+                {
+                    'start': route.pad_pos,
+                    'end': stub_end,
+                    'width': track_width,
+                    'layer': layer,
+                    'net_id': route.net_id,
+                    'pair_id': route.pair_id
+                },
+                {
+                    'start': stub_end,
+                    'end': jog_point,
+                    'width': track_width,
+                    'layer': layer,
+                    'net_id': route.net_id,
+                    'pair_id': route.pair_id
+                },
+                {
+                    'start': jog_point,
+                    'end': exit_pos,
+                    'width': track_width,
+                    'layer': layer,
+                    'net_id': route.net_id,
+                    'pair_id': route.pair_id
+                },
+                {
+                    'start': exit_pos,
+                    'end': jog_end,
+                    'width': track_width,
+                    'layer': layer,
+                    'net_id': route.net_id,
+                    'pair_id': route.pair_id
+                }
+            ]
+
+            return new_route, layer, new_tracks
 
     return None
 
@@ -1817,7 +2034,95 @@ def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
                             print(f"    Rerouted {identifier} to alternate channel on {new_layer}")
                             break
 
-                # If still not resolved, remove the route and report failure
+                # If still not resolved, try to move a conflicting route to a jogged path
+                if not resolved and route is not None:
+                    # Find routes that conflict with this route's desired channel
+                    conflicting_routes = []
+                    for other_route in routes:
+                        if other_route.net_id == route.net_id:
+                            continue
+                        if other_route.channel is None:
+                            continue
+                        # Check if they use the same channel (or the alternate channel we tried)
+                        if other_route.channel == route.channel:
+                            conflicting_routes.append(other_route)
+                        elif alt_channels and other_route.channel in alt_channels:
+                            conflicting_routes.append(other_route)
+
+                    # Try to move each conflicting route to a jogged path
+                    for conflicting in conflicting_routes:
+                        farther_ch = get_farther_channel(conflicting, channels, grid)
+                        if farther_ch is None:
+                            continue
+
+                        result = try_jogged_route(
+                            conflicting, farther_ch, grid, exit_margin,
+                            tracks, existing_tracks, available_layers,
+                            track_width, clearance
+                        )
+                        if result:
+                            new_conflicting_route, new_layer, new_conflicting_tracks = result
+                            conflicting_net_name = net_names.get(conflicting.net_id, f"net_{conflicting.net_id}")
+
+                            # Remove old tracks for the conflicting route
+                            old_track_indices = [i for i, t in enumerate(tracks)
+                                                if t.get('net_id') == conflicting.net_id]
+                            for idx in sorted(old_track_indices, reverse=True):
+                                tracks.pop(idx)
+
+                            # Update route in routes list
+                            conflicting_idx = routes.index(conflicting)
+                            routes[conflicting_idx] = new_conflicting_route
+
+                            # Add new tracks for the jogged route
+                            tracks.extend(new_conflicting_tracks)
+
+                            print(f"    Moved {conflicting_net_name} to jogged path on {new_layer}")
+
+                            # Now retry routing the original failed net
+                            # First try the original channel (now freed up)
+                            retry_result = try_reroute_single_ended(
+                                route, route.channel, grid, exit_margin,
+                                tracks, existing_tracks, available_layers,
+                                track_width, clearance
+                            )
+                            if retry_result:
+                                new_route, new_layer = retry_result
+
+                                # Remove old tracks for this net
+                                old_track_indices = [i for i, t in enumerate(tracks)
+                                                    if t.get('net_id') == net_id and not t.get('pair_id')]
+                                for idx in sorted(old_track_indices, reverse=True):
+                                    tracks.pop(idx)
+
+                                # Update route in routes list
+                                route_idx = routes.index(route)
+                                routes[route_idx] = new_route
+
+                                # Add new tracks
+                                tracks.append({
+                                    'start': new_route.pad_pos,
+                                    'end': new_route.stub_end,
+                                    'width': track_width,
+                                    'layer': new_layer,
+                                    'net_id': net_id,
+                                    'pair_id': None
+                                })
+                                tracks.append({
+                                    'start': new_route.stub_end,
+                                    'end': new_route.exit_pos,
+                                    'width': track_width,
+                                    'layer': new_layer,
+                                    'net_id': net_id,
+                                    'pair_id': None
+                                })
+
+                                rerouted += 1
+                                resolved = True
+                                print(f"    Rerouted {identifier} after freeing channel on {new_layer}")
+                                break
+
+                # If STILL not resolved, remove the route and report failure
                 if not resolved and route is not None:
                     net_name = net_names.get(net_id, f"net_{net_id}")
                     failed_nets.append(net_name)
@@ -2708,7 +3013,7 @@ def generate_bga_fanout(footprint: Footprint,
                     inner_count += 1
                     continue
 
-                # 45-degree stub: pad -> channel
+                # 45-degree stub: pad -> stub_end
                 tracks.append({
                     'start': route.pad_pos,
                     'end': route.stub_end,
@@ -2718,15 +3023,36 @@ def generate_bga_fanout(footprint: Footprint,
                     'pair_id': route.pair_id
                 })
 
-                # Channel segment: stub_end -> exit
-                tracks.append({
-                    'start': route.stub_end,
-                    'end': route.exit_pos,
-                    'width': track_width,
-                    'layer': route.layer,
-                    'net_id': route.net_id,
-                    'pair_id': route.pair_id
-                })
+                if route.pre_channel_jog:
+                    # Jogged route: stub_end -> jog_point -> exit
+                    # Jog segment: stub_end -> pre_channel_jog
+                    tracks.append({
+                        'start': route.stub_end,
+                        'end': route.pre_channel_jog,
+                        'width': track_width,
+                        'layer': route.layer,
+                        'net_id': route.net_id,
+                        'pair_id': route.pair_id
+                    })
+                    # Channel segment: pre_channel_jog -> exit
+                    tracks.append({
+                        'start': route.pre_channel_jog,
+                        'end': route.exit_pos,
+                        'width': track_width,
+                        'layer': route.layer,
+                        'net_id': route.net_id,
+                        'pair_id': route.pair_id
+                    })
+                else:
+                    # Normal route: stub_end -> exit
+                    tracks.append({
+                        'start': route.stub_end,
+                        'end': route.exit_pos,
+                        'width': track_width,
+                        'layer': route.layer,
+                        'net_id': route.net_id,
+                        'pair_id': route.pair_id
+                    })
 
             # Jog segment(s): exit -> jog_end
             if route.jog_end:
