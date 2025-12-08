@@ -1365,9 +1365,16 @@ def check_segment_collision(seg1_start: Tuple[float, float], seg1_end: Tuple[flo
 
 
 def find_colliding_pairs(tracks: List[Dict], min_spacing: float) -> Set[str]:
-    """Find all differential pairs involved in collisions."""
+    """Find all differential pairs or single-ended nets involved in collisions.
+
+    Returns set of identifiers (pair_id for diff pairs, or 'net_<net_id>' for single-ended).
+    """
     colliding_pairs = set()
     for i, t1 in enumerate(tracks):
+        # Skip existing tracks (we can't move them)
+        if t1.get('is_existing'):
+            continue
+
         for j, t2 in enumerate(tracks[i+1:], i+1):
             # Skip if different layers
             if t1['layer'] != t2['layer']:
@@ -1382,62 +1389,104 @@ def find_colliding_pairs(tracks: List[Dict], min_spacing: float) -> Set[str]:
             if check_segment_collision(t1['start'], t1['end'],
                                         t2['start'], t2['end'],
                                         min_spacing):
+                # Use pair_id if available, otherwise use net_id as identifier
                 if t1.get('pair_id'):
                     colliding_pairs.add(t1['pair_id'])
+                elif not t1.get('is_existing'):
+                    colliding_pairs.add(f"net_{t1['net_id']}")
                 if t2.get('pair_id'):
                     colliding_pairs.add(t2['pair_id'])
+                elif not t2.get('is_existing'):
+                    colliding_pairs.add(f"net_{t2['net_id']}")
     return colliding_pairs
 
 
-def find_collision_partners(pair_id: str, tracks: List[Dict], min_spacing: float) -> Set[str]:
-    """Find all pairs that the given pair collides with on the same layer."""
-    partners = set()
-    pair_tracks = [t for t in tracks if t.get('pair_id') == pair_id]
-    other_tracks = [t for t in tracks if t.get('pair_id') != pair_id and t.get('pair_id')]
+def get_track_identifier(track: Dict) -> Optional[str]:
+    """Get the identifier for a track (pair_id or net_XXX for single-ended)."""
+    if track.get('pair_id'):
+        return track['pair_id']
+    elif track.get('net_id') and not track.get('is_existing'):
+        return f"net_{track['net_id']}"
+    return None
 
-    for pt in pair_tracks:
+
+def tracks_match_identifier(track: Dict, identifier: str) -> bool:
+    """Check if a track matches the given identifier."""
+    if identifier.startswith('net_'):
+        net_id = int(identifier[4:])
+        return track.get('net_id') == net_id and not track.get('pair_id')
+    else:
+        return track.get('pair_id') == identifier
+
+
+def find_collision_partners(identifier: str, tracks: List[Dict], min_spacing: float) -> Set[str]:
+    """Find all pairs/nets that the given identifier collides with on the same layer."""
+    partners = set()
+    id_tracks = [t for t in tracks if tracks_match_identifier(t, identifier)]
+    other_tracks = [t for t in tracks if not tracks_match_identifier(t, identifier) and not t.get('is_existing')]
+
+    for pt in id_tracks:
         for ot in other_tracks:
             if pt['layer'] != ot['layer']:
                 continue
             if check_segment_collision(pt['start'], pt['end'],
                                         ot['start'], ot['end'],
                                         min_spacing):
-                partners.add(ot['pair_id'])
+                other_id = get_track_identifier(ot)
+                if other_id:
+                    partners.add(other_id)
     return partners
 
 
-def try_reassign_layer(pair_id: str, routes: List[FanoutRoute], tracks: List[Dict],
+def try_reassign_layer(identifier: str, routes: List[FanoutRoute], tracks: List[Dict],
                        available_layers: List[str], track_width: float,
                        clearance: float, diff_pair_spacing: float,
-                       avoid_layers: Set[str] = None) -> Optional[str]:
-    """Try to find a different layer for a colliding pair that has no conflicts."""
+                       avoid_layers: Set[str] = None,
+                       existing_tracks: List[Dict] = None) -> Optional[str]:
+    """Try to find a different layer for a colliding pair/net that has no conflicts.
+
+    Args:
+        identifier: pair_id for diff pairs, or 'net_<net_id>' for single-ended
+        existing_tracks: Read-only list of existing tracks to check against
+    """
     min_spacing = track_width + clearance
     if avoid_layers is None:
         avoid_layers = set()
+    if existing_tracks is None:
+        existing_tracks = []
 
-    # Find routes for this pair
-    pair_routes = [r for r in routes if r.pair_id == pair_id]
-    if not pair_routes:
+    # Handle both pair_id and net_XXX identifiers
+    is_single_ended = identifier.startswith('net_')
+    if is_single_ended:
+        net_id = int(identifier[4:])
+        # Find routes for this net
+        id_routes = [r for r in routes if r.net_id == net_id and r.pair_id is None]
+    else:
+        # Find routes for this pair
+        id_routes = [r for r in routes if r.pair_id == identifier]
+
+    if not id_routes:
         return None
 
-    current_layer = pair_routes[0].layer
+    current_layer = id_routes[0].layer
 
-    # Check if this pair has any edge route (either full edge or half-edge)
-    # Edge and half-edge pairs can use F.Cu; only fully inner pairs are restricted
-    has_edge = any(r.is_edge for r in pair_routes)
+    # Check if this has any edge route (either full edge or half-edge)
+    # Edge and half-edge can use F.Cu; only fully inner are restricted
+    has_edge = any(r.is_edge for r in id_routes)
 
-    # Only fully inner pairs should NOT use F.Cu (first layer)
+    # Only fully inner should NOT use F.Cu (first layer)
     # to avoid clearance violations with pads on the top layer
     if has_edge:
         candidate_layers = available_layers
     else:
         candidate_layers = available_layers[1:] if len(available_layers) > 1 else available_layers
 
-    # Get tracks for this pair
-    pair_track_indices = [i for i, t in enumerate(tracks) if t.get('pair_id') == pair_id]
+    # Get tracks for this identifier
+    id_track_indices = [i for i, t in enumerate(tracks) if tracks_match_identifier(t, identifier)]
 
-    # Get other tracks (not this pair)
-    other_tracks = [t for i, t in enumerate(tracks) if i not in pair_track_indices]
+    # Get other tracks (not this identifier) - includes both new and existing tracks
+    other_tracks = [t for i, t in enumerate(tracks) if i not in id_track_indices]
+    all_other_tracks = other_tracks + existing_tracks
 
     # Count tracks per layer for load balancing
     layer_counts = {layer: 0 for layer in candidate_layers}
@@ -1455,11 +1504,11 @@ def try_reassign_layer(pair_id: str, routes: List[FanoutRoute], tracks: List[Dic
         if candidate_layer in avoid_layers:
             continue
 
-        # Check if moving to this layer would cause collisions
+        # Check if moving to this layer would cause collisions with other tracks OR existing tracks
         has_collision = False
-        for pt_idx in pair_track_indices:
+        for pt_idx in id_track_indices:
             pt = tracks[pt_idx]
-            for ot in other_tracks:
+            for ot in all_other_tracks:
                 if ot['layer'] != candidate_layer:
                     continue
                 if check_segment_collision(pt['start'], pt['end'],
@@ -1478,10 +1527,20 @@ def try_reassign_layer(pair_id: str, routes: List[FanoutRoute], tracks: List[Dic
 
 def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
                        available_layers: List[str], track_width: float,
-                       clearance: float, diff_pair_spacing: float) -> int:
-    """Try to resolve collisions by reassigning layers for colliding pairs."""
+                       clearance: float, diff_pair_spacing: float,
+                       existing_tracks: List[Dict] = None) -> int:
+    """Try to resolve collisions by reassigning layers for colliding pairs.
+
+    Args:
+        existing_tracks: Read-only list of existing tracks to check against but not modify
+    """
+    if existing_tracks is None:
+        existing_tracks = []
+
     min_spacing = track_width + clearance
-    colliding_pairs = find_colliding_pairs(tracks, min_spacing)
+    # Include existing tracks in collision detection
+    all_tracks = tracks + existing_tracks
+    colliding_pairs = find_colliding_pairs(all_tracks, min_spacing)
 
     if not colliding_pairs:
         return 0
@@ -1490,30 +1549,44 @@ def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
     # Track which pairs have been moved this round to avoid moving collision partners to same layer
     moved_this_round: Dict[str, str] = {}
 
-    for pair_id in sorted(colliding_pairs):
+    for identifier in sorted(colliding_pairs):
         # Find collision partners to avoid their new layers
-        partners = find_collision_partners(pair_id, tracks, min_spacing)
+        partners = find_collision_partners(identifier, all_tracks, min_spacing)
         avoid_layers = set()
         for partner in partners:
             if partner in moved_this_round:
                 avoid_layers.add(moved_this_round[partner])
 
-        new_layer = try_reassign_layer(pair_id, routes, tracks, available_layers,
+        new_layer = try_reassign_layer(identifier, routes, tracks, available_layers,
                                         track_width, clearance, diff_pair_spacing,
-                                        avoid_layers)
+                                        avoid_layers, existing_tracks)
         if new_layer:
-            # Update routes
-            for route in routes:
-                if route.pair_id == pair_id:
-                    route.layer = new_layer
-            # Update tracks
-            for track in tracks:
-                if track.get('pair_id') == pair_id:
-                    track['layer'] = new_layer
+            # Determine if this is a single-ended net or a diff pair
+            is_single_ended = identifier.startswith('net_')
 
-            moved_this_round[pair_id] = new_layer
+            if is_single_ended:
+                net_id = int(identifier[4:])
+                # Update routes for this single-ended net
+                for route in routes:
+                    if route.net_id == net_id and route.pair_id is None:
+                        route.layer = new_layer
+                # Update tracks for this single-ended net
+                for track in tracks:
+                    if track.get('net_id') == net_id and not track.get('pair_id'):
+                        track['layer'] = new_layer
+            else:
+                # Update routes for this diff pair
+                for route in routes:
+                    if route.pair_id == identifier:
+                        route.layer = new_layer
+                # Update tracks for this diff pair
+                for track in tracks:
+                    if track.get('pair_id') == identifier:
+                        track['layer'] = new_layer
+
+            moved_this_round[identifier] = new_layer
             reassigned += 1
-            print(f"    Reassigned {pair_id} to {new_layer}")
+            print(f"    Reassigned {identifier} to {new_layer}")
 
     return reassigned
 
@@ -2241,6 +2314,21 @@ def generate_bga_fanout(footprint: Footprint,
     edge_count = 0
     inner_count = 0
 
+    # Convert existing PCB segments to track format for collision checking
+    # These are read-only - we check against them but don't modify them
+    existing_tracks = []
+    if check_for_previous:
+        for seg in pcb_data.segments:
+            existing_tracks.append({
+                'start': (seg.start_x, seg.start_y),
+                'end': (seg.end_x, seg.end_y),
+                'width': seg.width,
+                'layer': seg.layer,
+                'net_id': seg.net_id,
+                'pair_id': None,  # Existing tracks don't have pair_id
+                'is_existing': True  # Mark as existing so we don't try to modify it
+            })
+
     for route in routes:
         if route.is_edge:
             # Edge pad: Check if stub_end differs from pad_pos (differential pair convergence)
@@ -2433,7 +2521,11 @@ def generate_bga_fanout(footprint: Footprint,
     collision_count = 0
     collision_pairs = []
 
+    # Combine new tracks with existing tracks for collision checking
+    all_tracks_for_checking = tracks + existing_tracks
+
     for i, t1 in enumerate(tracks):
+        # Check against other new tracks
         for j, t2 in enumerate(tracks[i+1:], i+1):
             if t1['layer'] != t2['layer']:
                 continue
@@ -2449,15 +2541,29 @@ def generate_bga_fanout(footprint: Footprint,
                 if len(collision_pairs) < 5:
                     collision_pairs.append((t1, t2))
 
+        # Also check against existing tracks
+        for t2 in existing_tracks:
+            if t1['layer'] != t2['layer']:
+                continue
+            if t1['net_id'] == t2['net_id']:
+                continue
+            if check_segment_collision(t1['start'], t1['end'],
+                                       t2['start'], t2['end'],
+                                       min_spacing):
+                collision_count += 1
+                if len(collision_pairs) < 5:
+                    collision_pairs.append((t1, t2))
+
     if collision_count > 0:
         print(f"  INFO: {collision_count} potential collisions detected (will attempt to resolve)")
         for t1, t2 in collision_pairs:
+            existing_marker = " (existing)" if t2.get('is_existing') else ""
             print(f"    {t1['layer']} net{t1['net_id']}: {t1['start']}->{t1['end']}")
-            print(f"    {t2['layer']} net{t2['net_id']}: {t2['start']}->{t2['end']}")
+            print(f"    {t2['layer']} net{t2['net_id']}: {t2['start']}->{t2['end']}{existing_marker}")
 
         # Try to resolve collisions by reassigning layers
         print(f"  Attempting to resolve collisions...")
-        reassigned = resolve_collisions(routes, tracks, layers, track_width, clearance, diff_pair_gap)
+        reassigned = resolve_collisions(routes, tracks, layers, track_width, clearance, diff_pair_gap, existing_tracks)
         if reassigned > 0:
             # Recount collisions after resolution
             new_collision_count = 0
@@ -2468,6 +2574,16 @@ def generate_bga_fanout(footprint: Footprint,
                     if t1['net_id'] == t2['net_id']:
                         continue
                     if t1.get('pair_id') and t1.get('pair_id') == t2.get('pair_id'):
+                        continue
+                    if check_segment_collision(t1['start'], t1['end'],
+                                               t2['start'], t2['end'],
+                                               min_spacing):
+                        new_collision_count += 1
+                # Also recheck against existing tracks
+                for t2 in existing_tracks:
+                    if t1['layer'] != t2['layer']:
+                        continue
+                    if t1['net_id'] == t2['net_id']:
                         continue
                     if check_segment_collision(t1['start'], t1['end'],
                                                t2['start'], t2['end'],
