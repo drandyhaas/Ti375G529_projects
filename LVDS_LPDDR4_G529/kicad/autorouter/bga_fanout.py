@@ -3232,28 +3232,44 @@ def generate_bga_fanout(footprint: Footprint,
         print(f"    {layer}: {count} routes")
 
     # Via management: add vias where needed, remove unnecessary ones
-    # Build lookup of existing vias at pad positions (with small tolerance)
+    # Build list of existing vias for proximity checking
     top_layer = layers[0]  # F.Cu typically
-    tolerance = 0.01  # 0.01mm tolerance for position matching
 
-    existing_vias_at_pos: Dict[Tuple[float, float], 'Via'] = {}
-    for via in pcb_data.vias:
-        # Round to tolerance for lookup
-        key = (round(via.x / tolerance) * tolerance, round(via.y / tolerance) * tolerance)
-        existing_vias_at_pos[key] = via
+    def find_nearby_via(x: float, y: float, net_id: int, max_dist: float) -> Optional['Via']:
+        """Find an existing via on the same net within max_dist of position."""
+        for via in pcb_data.vias:
+            if via.net_id != net_id:
+                continue
+            dist = math.sqrt((via.x - x)**2 + (via.y - y)**2)
+            if dist <= max_dist:
+                return via
+        return None
+
+    def would_overlap_existing_via(x: float, y: float, new_via_size: float) -> bool:
+        """Check if a new via at (x,y) would overlap within clearance of any existing via on any net."""
+        for via in pcb_data.vias:
+            dist = math.sqrt((via.x - x)**2 + (via.y - y)**2)
+            # Overlap if distance is less than sum of radii plus clearance
+            min_dist = (via.size / 2) + (new_via_size / 2) + clearance
+            if dist < min_dist:
+                return True
+        return False
 
     vias_to_add: List[Dict] = []
     vias_to_remove: List[Dict] = []
 
+    # Check distance threshold: via is "at pad" if within via radius + small tolerance
+    via_proximity_threshold = via_size / 2 + 0.1  # Via radius plus 0.1mm tolerance
+
     for route in routes:
         pad_x, pad_y = route.pad_pos
-        key = (round(pad_x / tolerance) * tolerance, round(pad_y / tolerance) * tolerance)
-        existing_via = existing_vias_at_pos.get(key)
+        # Look for existing via on the same net near this pad
+        existing_via = find_nearby_via(pad_x, pad_y, route.net_id, via_proximity_threshold)
 
         if route.layer == top_layer:
             # Routing on top layer - no via needed at pad
             # If there's an existing via at this pad for this net, remove it
-            if existing_via and existing_via.net_id == route.net_id:
+            if existing_via:
                 vias_to_remove.append({
                     'x': existing_via.x,
                     'y': existing_via.y
@@ -3261,16 +3277,21 @@ def generate_bga_fanout(footprint: Footprint,
         else:
             # Routing on inner/bottom layer - via needed to connect from pad (F.Cu) to route layer
             if not existing_via:
-                # No existing via - add one (through all layers: F.Cu to B.Cu)
-                vias_to_add.append({
-                    'x': pad_x,
-                    'y': pad_y,
-                    'size': via_size,
-                    'drill': via_drill,
-                    'layers': ['F.Cu', 'B.Cu'],  # Through-hole via connecting all layers
-                    'net_id': route.net_id
-                })
-            # If existing via already exists, keep it (don't add duplicate)
+                # Check if adding a via here would overlap with an existing via (on any net)
+                if would_overlap_existing_via(pad_x, pad_y, via_size):
+                    # Don't add - would overlap with existing via
+                    pass
+                else:
+                    # No existing via nearby - add one (through all layers: F.Cu to B.Cu)
+                    vias_to_add.append({
+                        'x': pad_x,
+                        'y': pad_y,
+                        'size': via_size,
+                        'drill': via_drill,
+                        'layers': ['F.Cu', 'B.Cu'],  # Through-hole via connecting all layers
+                        'net_id': route.net_id
+                    })
+            # If existing via already exists nearby, keep it (don't add duplicate)
 
     if vias_to_add:
         print(f"  Adding {len(vias_to_add)} vias at pads on non-top layers")
