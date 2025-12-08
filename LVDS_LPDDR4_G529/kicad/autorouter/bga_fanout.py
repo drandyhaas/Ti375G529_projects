@@ -433,54 +433,60 @@ def get_alternate_channels_for_pad(pad_x: float, pad_y: float,
                                     escape_dir: str,
                                     channels: List[Channel]) -> List[Channel]:
     """
-    Get alternate channels for a single-ended signal.
+    Get alternate channel for a single-ended signal.
 
-    Returns channels on the OPPOSITE side of the pad from the primary channel,
-    so that the tracks can still reach them going in the same escape direction.
+    Returns the ONE channel on the OPPOSITE side of the pad from the primary channel.
+    This means the 45° stub will go in the opposite direction.
 
-    For example, if escape_dir is 'right' and primary_channel is above the pad,
-    alternate channels should be BELOW the pad (so tracks going right can still reach them).
+    For example:
+    - If escape_dir is 'right' and primary_channel is BELOW the pad (stub goes 45° down),
+      the alternate is the channel ABOVE the pad (stub goes 45° up instead).
+    - Only one alternate is returned (the closest channel on the opposite side).
     """
     if primary_channel is None:
         return []
 
-    alternate_channels = []
-
     if primary_channel.orientation == 'horizontal':
-        # Horizontal channel - get other horizontal channels on opposite side
+        # Horizontal channel used for left/right escape
+        # Get other horizontal channels on the OPPOSITE side of the pad
         h_channels = [c for c in channels if c.orientation == 'horizontal' and c != primary_channel]
 
         if primary_channel.position < pad_y:
-            # Primary is above pad - alternates must be BELOW pad
+            # Primary is ABOVE pad (stub goes up to reach it)
+            # Alternate must be BELOW pad (stub goes down instead)
             candidates = [c for c in h_channels if c.position > pad_y]
-            # Sort by closest to pad first
+            # Sort by closest to pad first (smallest Y greater than pad_y)
             candidates.sort(key=lambda c: c.position)
         else:
-            # Primary is below pad - alternates must be ABOVE pad
+            # Primary is BELOW pad (stub goes down to reach it)
+            # Alternate must be ABOVE pad (stub goes up instead)
             candidates = [c for c in h_channels if c.position < pad_y]
-            # Sort by closest to pad first (highest position)
+            # Sort by closest to pad first (largest Y less than pad_y)
             candidates.sort(key=lambda c: c.position, reverse=True)
 
-        alternate_channels = candidates[:2]  # Up to 2 alternates
+        # Only return the ONE closest alternate on the opposite side
+        return candidates[:1]
 
     else:  # vertical
-        # Vertical channel - get other vertical channels on opposite side
+        # Vertical channel used for up/down escape
+        # Get other vertical channels on the OPPOSITE side of the pad
         v_channels = [c for c in channels if c.orientation == 'vertical' and c != primary_channel]
 
         if primary_channel.position < pad_x:
-            # Primary is left of pad - alternates must be RIGHT of pad
+            # Primary is LEFT of pad (stub goes left to reach it)
+            # Alternate must be RIGHT of pad (stub goes right instead)
             candidates = [c for c in v_channels if c.position > pad_x]
             # Sort by closest to pad first
             candidates.sort(key=lambda c: c.position)
         else:
-            # Primary is right of pad - alternates must be LEFT of pad
+            # Primary is RIGHT of pad (stub goes right to reach it)
+            # Alternate must be LEFT of pad (stub goes left instead)
             candidates = [c for c in v_channels if c.position < pad_x]
-            # Sort by closest to pad first (highest position)
+            # Sort by closest to pad first
             candidates.sort(key=lambda c: c.position, reverse=True)
 
-        alternate_channels = candidates[:2]  # Up to 2 alternates
-
-    return alternate_channels
+        # Only return the ONE closest alternate on the opposite side
+        return candidates[:1]
 
 
 def try_reroute_single_ended(route: 'FanoutRoute',
@@ -1672,20 +1678,28 @@ def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
                        existing_tracks: List[Dict] = None,
                        grid: BGAGrid = None,
                        channels: List[Channel] = None,
-                       exit_margin: float = 0.5) -> int:
+                       exit_margin: float = 0.5,
+                       net_names: Dict[int, str] = None) -> Tuple[int, List[str]]:
     """Try to resolve collisions by reassigning layers for colliding pairs.
 
     First tries layer reassignment. If that fails for single-ended signals,
-    tries routing through alternate channels on the opposite side of the pad.
+    tries routing through the ONE alternate channel on the opposite side of the pad.
+    If both options fail, the route is removed and reported as failed.
 
     Args:
         existing_tracks: Read-only list of existing tracks to check against but not modify
         grid: BGA grid (needed for alternate channel routing)
         channels: List of routing channels (needed for alternate channel routing)
         exit_margin: Exit margin from BGA boundary
+        net_names: Dict mapping net_id to net name for error reporting
+
+    Returns:
+        Tuple of (number resolved, list of failed net names)
     """
     if existing_tracks is None:
         existing_tracks = []
+    if net_names is None:
+        net_names = {}
 
     min_spacing = track_width + clearance
     # Include existing tracks in collision detection
@@ -1693,10 +1707,11 @@ def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
     colliding_pairs = find_colliding_pairs(all_tracks, min_spacing)
 
     if not colliding_pairs:
-        return 0
+        return 0, []
 
     reassigned = 0
     rerouted = 0
+    failed_nets: List[str] = []
     # Track which pairs have been moved this round to avoid moving collision partners to same layer
     moved_this_round: Dict[str, str] = {}
 
@@ -1741,6 +1756,8 @@ def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
         else:
             # Layer reassignment failed - try alternate channel for single-ended signals
             is_single_ended = identifier.startswith('net_')
+            resolved = False
+
             if is_single_ended and grid is not None and channels is not None:
                 net_id = int(identifier[4:])
                 # Find the route for this net
@@ -1751,13 +1768,13 @@ def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
                         break
 
                 if route and route.channel is not None:
-                    # Get alternate channels
+                    # Get THE alternate channel (only one - on the opposite side)
                     alt_channels = get_alternate_channels_for_pad(
                         route.pad_pos[0], route.pad_pos[1],
                         route.channel, route.escape_dir, channels
                     )
 
-                    # Try each alternate channel
+                    # Try the alternate channel (there's only one)
                     for alt_channel in alt_channels:
                         result = try_reroute_single_ended(
                             route, alt_channel, grid, exit_margin,
@@ -1796,13 +1813,31 @@ def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
                             })
 
                             rerouted += 1
+                            resolved = True
                             print(f"    Rerouted {identifier} to alternate channel on {new_layer}")
                             break
+
+                # If still not resolved, remove the route and report failure
+                if not resolved and route is not None:
+                    net_name = net_names.get(net_id, f"net_{net_id}")
+                    failed_nets.append(net_name)
+
+                    # Remove the failed route from routes list
+                    if route in routes:
+                        routes.remove(route)
+
+                    # Remove tracks for this net
+                    old_track_indices = [i for i, t in enumerate(tracks)
+                                        if t.get('net_id') == net_id and not t.get('pair_id')]
+                    for idx in sorted(old_track_indices, reverse=True):
+                        tracks.pop(idx)
+
+                    print(f"    FAILED: Could not route {net_name} - no collision-free path found")
 
     if rerouted > 0:
         print(f"  Rerouted {rerouted} signals to alternate channels")
 
-    return reassigned + rerouted
+    return reassigned + rerouted, failed_nets
 
 
 def generate_bga_fanout(footprint: Footprint,
@@ -2777,8 +2812,17 @@ def generate_bga_fanout(footprint: Footprint,
 
         # Try to resolve collisions by reassigning layers or using alternate channels
         print(f"  Attempting to resolve collisions...")
-        reassigned = resolve_collisions(routes, tracks, layers, track_width, clearance, diff_pair_gap,
-                                        existing_tracks, grid, channels, exit_margin)
+        # Build net_id -> net_name mapping for error reporting
+        net_id_to_name = {r.net_id: r.pad.net_name for r in routes if r.pad.net_name}
+        reassigned, failed_nets = resolve_collisions(routes, tracks, layers, track_width, clearance, diff_pair_gap,
+                                        existing_tracks, grid, channels, exit_margin, net_id_to_name)
+
+        if failed_nets:
+            print(f"\n  ERROR: Failed to route {len(failed_nets)} net(s):")
+            for net_name in failed_nets:
+                print(f"    - {net_name}")
+            print(f"  These nets have been removed from the output.\n")
+
         if reassigned > 0:
             # Recount collisions after resolution
             new_collision_count = 0
