@@ -48,10 +48,9 @@ See [rust_router/README.md](rust_router/README.md) for detailed build instructio
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures (handles pad rotation) |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 | `check_drc.py` | DRC checker for detecting clearance violations |
-| `visualize_routing.py` | Matplotlib visualization of routing progress |
 | `bga_fanout.py` | BGA fanout stub generation for differential pairs |
 | `qfn_fanout.py` | QFN fanout stub generation |
-| `apply_fanouts.py` | Apply generated fanouts to PCB file |
+| `list_nets.py` | List all net names on a component (sorted alphabetically) |
 | `rust_router/` | Rust A* implementation with Python bindings |
 | `pygame_visualizer/` | Real-time visualization with persistent route display |
 | `MPS.html` | Interactive visualization of MPS crossing conflict algorithm |
@@ -347,9 +346,11 @@ python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
 - **45° stubs**: Traces exit pads at 45° angles to reach channel positions
 - **Collision detection and resolution**: Detects collisions and reassigns layers to resolve them
 - **Edge pair handling**: Pairs on BGA edges route directly outward
-- **Alternate channel fallback**: When a channel is blocked, uses neighboring channels in the opposite direction
+- **Alternate channel fallback**: When a channel is blocked, tries the one neighboring channel on the opposite side of the pad
+- **Jogged route support**: When both primary and alternate channels are blocked, moves conflicting routes to a farther channel using a jogged path (45° stub → vertical/horizontal jog → farther channel)
 - **Escape rebalancing**: Optional rebalancing spreads exits evenly around chip perimeter for easier routing
 - **Incremental fanout**: With `--check-for-previous`, skips already-fanned-out pads and avoids occupied channels
+- **Graceful failure handling**: Reports nets that cannot be routed without conflicts and removes them from output
 
 ### Example Output
 
@@ -364,11 +365,69 @@ Found U3: BGA-529_23x23_19.0x19.0mm
   INFO: 50 potential collisions detected (will attempt to resolve)
     Reassigned /fpga_adc/lvds_rx1_7 to B.Cu
     Reassigned /fpga_adc/lvds_rx4_6 to In2.Cu
+    Moved Net-(U2A-CLK) to jogged path on In2.Cu
+    Rerouted net_321 after freeing channel on In2.Cu
+  Rerouted 3 signals to alternate channels
   After resolution: 0 collisions remaining
     B.Cu: 14 routes
     F.Cu: 38 routes
     In1.Cu: 38 routes
     In2.Cu: 22 routes
+```
+
+## QFN Fanout Generation
+
+The `qfn_fanout.py` script generates fanout stubs from QFN/QFP pads.
+
+### Basic Usage
+
+```bash
+python qfn_fanout.py input.kicad_pcb --output output.kicad_pcb --component U1
+```
+
+### Command-Line Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--output`, `-o` | (required) | Output PCB file |
+| `--component`, `-c` | (auto) | Component reference (auto-detected if not specified) |
+| `--layer`, `-l` | `F.Cu` | Routing layer |
+| `--width`, `-w` | `0.1` | Track width in mm |
+| `--clearance` | `0.1` | Track clearance in mm |
+| `--nets`, `-n` | (all) | Net patterns to include (wildcards supported) |
+| `--stub-length`, `-s` | (auto) | Stub length (default: chip width / 2) |
+
+## Utility Scripts
+
+### List Nets on a Component
+
+The `list_nets.py` script prints all net names connected to a component, sorted alphabetically:
+
+```bash
+# List nets on auto-detected BGA component
+python list_nets.py input.kicad_pcb
+
+# List nets on a specific component
+python list_nets.py input.kicad_pcb --component U3
+```
+
+### Command-Line Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `pcb` | (required) | Input PCB file |
+| `--component`, `-c` | (auto) | Component reference (auto-detected BGA if not specified) |
+
+Example output:
+```
+Auto-detected BGA component: U3
+
+Nets on U3 (144 total):
+
+  Net-(U2A-BE_0)
+  Net-(U2A-BE_1)
+  Net-(U2A-CLK)
+  ...
 ```
 
 ## Limitations
@@ -381,10 +440,25 @@ Found U3: BGA-529_23x23_19.0x19.0mm
 
 ## DRC Checking
 
-Verify routed output has no clearance violations:
+The `check_drc.py` script verifies routed output has no clearance violations.
+
+### Usage
 
 ```bash
-python check_drc.py routed_output.kicad_pcb 0.1
+python check_drc.py input.kicad_pcb [OPTIONS]
+```
+
+### Command-Line Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `pcb` | (required) | Input PCB file to check |
+| `--clearance`, `-c` | `0.1` | Minimum clearance in mm |
+
+### Example
+
+```bash
+python check_drc.py routed_output.kicad_pcb --clearance 0.1
 ```
 
 The checker reports:
@@ -400,34 +474,12 @@ Watch the A* algorithm explore the routing grid in real-time using the PyGame vi
 
 ```bash
 pip install pygame-ce
-python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-DATA_0)"
-
-# Auto-advance mode for benchmarking (no manual N key needed)
-python pygame_visualizer/run_visualizer.py --auto input.kicad_pcb "Net-(U2A-DATA_*)"
-
-# Disable BGA zones for pad-only nets (e.g., LVDS between BGAs)
-python pygame_visualizer/run_visualizer.py --no-bga-zones input.kicad_pcb "*lvds*"
-
-# Use same options as batch router
-python pygame_visualizer/run_visualizer.py --auto --ordering mps --via-cost 50 input.kicad_pcb "Net-(U2A-*)"
+python pygame_visualizer/run_visualizer.py input.kicad_pcb "Net-(U2A-DATA_*)"
 ```
 
-Features:
-- **Identical results to batch router** - Same Rust A* engine, same obstacle handling, same iteration counts
-- **Same command-line options** - All batch_grid_router.py parameters supported
-- Pause, step, zoom, pan controls
-- Speed control with 2x scaling (1x, 2x, 4x, 8x... up to 65536x)
-- Layer filtering and legend display
-- Persistent route display (completed routes remain visible)
-- Incremental obstacle caching for fast net setup
-- Pad-only routing support (nets with only pads, no stubs)
+Uses the same Rust A* engine as the batch router with identical results. Supports all `batch_grid_router.py` command-line options plus `--auto` for automatic net advancement.
 
-Both routers use the same obstacle handling:
-- **Routed nets**: segments, vias, and pads added as obstacles
-- **Unrouted nets**: segments (stubs), vias (if any), and pads added as obstacles
-- **Stub proximity costs**: applied to all remaining unrouted nets
-
-See [pygame_visualizer/README.md](pygame_visualizer/README.md) for full documentation.
+See [pygame_visualizer/README.md](pygame_visualizer/README.md) for full documentation, keyboard controls, and examples.
 
 ## Dependencies
 

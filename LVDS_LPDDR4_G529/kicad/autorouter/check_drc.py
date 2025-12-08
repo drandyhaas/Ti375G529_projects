@@ -3,6 +3,7 @@ DRC Checker - Find overlapping tracks and vias between different nets.
 """
 
 import sys
+import argparse
 import math
 from typing import List, Tuple, Set
 from kicad_parser import parse_kicad_pcb, Segment, Via
@@ -260,11 +261,11 @@ def run_drc(pcb_file: str, clearance: float = 0.1):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python check_drc.py <pcb_file> [clearance_mm]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Check PCB for DRC violations (clearance errors)')
+    parser.add_argument('pcb', help='Input PCB file')
+    parser.add_argument('--clearance', '-c', type=float, default=0.1,
+                        help='Minimum clearance in mm (default: 0.1)')
 
-    pcb_file = sys.argv[1]
-    clearance = float(sys.argv[2]) if len(sys.argv) > 2 else 0.1
+    args = parser.parse_args()
 
-    run_drc(pcb_file, clearance)
+    run_drc(args.pcb, args.clearance)
