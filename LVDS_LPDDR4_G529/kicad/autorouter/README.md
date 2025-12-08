@@ -296,7 +296,7 @@ The Maximum Planar Subset (MPS) ordering strategy identifies crossing conflicts 
 
 ### Interactive Visualization
 
-Open `MPS.html` in a browser to see the algorithm in action:
+[Open `MPS.html` in a browser](MPS.html) to see the algorithm in action:
 - Draw nets by clicking pairs of pins on the circular boundary
 - Click "Convert to Graph" to build the conflict graph
 - Click "Run Micro-Step" repeatedly to watch the greedy selection process
