@@ -477,6 +477,14 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
 
     assignments: Dict[str, Tuple[Optional[Channel], str]] = {}
 
+    # Track occupied exit positions per layer
+    # Key: (layer, direction_axis, position) where position is the channel/exit coordinate
+    # Must be initialized BEFORE processing edge pairs so they get tracked
+    occupied: Dict[Tuple[str, str, float], str] = {}  # -> pair_id that occupies it
+
+    pair_spacing = track_width * 2 + clearance  # Minimum spacing between diff pairs
+    edge_layer = layers[0]  # Edge pairs go on top layer (F.Cu)
+
     # Collect pair info with distances
     pair_info = []
     for pair_id, pair in diff_pairs.items():
@@ -492,13 +500,28 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
         is_edge_n, edge_dir_n = is_edge_pad(n_pad.global_x, n_pad.global_y, grid)
 
         if is_edge_p and is_edge_n:
-            # Both on edge - fixed assignment
-            assignments[pair_id] = (None, edge_dir_p)
+            # Both on edge - fixed assignment on edge_layer
+            edge_dir = edge_dir_p
+            assignments[pair_id] = (None, edge_dir)
+            # Track occupancy - edge pairs exit at their center position
+            if edge_dir in ['left', 'right']:
+                # Horizontal exit - track Y position (center_y)
+                key = (edge_layer, f'{edge_dir}_h', round(center_y, 1))
+            else:
+                # Vertical exit - track X position (center_x)
+                key = (edge_layer, f'{edge_dir}_v', round(center_x, 1))
+            occupied[key] = pair_id
             continue
         elif is_edge_p or is_edge_n:
-            # Half-edge - fixed assignment
+            # Half-edge - fixed assignment on edge_layer
             edge_dir = edge_dir_p if is_edge_p else edge_dir_n
             assignments[pair_id] = (None, f'half_edge_{edge_dir}')
+            # Track occupancy for half-edge pairs too
+            if edge_dir in ['left', 'right']:
+                key = (edge_layer, f'{edge_dir}_h', round(center_y, 1))
+            else:
+                key = (edge_layer, f'{edge_dir}_v', round(center_x, 1))
+            occupied[key] = pair_id
             continue
 
         # Calculate distance to nearest edge
@@ -510,164 +533,273 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
 
         pair_info.append((pair_id, pair, min_dist, center_x, center_y))
 
-    # Sort by distance to edge (closest first - they have fewer routing options)
-    pair_info.sort(key=lambda x: x[2])
-
     secondary_orientation = 'vertical' if primary_orientation == 'horizontal' else 'horizontal'
 
-    def try_assign(pair_id: str, pair: DiffPair, orientation: str) -> bool:
-        """Try to assign a pair to the given orientation. Returns True if successful."""
+    def get_exit_key(pair: DiffPair, channel: Channel, escape_dir: str) -> Tuple[str, float]:
+        """Get the exit position key for a pair assignment.
+
+        Returns (direction_and_axis, position) where direction_and_axis encodes
+        both the escape direction and axis to prevent false conflicts.
+        E.g., 'up_v' vs 'down_v' are different even at same X position.
+        """
         p_pad = pair.p_pad
         n_pad = pair.n_pad
-        center_x = (p_pad.global_x + n_pad.global_x) / 2
-        center_y = (p_pad.global_y + n_pad.global_y) / 2
+        cx = (p_pad.global_x + n_pad.global_x) / 2
+        cy = (p_pad.global_y + n_pad.global_y) / 2
 
-        channel, escape_dir = find_diff_pair_escape(
-            p_pad.global_x, p_pad.global_y,
-            n_pad.global_x, n_pad.global_y,
-            grid, channels, orientation
-        )
-
-        if channel is None:
-            return False
-
-        # Check if this conflicts with existing assignments
-        # For cross-escape (convergence), check the exit position
         pads_horizontal = abs(p_pad.global_x - n_pad.global_x) > abs(p_pad.global_y - n_pad.global_y)
         is_cross = (pads_horizontal and escape_dir in ['up', 'down']) or \
                    (not pads_horizontal and escape_dir in ['left', 'right'])
 
         if is_cross:
-            # Convergence routing - exits at center +/- half_pair_spacing
+            # Convergence - exits at pair center
             if escape_dir in ['up', 'down']:
-                # Vertical exit - check X positions
-                exit_pos = round(center_x, 1)
-                pos_key = 'v'
+                return (f'{escape_dir}_v', round(cx, 1))
             else:
-                # Horizontal exit - check Y positions
-                exit_pos = round(center_y, 1)
-                pos_key = 'h'
+                return (f'{escape_dir}_h', round(cy, 1))
         else:
-            # Channel routing - exits at channel position +/- offset
+            # Channel routing - exits at channel position
             if escape_dir in ['left', 'right']:
-                exit_pos = round(channel.position, 1)
-                pos_key = 'h'
+                return (f'{escape_dir}_h', round(channel.position, 1))
             else:
-                exit_pos = round(channel.position, 1)
-                pos_key = 'v'
+                return (f'{escape_dir}_v', round(channel.position, 1))
 
-        # Check all layers for conflicts
-        # A position is available if there's at least one free layer
-        conflicts_per_layer = {}
+    def can_assign(pair: DiffPair, channel: Channel, escape_dir: str) -> Tuple[bool, Optional[str]]:
+        """Check if a pair can be assigned without overlap. Returns (can_assign, best_layer)."""
+        if channel is None:
+            return False, None
+
+        pos_key, pos = get_exit_key(pair, channel, escape_dir)
+
+        # Check each layer for availability
         for layer in layers:
-            key = (layer, pos_key, exit_pos)
-            nearby_pairs = used_exits[key]
-            # Also check adjacent positions for spacing
-            for delta in [-pair_spacing, 0, pair_spacing]:
-                adj_key = (layer, pos_key, round(exit_pos + delta, 1))
-                nearby_pairs = nearby_pairs.union(used_exits[adj_key])
-            conflicts_per_layer[layer] = len(nearby_pairs)
+            is_free = True
+            # Check this position and nearby positions for spacing
+            for delta in [-pair_spacing, -pair_spacing/2, 0, pair_spacing/2, pair_spacing]:
+                check_pos = round(pos + delta, 1)
+                key = (layer, pos_key, check_pos)
+                if key in occupied:
+                    is_free = False
+                    break
+            if is_free:
+                return True, layer
 
-        # Find layer with fewest conflicts
-        best_layer = min(layers, key=lambda l: conflicts_per_layer[l])
-        if conflicts_per_layer[best_layer] >= 1:
-            # All layers have conflicts at this position
-            return False
+        return False, None
 
-        # Assign this pair
+    def do_assign(pair_id: str, pair: DiffPair, channel: Channel, escape_dir: str, layer: str):
+        """Record an assignment."""
         assignments[pair_id] = (channel, escape_dir)
-        key = (best_layer, pos_key, exit_pos)
-        used_exits[key].add(pair_id)
-        return True
+        pos_key, pos = get_exit_key(pair, channel, escape_dir)
+        key = (layer, pos_key, pos)
+        occupied[key] = pair_id
 
-    # First pass: try primary orientation
-    unassigned = []
+    # Sort pairs by distance to primary exit edge (closest first - they must use primary)
+    # For horizontal primary: sort by distance to left/right edge
+    # For vertical primary: sort by distance to top/bottom edge
     for pair_id, pair, min_dist, cx, cy in pair_info:
-        if not try_assign(pair_id, pair, primary_orientation):
-            unassigned.append((pair_id, pair, min_dist, cx, cy))
+        if primary_orientation == 'horizontal':
+            primary_dist = min(cx - grid.min_x, grid.max_x - cx)
+        else:
+            primary_dist = min(cy - grid.min_y, grid.max_y - cy)
+        # Store primary_dist for later use
+        pair_info_dict = {p[0]: (p[1], p[3], p[4], primary_dist) for p in pair_info}
 
-    # Second pass: try secondary orientation for unassigned
+    # Rebuild pair_info with primary distance
+    pair_info_with_primary = []
+    for pair_id, pair, min_dist, cx, cy in pair_info:
+        if primary_orientation == 'horizontal':
+            primary_dist = min(cx - grid.min_x, grid.max_x - cx)
+            secondary_dist = min(cy - grid.min_y, grid.max_y - cy)
+        else:
+            primary_dist = min(cy - grid.min_y, grid.max_y - cy)
+            secondary_dist = min(cx - grid.min_x, grid.max_x - cx)
+        pair_info_with_primary.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
+
+    # Sort by primary distance (closest to primary edge first)
+    pair_info_with_primary.sort(key=lambda x: x[4])
+
+    # First pass: assign as many as possible to primary direction
+    unassigned = []
+    for pair_id, pair, cx, cy, primary_dist, secondary_dist in pair_info_with_primary:
+        channel, escape_dir = find_diff_pair_escape(
+            pair.p_pad.global_x, pair.p_pad.global_y,
+            pair.n_pad.global_x, pair.n_pad.global_y,
+            grid, channels, primary_orientation
+        )
+
+        can_do, layer = can_assign(pair, channel, escape_dir)
+        if can_do:
+            do_assign(pair_id, pair, channel, escape_dir, layer)
+        else:
+            unassigned.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
+
+    # Second pass: assign remaining to secondary direction
     still_unassigned = []
-    for pair_id, pair, min_dist, cx, cy in unassigned:
-        if not try_assign(pair_id, pair, secondary_orientation):
-            still_unassigned.append((pair_id, pair, min_dist, cx, cy))
+    for pair_id, pair, cx, cy, primary_dist, secondary_dist in unassigned:
+        channel, escape_dir = find_diff_pair_escape(
+            pair.p_pad.global_x, pair.p_pad.global_y,
+            pair.n_pad.global_x, pair.n_pad.global_y,
+            grid, channels, secondary_orientation
+        )
 
-    # Third pass: force assign remaining (they'll have collisions)
-    for pair_id, pair, min_dist, cx, cy in still_unassigned:
-        # Use auto mode as fallback
+        can_do, layer = can_assign(pair, channel, escape_dir)
+        if can_do:
+            do_assign(pair_id, pair, channel, escape_dir, layer)
+        else:
+            still_unassigned.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
+
+    # Third pass: force assign remaining (collision unavoidable)
+    for pair_id, pair, cx, cy, primary_dist, secondary_dist in still_unassigned:
         channel, escape_dir = find_diff_pair_escape(
             pair.p_pad.global_x, pair.p_pad.global_y,
             pair.n_pad.global_x, pair.n_pad.global_y,
             grid, channels, 'auto'
         )
         assignments[pair_id] = (channel, escape_dir)
+        print(f"    Warning: {pair_id} forced assignment (may have overlaps)")
 
-    # Count direction distribution
-    dir_counts = defaultdict(int)
-    for ch, d in assignments.values():
-        if d.startswith('half_edge_'):
-            d = d.replace('half_edge_', '')
-        dir_counts[d] += 1
+    # Count direction distribution (excluding edge pairs which are fixed)
+    def count_directions():
+        dir_counts = defaultdict(int)
+        for pid, (ch, d) in assignments.items():
+            if d.startswith('half_edge_'):
+                continue  # Don't count edge pairs - they're fixed
+            if ch is None:
+                continue  # Don't count full edge pairs
+            dir_counts[d] += 1
+        h = dir_counts['left'] + dir_counts['right']
+        v = dir_counts['up'] + dir_counts['down']
+        return h, v, dir_counts
 
-    h_count = dir_counts['left'] + dir_counts['right']
-    v_count = dir_counts['up'] + dir_counts['down']
-
+    h_count, v_count, dir_counts = count_directions()
     print(f"    Initial assignment: horizontal={h_count}, vertical={v_count}")
 
-    # Try to balance if very uneven (>2:1 ratio)
-    if h_count > 0 and v_count > 0:
-        ratio = max(h_count, v_count) / min(h_count, v_count)
-        if ratio > 2.0:
-            # Find pairs to switch from overpopulated to underpopulated direction
-            overpopulated = 'horizontal' if h_count > v_count else 'vertical'
-            underpopulated = 'vertical' if h_count > v_count else 'horizontal'
+    # Try to balance by switching pairs from overpopulated to underpopulated direction
+    # Priority: pairs farthest from primary exit edge, but closest to secondary exit edge
+    total_switched = 0
+    max_iterations = 50
 
-            # Find switchable pairs (farthest from their current exit edge)
-            switchable = []
-            for pair_id, pair, min_dist, cx, cy in pair_info:
-                if pair_id not in assignments:
-                    continue
-                ch, d = assignments[pair_id]
-                if d.startswith('half_edge_'):
-                    continue  # Can't switch edge pairs
-                if ch is None:
-                    continue
+    for iteration in range(max_iterations):
+        h_count, v_count, _ = count_directions()
 
-                current_is_horiz = d in ['left', 'right']
-                if (overpopulated == 'horizontal') == current_is_horiz:
-                    # This pair is in the overpopulated direction
-                    # Calculate distance to current exit edge
-                    if d == 'left':
-                        exit_dist = cx - grid.min_x
-                    elif d == 'right':
-                        exit_dist = grid.max_x - cx
-                    elif d == 'up':
-                        exit_dist = cy - grid.min_y
-                    else:  # down
-                        exit_dist = grid.max_y - cy
-                    switchable.append((pair_id, pair, exit_dist, cx, cy))
+        # Target: roughly equal split
+        total = h_count + v_count
+        if total == 0:
+            break
 
-            # Sort by exit distance (farthest first - they benefit most from switching)
-            switchable.sort(key=lambda x: -x[2])
+        target_each = total // 2
 
-            # Try to switch some pairs
-            target_switch = abs(h_count - v_count) // 2
-            switched = 0
-            for pair_id, pair, exit_dist, cx, cy in switchable:
-                if switched >= target_switch:
-                    break
-                # Try to assign to underpopulated direction
-                old_assignment = assignments[pair_id]
-                if try_assign(pair_id, pair, underpopulated):
-                    switched += 1
+        # Determine which direction is overpopulated
+        if h_count > v_count + 1:
+            overpopulated = 'horizontal'
+            underpopulated = 'vertical'
+            excess = h_count - target_each
+        elif v_count > h_count + 1:
+            overpopulated = 'vertical'
+            underpopulated = 'horizontal'
+            excess = v_count - target_each
+        else:
+            break  # Already balanced
+
+        if excess <= 0:
+            break
+
+        # Find switchable pairs in overpopulated direction
+        # Score by: farthest from current (primary) exit, closest to alternative exit
+        switchable = []
+        for pair_id, pair, cx, cy, primary_dist, secondary_dist in pair_info_with_primary:
+            if pair_id not in assignments:
+                continue
+            ch, d = assignments[pair_id]
+            if d.startswith('half_edge_'):
+                continue
+            if ch is None:
+                continue
+
+            current_is_horiz = d in ['left', 'right']
+            if (overpopulated == 'horizontal') == current_is_horiz:
+                # Calculate distances for switching priority
+                if overpopulated == 'horizontal':
+                    # Currently horizontal, would switch to vertical
+                    current_exit_dist = min(cx - grid.min_x, grid.max_x - cx)
+                    alt_exit_dist = min(cy - grid.min_y, grid.max_y - cy)
                 else:
-                    # Restore old assignment
-                    assignments[pair_id] = old_assignment
+                    # Currently vertical, would switch to horizontal
+                    current_exit_dist = min(cy - grid.min_y, grid.max_y - cy)
+                    alt_exit_dist = min(cx - grid.min_x, grid.max_x - cx)
 
-            if switched > 0:
-                print(f"    Balanced: switched {switched} pairs to {underpopulated}")
+                # Score: high current_exit_dist (far from current exit) + low alt_exit_dist (close to alt exit)
+                # We want pairs that are far from primary exit but close to secondary exit
+                switch_score = current_exit_dist - alt_exit_dist
+                switchable.append((pair_id, pair, switch_score, alt_exit_dist, cx, cy))
 
-    return assignments
+        if not switchable:
+            break
+
+        # Sort by switch_score descending (best candidates first)
+        # Best = farthest from current exit, closest to alternative exit
+        switchable.sort(key=lambda x: -x[2])
+
+        # Try to switch one pair at a time
+        switched_this_round = 0
+        for pair_id, pair, score, alt_dist, cx, cy in switchable:
+            if switched_this_round >= 1:  # Switch one at a time to recheck balance
+                break
+
+            # Remove from occupied tracking
+            old_ch, old_d = assignments[pair_id]
+            if old_ch is not None:
+                old_pos_key, old_pos = get_exit_key(pair, old_ch, old_d)
+                # Find and remove from occupied
+                for layer in layers:
+                    key = (layer, old_pos_key, old_pos)
+                    if key in occupied and occupied[key] == pair_id:
+                        del occupied[key]
+                        break
+
+            # Try to assign to underpopulated direction
+            channel, escape_dir = find_diff_pair_escape(
+                pair.p_pad.global_x, pair.p_pad.global_y,
+                pair.n_pad.global_x, pair.n_pad.global_y,
+                grid, channels, underpopulated
+            )
+
+            can_do, layer = can_assign(pair, channel, escape_dir)
+            if can_do and channel is not None:
+                do_assign(pair_id, pair, channel, escape_dir, layer)
+                switched_this_round += 1
+                total_switched += 1
+            else:
+                # Can't switch, restore old assignment
+                if old_ch is not None:
+                    # Re-add to occupied
+                    for layer in layers:
+                        key = (layer, old_pos_key, old_pos)
+                        if key not in occupied:
+                            occupied[key] = pair_id
+                            break
+
+        if switched_this_round == 0:
+            h_count, v_count, _ = count_directions()
+            print(f"    Balancing stopped: no switchable pairs found (h={h_count}, v={v_count})")
+            break
+
+    if total_switched > 0:
+        h_count, v_count, _ = count_directions()
+        print(f"    Balanced: switched {total_switched} pairs, now horizontal={h_count}, vertical={v_count}")
+
+    # Build layer assignments from occupied dict
+    # Reverse lookup: find which layer each pair was assigned to
+    pair_layers: Dict[str, str] = {}
+    for (layer, pos_key, pos), pid in occupied.items():
+        pair_layers[pid] = layer
+
+    # Edge pairs all go on edge_layer
+    for pair_id, (ch, d) in assignments.items():
+        if ch is None:  # Edge or half-edge pair
+            pair_layers[pair_id] = edge_layer
+
+    return assignments, pair_layers
 
 
 def create_45_stub(pad_x: float, pad_y: float,
@@ -879,6 +1011,7 @@ def assign_layers_smart(routes: List[FanoutRoute],
     - Differential pairs are assigned to the same layer together
     - Inner pads grouped by channel AND escape direction
     - Routes with overlapping channel segments must use different layers
+    - Cross-escape routes (vertical exit) must NOT conflict with edge routes on same layer
     """
     min_spacing = track_width + clearance
 
@@ -887,9 +1020,11 @@ def assign_layers_smart(routes: List[FanoutRoute],
     pair_width = 2 * track_width + diff_pair_spacing
 
     # Edge routes stay on first layer
+    edge_routes = []
     for route in routes:
         if route.is_edge:
             route.layer = available_layers[0]
+            edge_routes.append(route)
 
     # Build lookup from pair_id to routes
     pair_routes: Dict[str, List[FanoutRoute]] = defaultdict(list)
@@ -960,6 +1095,44 @@ def assign_layers_smart(routes: List[FanoutRoute],
                     if segments_overlap_on_channel(route, other, spacing):
                         conflict = True
                         break
+
+                # Also check against edge routes if assigning to first layer (F.Cu)
+                # Edge routes exit horizontally (left/right), inner vertical-exit routes
+                # could potentially cross them
+                if not conflict and layer == available_layers[0] and edge_routes:
+                    spacing = pair_width + clearance if route.pair_id else min_spacing
+                    for edge_route in edge_routes:
+                        # Check if this route's exit segment conflicts with edge route
+                        # Route goes from stub_end to exit_pos (for cross-escape, this is vertical)
+                        # Edge route goes from pad_pos/stub_end to exit_pos (horizontal)
+                        if route.escape_dir in ['up', 'down']:
+                            # Vertical exit - check if it crosses any horizontal edge route
+                            # Route vertical segment: from stub_end to exit_pos
+                            route_x = route.stub_end[0]  # X is constant for vertical
+                            route_y_min = min(route.stub_end[1], route.exit_pos[1])
+                            route_y_max = max(route.stub_end[1], route.exit_pos[1])
+
+                            # Edge route horizontal segment: from pad to exit
+                            edge_y = edge_route.exit_pos[1]  # Y is constant for horizontal edge
+                            edge_x_min = min(edge_route.pad_pos[0], edge_route.exit_pos[0])
+                            edge_x_max = max(edge_route.pad_pos[0], edge_route.exit_pos[0])
+
+                            # Check if vertical segment crosses horizontal segment
+                            if (route_y_min <= edge_y <= route_y_max and
+                                edge_x_min <= route_x <= edge_x_max):
+                                # Check spacing - are they too close?
+                                # For diff pairs, check both traces
+                                if route.pair_id:
+                                    # Both P and N traces at route_x +/- half_pair_spacing
+                                    for partner in pair_routes.get(route.pair_id, [route]):
+                                        partner_x = partner.stub_end[0]
+                                        if abs(partner_x - route_x) < spacing:
+                                            conflict = True
+                                            break
+                                else:
+                                    conflict = True
+                                if conflict:
+                                    break
 
                 if not conflict:
                     route.layer = layer
@@ -1075,7 +1248,7 @@ def generate_bga_fanout(footprint: Footprint,
 
         # Pre-assign escape directions for all pairs to avoid overlaps
         print(f"  Assigning escape directions (primary: {primary_escape})...")
-        pair_escape_assignments = assign_pair_escapes(
+        pair_escape_assignments, pair_layer_assignments = assign_pair_escapes(
             diff_pairs, grid, channels, layers,
             primary_orientation=primary_escape,
             track_width=track_width,
@@ -1510,6 +1683,9 @@ def generate_bga_fanout(footprint: Footprint,
                     exit_pos = calculate_exit_point(stub_end, channel, escape_dir,
                                                    grid, exit_margin, offset)
 
+                # Use pre-assigned layer if available, otherwise default to layers[0]
+                assigned_layer = pair_layer_assignments.get(pair_id, layers[0]) if pair_layer_assignments else layers[0]
+
                 route = FanoutRoute(
                     pad=pad_info,
                     pad_pos=(pad_info.global_x, pad_info.global_y),
@@ -1518,7 +1694,7 @@ def generate_bga_fanout(footprint: Footprint,
                     channel=channel,
                     escape_dir=escape_dir,
                     is_edge=is_edge,
-                    layer=layers[0],
+                    layer=assigned_layer,
                     pair_id=pair_id,
                     is_p=is_p_route
                 )
