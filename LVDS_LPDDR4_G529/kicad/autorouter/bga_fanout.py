@@ -303,12 +303,16 @@ def find_escape_channel(pad_x: float, pad_y: float,
 def get_pair_escape_options(p_pad_x: float, p_pad_y: float,
                              n_pad_x: float, n_pad_y: float,
                              grid: BGAGrid,
-                             channels: List[Channel]) -> List[Tuple[Optional[Channel], str]]:
+                             channels: List[Channel],
+                             include_alternate_channels: bool = False) -> List[Tuple[Optional[Channel], str]]:
     """
     Get all valid escape options for a differential pair, ordered by preference.
 
     Returns list of (channel, direction) tuples, best options first.
     Returns empty list for edge/half-edge pairs (they have fixed escape).
+
+    Args:
+        include_alternate_channels: If True, include neighboring channels as fallback options
     """
     center_x = (p_pad_x + n_pad_x) / 2
     center_y = (p_pad_y + n_pad_y) / 2
@@ -375,8 +379,19 @@ def get_pair_escape_options(p_pad_x: float, p_pad_y: float,
     # Sort by distance (closest edge first)
     options.sort(key=lambda x: x[2])
 
-    # Return without the distance
-    return [(ch, d) for ch, d, _ in options]
+    # Build result list
+    result = [(ch, d) for ch, d, _ in options]
+
+    # If requested, add alternate channels as fallback options
+    if include_alternate_channels and v_channel:
+        v_dir = 'up' if dist_up <= dist_down else 'down'
+        # Add other vertical channels sorted by distance from the primary channel
+        other_v_channels = [c for c in v_channels if c != v_channel]
+        other_v_channels.sort(key=lambda c: abs(c.position - v_channel.position))
+        for alt_ch in other_v_channels[:3]:  # Add up to 3 alternates
+            result.append((alt_ch, v_dir))
+
+    return result
 
 
 def find_diff_pair_escape(p_pad_x: float, p_pad_y: float,
@@ -444,7 +459,8 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
                         layers: List[str],
                         primary_orientation: str = 'horizontal',
                         track_width: float = 0.1,
-                        clearance: float = 0.1) -> Dict[str, Tuple[Optional[Channel], str]]:
+                        clearance: float = 0.1,
+                        rebalance: bool = False) -> Dict[str, Tuple[Optional[Channel], str]]:
     """
     Assign escape directions to all differential pairs, avoiding overlaps.
 
@@ -453,7 +469,7 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
     2. Try primary orientation first for each pair
     3. If channel/layer is occupied, try secondary orientation
     4. Track channel occupancy per layer
-    5. After assignment, try to balance if one direction is overpopulated
+    5. If rebalance=True, try to balance if one direction is overpopulated
 
     Args:
         diff_pairs: Dictionary of pair_id -> DiffPair
@@ -463,6 +479,7 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
         primary_orientation: 'horizontal' or 'vertical'
         track_width: Track width for spacing calculation
         clearance: Clearance for spacing calculation
+        rebalance: If True, rebalance directions to achieve even H/V mix
 
     Returns:
         Dictionary of pair_id -> (channel, escape_direction)
@@ -621,31 +638,53 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
     # First pass: assign as many as possible to primary direction
     unassigned = []
     for pair_id, pair, cx, cy, primary_dist, secondary_dist in pair_info_with_primary:
-        channel, escape_dir = find_diff_pair_escape(
+        # Get all escape options including alternate channels
+        all_options = get_pair_escape_options(
             pair.p_pad.global_x, pair.p_pad.global_y,
             pair.n_pad.global_x, pair.n_pad.global_y,
-            grid, channels, primary_orientation
+            grid, channels, include_alternate_channels=True
         )
 
-        can_do, layer = can_assign(pair, channel, escape_dir)
-        if can_do:
-            do_assign(pair_id, pair, channel, escape_dir, layer)
-        else:
+        # Filter to primary orientation options
+        primary_dirs = ['up', 'down'] if primary_orientation == 'vertical' else ['left', 'right']
+        primary_options = [(ch, d) for ch, d in all_options if d in primary_dirs]
+
+        # Try each option in order until one succeeds
+        assigned = False
+        for channel, escape_dir in primary_options:
+            can_do, layer = can_assign(pair, channel, escape_dir)
+            if can_do:
+                do_assign(pair_id, pair, channel, escape_dir, layer)
+                assigned = True
+                break
+
+        if not assigned:
             unassigned.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
 
-    # Second pass: assign remaining to secondary direction
+    # Second pass: assign remaining to secondary direction (with alternate channels)
     still_unassigned = []
     for pair_id, pair, cx, cy, primary_dist, secondary_dist in unassigned:
-        channel, escape_dir = find_diff_pair_escape(
+        # Get all escape options including alternate channels
+        all_options = get_pair_escape_options(
             pair.p_pad.global_x, pair.p_pad.global_y,
             pair.n_pad.global_x, pair.n_pad.global_y,
-            grid, channels, secondary_orientation
+            grid, channels, include_alternate_channels=True
         )
 
-        can_do, layer = can_assign(pair, channel, escape_dir)
-        if can_do:
-            do_assign(pair_id, pair, channel, escape_dir, layer)
-        else:
+        # Filter to secondary orientation options
+        secondary_dirs = ['up', 'down'] if secondary_orientation == 'vertical' else ['left', 'right']
+        secondary_options = [(ch, d) for ch, d in all_options if d in secondary_dirs]
+
+        # Try each option in order until one succeeds
+        assigned = False
+        for channel, escape_dir in secondary_options:
+            can_do, layer = can_assign(pair, channel, escape_dir)
+            if can_do:
+                do_assign(pair_id, pair, channel, escape_dir, layer)
+                assigned = True
+                break
+
+        if not assigned:
             still_unassigned.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
 
     # Third pass: force assign remaining (collision unavoidable)
@@ -674,119 +713,121 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
     h_count, v_count, dir_counts = count_directions()
     print(f"    Initial assignment: horizontal={h_count}, vertical={v_count}")
 
-    # Try to balance by switching pairs from overpopulated to underpopulated direction
-    # Priority: pairs farthest from primary exit edge, but closest to secondary exit edge
-    total_switched = 0
-    max_iterations = 50
+    # Only rebalance if flag is set
+    if rebalance:
+        # Try to balance by switching pairs from overpopulated to underpopulated direction
+        # Priority: pairs farthest from primary exit edge, but closest to secondary exit edge
+        total_switched = 0
+        max_iterations = 50
 
-    for iteration in range(max_iterations):
-        h_count, v_count, _ = count_directions()
+        for iteration in range(max_iterations):
+            h_count, v_count, _ = count_directions()
 
-        # Target: roughly equal split
-        total = h_count + v_count
-        if total == 0:
-            break
-
-        target_each = total // 2
-
-        # Determine which direction is overpopulated
-        if h_count > v_count + 1:
-            overpopulated = 'horizontal'
-            underpopulated = 'vertical'
-            excess = h_count - target_each
-        elif v_count > h_count + 1:
-            overpopulated = 'vertical'
-            underpopulated = 'horizontal'
-            excess = v_count - target_each
-        else:
-            break  # Already balanced
-
-        if excess <= 0:
-            break
-
-        # Find switchable pairs in overpopulated direction
-        # Score by: farthest from current (primary) exit, closest to alternative exit
-        switchable = []
-        for pair_id, pair, cx, cy, primary_dist, secondary_dist in pair_info_with_primary:
-            if pair_id not in assignments:
-                continue
-            ch, d = assignments[pair_id]
-            if d.startswith('half_edge_'):
-                continue
-            if ch is None:
-                continue
-
-            current_is_horiz = d in ['left', 'right']
-            if (overpopulated == 'horizontal') == current_is_horiz:
-                # Calculate distances for switching priority
-                if overpopulated == 'horizontal':
-                    # Currently horizontal, would switch to vertical
-                    current_exit_dist = min(cx - grid.min_x, grid.max_x - cx)
-                    alt_exit_dist = min(cy - grid.min_y, grid.max_y - cy)
-                else:
-                    # Currently vertical, would switch to horizontal
-                    current_exit_dist = min(cy - grid.min_y, grid.max_y - cy)
-                    alt_exit_dist = min(cx - grid.min_x, grid.max_x - cx)
-
-                # Score: high current_exit_dist (far from current exit) + low alt_exit_dist (close to alt exit)
-                # We want pairs that are far from primary exit but close to secondary exit
-                switch_score = current_exit_dist - alt_exit_dist
-                switchable.append((pair_id, pair, switch_score, alt_exit_dist, cx, cy))
-
-        if not switchable:
-            break
-
-        # Sort by switch_score descending (best candidates first)
-        # Best = farthest from current exit, closest to alternative exit
-        switchable.sort(key=lambda x: -x[2])
-
-        # Try to switch one pair at a time
-        switched_this_round = 0
-        for pair_id, pair, score, alt_dist, cx, cy in switchable:
-            if switched_this_round >= 1:  # Switch one at a time to recheck balance
+            # Target: roughly equal split
+            total = h_count + v_count
+            if total == 0:
                 break
 
-            # Remove from occupied tracking
-            old_ch, old_d = assignments[pair_id]
-            if old_ch is not None:
-                old_pos_key, old_pos = get_exit_key(pair, old_ch, old_d)
-                # Find and remove from occupied
-                for layer in layers:
-                    key = (layer, old_pos_key, old_pos)
-                    if key in occupied and occupied[key] == pair_id:
-                        del occupied[key]
-                        break
+            target_each = total // 2
 
-            # Try to assign to underpopulated direction
-            channel, escape_dir = find_diff_pair_escape(
-                pair.p_pad.global_x, pair.p_pad.global_y,
-                pair.n_pad.global_x, pair.n_pad.global_y,
-                grid, channels, underpopulated
-            )
-
-            can_do, layer = can_assign(pair, channel, escape_dir)
-            if can_do and channel is not None:
-                do_assign(pair_id, pair, channel, escape_dir, layer)
-                switched_this_round += 1
-                total_switched += 1
+            # Determine which direction is overpopulated
+            if h_count > v_count + 1:
+                overpopulated = 'horizontal'
+                underpopulated = 'vertical'
+                excess = h_count - target_each
+            elif v_count > h_count + 1:
+                overpopulated = 'vertical'
+                underpopulated = 'horizontal'
+                excess = v_count - target_each
             else:
-                # Can't switch, restore old assignment
+                break  # Already balanced
+
+            if excess <= 0:
+                break
+
+            # Find switchable pairs in overpopulated direction
+            # Score by: farthest from current (primary) exit, closest to alternative exit
+            switchable = []
+            for pair_id, pair, cx, cy, primary_dist, secondary_dist in pair_info_with_primary:
+                if pair_id not in assignments:
+                    continue
+                ch, d = assignments[pair_id]
+                if d.startswith('half_edge_'):
+                    continue
+                if ch is None:
+                    continue
+
+                current_is_horiz = d in ['left', 'right']
+                if (overpopulated == 'horizontal') == current_is_horiz:
+                    # Calculate distances for switching priority
+                    if overpopulated == 'horizontal':
+                        # Currently horizontal, would switch to vertical
+                        current_exit_dist = min(cx - grid.min_x, grid.max_x - cx)
+                        alt_exit_dist = min(cy - grid.min_y, grid.max_y - cy)
+                    else:
+                        # Currently vertical, would switch to horizontal
+                        current_exit_dist = min(cy - grid.min_y, grid.max_y - cy)
+                        alt_exit_dist = min(cx - grid.min_x, grid.max_x - cx)
+
+                    # Score: high current_exit_dist (far from current exit) + low alt_exit_dist (close to alt exit)
+                    # We want pairs that are far from primary exit but close to secondary exit
+                    switch_score = current_exit_dist - alt_exit_dist
+                    switchable.append((pair_id, pair, switch_score, alt_exit_dist, cx, cy))
+
+            if not switchable:
+                break
+
+            # Sort by switch_score descending (best candidates first)
+            # Best = farthest from current exit, closest to alternative exit
+            switchable.sort(key=lambda x: -x[2])
+
+            # Try to switch one pair at a time
+            switched_this_round = 0
+            for pair_id, pair, score, alt_dist, cx, cy in switchable:
+                if switched_this_round >= 1:  # Switch one at a time to recheck balance
+                    break
+
+                # Remove from occupied tracking
+                old_ch, old_d = assignments[pair_id]
                 if old_ch is not None:
-                    # Re-add to occupied
+                    old_pos_key, old_pos = get_exit_key(pair, old_ch, old_d)
+                    # Find and remove from occupied
                     for layer in layers:
                         key = (layer, old_pos_key, old_pos)
-                        if key not in occupied:
-                            occupied[key] = pair_id
+                        if key in occupied and occupied[key] == pair_id:
+                            del occupied[key]
                             break
 
-        if switched_this_round == 0:
-            h_count, v_count, _ = count_directions()
-            print(f"    Balancing stopped: no switchable pairs found (h={h_count}, v={v_count})")
-            break
+                # Try to assign to underpopulated direction
+                channel, escape_dir = find_diff_pair_escape(
+                    pair.p_pad.global_x, pair.p_pad.global_y,
+                    pair.n_pad.global_x, pair.n_pad.global_y,
+                    grid, channels, underpopulated
+                )
 
-    if total_switched > 0:
-        h_count, v_count, _ = count_directions()
-        print(f"    Balanced: switched {total_switched} pairs, now horizontal={h_count}, vertical={v_count}")
+                can_do, layer = can_assign(pair, channel, escape_dir)
+                if can_do and channel is not None:
+                    do_assign(pair_id, pair, channel, escape_dir, layer)
+                    switched_this_round += 1
+                    total_switched += 1
+                else:
+                    # Can't switch, restore old assignment
+                    if old_ch is not None:
+                        # Re-add to occupied
+                        for layer in layers:
+                            key = (layer, old_pos_key, old_pos)
+                            if key not in occupied:
+                                occupied[key] = pair_id
+                                break
+
+            if switched_this_round == 0:
+                h_count, v_count, _ = count_directions()
+                print(f"    Balancing stopped: no switchable pairs found (h={h_count}, v={v_count})")
+                break
+
+        if total_switched > 0:
+            h_count, v_count, _ = count_directions()
+            print(f"    Balanced: switched {total_switched} pairs, now horizontal={h_count}, vertical={v_count}")
 
     # Build layer assignments from occupied dict
     # Reverse lookup: find which layer each pair was assigned to
@@ -1186,6 +1227,149 @@ def check_segment_collision(seg1_start: Tuple[float, float], seg1_end: Tuple[flo
     return False
 
 
+def find_colliding_pairs(tracks: List[Dict], min_spacing: float) -> Set[str]:
+    """Find all differential pairs involved in collisions."""
+    colliding_pairs = set()
+    for i, t1 in enumerate(tracks):
+        for j, t2 in enumerate(tracks[i+1:], i+1):
+            # Skip if different layers
+            if t1['layer'] != t2['layer']:
+                continue
+            # Skip if same net
+            if t1['net_id'] == t2['net_id']:
+                continue
+            # Skip if same pair (P and N of same diff pair)
+            if t1.get('pair_id') and t1.get('pair_id') == t2.get('pair_id'):
+                continue
+
+            if check_segment_collision(t1['start'], t1['end'],
+                                        t2['start'], t2['end'],
+                                        min_spacing):
+                if t1.get('pair_id'):
+                    colliding_pairs.add(t1['pair_id'])
+                if t2.get('pair_id'):
+                    colliding_pairs.add(t2['pair_id'])
+    return colliding_pairs
+
+
+def find_collision_partners(pair_id: str, tracks: List[Dict], min_spacing: float) -> Set[str]:
+    """Find all pairs that the given pair collides with on the same layer."""
+    partners = set()
+    pair_tracks = [t for t in tracks if t.get('pair_id') == pair_id]
+    other_tracks = [t for t in tracks if t.get('pair_id') != pair_id and t.get('pair_id')]
+
+    for pt in pair_tracks:
+        for ot in other_tracks:
+            if pt['layer'] != ot['layer']:
+                continue
+            if check_segment_collision(pt['start'], pt['end'],
+                                        ot['start'], ot['end'],
+                                        min_spacing):
+                partners.add(ot['pair_id'])
+    return partners
+
+
+def try_reassign_layer(pair_id: str, routes: List[FanoutRoute], tracks: List[Dict],
+                       available_layers: List[str], track_width: float,
+                       clearance: float, diff_pair_spacing: float,
+                       avoid_layers: Set[str] = None) -> Optional[str]:
+    """Try to find a different layer for a colliding pair that has no conflicts."""
+    min_spacing = track_width + clearance
+    if avoid_layers is None:
+        avoid_layers = set()
+
+    # Find routes for this pair
+    pair_routes = [r for r in routes if r.pair_id == pair_id]
+    if not pair_routes:
+        return None
+
+    current_layer = pair_routes[0].layer
+
+    # Get tracks for this pair
+    pair_track_indices = [i for i, t in enumerate(tracks) if t.get('pair_id') == pair_id]
+
+    # Get other tracks (not this pair)
+    other_tracks = [t for i, t in enumerate(tracks) if i not in pair_track_indices]
+
+    # Count tracks per layer for load balancing
+    layer_counts = {layer: 0 for layer in available_layers}
+    for t in other_tracks:
+        if t['layer'] in layer_counts:
+            layer_counts[t['layer']] += 1
+
+    # Sort layers by count (prefer less crowded layers)
+    sorted_layers = sorted(available_layers, key=lambda l: layer_counts.get(l, 0))
+
+    # Try each candidate layer
+    for candidate_layer in sorted_layers:
+        if candidate_layer == current_layer:
+            continue
+        if candidate_layer in avoid_layers:
+            continue
+
+        # Check if moving to this layer would cause collisions
+        has_collision = False
+        for pt_idx in pair_track_indices:
+            pt = tracks[pt_idx]
+            for ot in other_tracks:
+                if ot['layer'] != candidate_layer:
+                    continue
+                if check_segment_collision(pt['start'], pt['end'],
+                                            ot['start'], ot['end'],
+                                            min_spacing):
+                    has_collision = True
+                    break
+            if has_collision:
+                break
+
+        if not has_collision:
+            return candidate_layer
+
+    return None
+
+
+def resolve_collisions(routes: List[FanoutRoute], tracks: List[Dict],
+                       available_layers: List[str], track_width: float,
+                       clearance: float, diff_pair_spacing: float) -> int:
+    """Try to resolve collisions by reassigning layers for colliding pairs."""
+    min_spacing = track_width + clearance
+    colliding_pairs = find_colliding_pairs(tracks, min_spacing)
+
+    if not colliding_pairs:
+        return 0
+
+    reassigned = 0
+    # Track which pairs have been moved this round to avoid moving collision partners to same layer
+    moved_this_round: Dict[str, str] = {}
+
+    for pair_id in sorted(colliding_pairs):
+        # Find collision partners to avoid their new layers
+        partners = find_collision_partners(pair_id, tracks, min_spacing)
+        avoid_layers = set()
+        for partner in partners:
+            if partner in moved_this_round:
+                avoid_layers.add(moved_this_round[partner])
+
+        new_layer = try_reassign_layer(pair_id, routes, tracks, available_layers,
+                                        track_width, clearance, diff_pair_spacing,
+                                        avoid_layers)
+        if new_layer:
+            # Update routes
+            for route in routes:
+                if route.pair_id == pair_id:
+                    route.layer = new_layer
+            # Update tracks
+            for track in tracks:
+                if track.get('pair_id') == pair_id:
+                    track['layer'] = new_layer
+
+            moved_this_round[pair_id] = new_layer
+            reassigned += 1
+            print(f"    Reassigned {pair_id} to {new_layer}")
+
+    return reassigned
+
+
 def generate_bga_fanout(footprint: Footprint,
                         pcb_data: PCBData,
                         net_filter: Optional[List[str]] = None,
@@ -1196,6 +1380,7 @@ def generate_bga_fanout(footprint: Footprint,
                         diff_pair_gap: float = 0.1,
                         exit_margin: float = 0.5,
                         primary_escape: str = 'horizontal',
+                        rebalance_escape: bool = False,
                         via_size: float = 0.3,
                         via_drill: float = 0.2) -> Tuple[List[Dict], List[Dict], List[Dict]]:
     """
@@ -1257,7 +1442,8 @@ def generate_bga_fanout(footprint: Footprint,
             diff_pairs, grid, channels, layers,
             primary_orientation=primary_escape,
             track_width=track_width,
-            clearance=clearance
+            clearance=clearance,
+            rebalance=rebalance_escape
         )
 
     # Build lookup from net_name to pair info
@@ -2060,6 +2246,26 @@ def generate_bga_fanout(footprint: Footprint,
         for t1, t2 in collision_pairs:
             print(f"    {t1['layer']} net{t1['net_id']}: {t1['start']}->{t1['end']}")
             print(f"    {t2['layer']} net{t2['net_id']}: {t2['start']}->{t2['end']}")
+
+        # Try to resolve collisions by reassigning layers
+        print(f"  Attempting to resolve collisions...")
+        reassigned = resolve_collisions(routes, tracks, layers, track_width, clearance, diff_pair_gap)
+        if reassigned > 0:
+            # Recount collisions after resolution
+            new_collision_count = 0
+            for i, t1 in enumerate(tracks):
+                for j, t2 in enumerate(tracks[i+1:], i+1):
+                    if t1['layer'] != t2['layer']:
+                        continue
+                    if t1['net_id'] == t2['net_id']:
+                        continue
+                    if t1.get('pair_id') and t1.get('pair_id') == t2.get('pair_id'):
+                        continue
+                    if check_segment_collision(t1['start'], t1['end'],
+                                               t2['start'], t2['end'],
+                                               min_spacing):
+                        new_collision_count += 1
+            print(f"  After resolution: {new_collision_count} collisions remaining")
     else:
         print(f"  Validated: No collisions")
 
