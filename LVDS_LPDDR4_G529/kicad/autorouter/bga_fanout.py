@@ -873,26 +873,26 @@ def create_45_stub(pad_x: float, pad_y: float,
         End position of the 45° stub
     """
     if channel.orientation == 'horizontal':
-        # Calculate 45° stub to channel CENTER first
-        dy_to_center = channel.position - pad_y
-        if escape_dir == 'right':
-            dx = abs(dy_to_center)
-        else:
-            dx = -abs(dy_to_center)
-
-        # Apply offset to final Y position (parallel offset)
+        # Target Y includes the offset
         target_y = channel.position + channel_offset
+        # For true 45°, dx = |dy|
+        dy_to_target = target_y - pad_y
+        if escape_dir == 'right':
+            dx = abs(dy_to_target)
+        else:
+            dx = -abs(dy_to_target)
+
         return (pad_x + dx, target_y)
     else:
-        # Calculate 45° stub to channel CENTER first
-        dx_to_center = channel.position - pad_x
-        if escape_dir == 'down':
-            dy = abs(dx_to_center)
-        else:
-            dy = -abs(dx_to_center)
-
-        # Apply offset to final X position (parallel offset)
+        # Target X includes the offset
         target_x = channel.position + channel_offset
+        # For true 45°, dy = |dx|
+        dx_to_target = target_x - pad_x
+        if escape_dir == 'down':
+            dy = abs(dx_to_target)
+        else:
+            dy = -abs(dx_to_target)
+
         return (target_x, pad_y + dy)
 
 
@@ -1531,51 +1531,65 @@ def generate_bga_fanout(footprint: Footprint,
             if channel and channel.orientation == 'horizontal' and not is_cross_escape:
                 # Horizontal channel - pads are horizontally adjacent, escaping left/right
                 # Traces will be offset in Y (one above, one below channel center)
-                #
-                # Channel is either above (channel.position < pad_y) or below the pads
+                # Rule: pad closer to escape edge goes to inner side (closer to pads),
+                #       pad further from edge goes to outer side (away from pads)
                 channel_above = channel.position < p_pad.global_y
+                p_is_left = p_pad.global_x < n_pad.global_x
 
-                if p_pad.global_x < n_pad.global_x:
-                    # P is left of N
-                    if channel_above:
-                        # Channel is above pads - P (left) goes to upper offset, N to lower
-                        # This way P's 45° stub going up-left doesn't cross N's stub going up-right
-                        p_offset = -half_pair_spacing  # upper (towards channel)
-                        n_offset = half_pair_spacing   # lower (away from channel)
+                if escape_dir == 'left':
+                    # Escaping left - pad on left (smaller X) is closer to edge
+                    pad_closer_to_edge_is_p = p_is_left
+                else:  # right
+                    # Escaping right - pad on right (larger X) is closer to edge
+                    pad_closer_to_edge_is_p = not p_is_left
+
+                if channel_above:
+                    # Channel is above pads - inner side is below (positive offset)
+                    if pad_closer_to_edge_is_p:
+                        p_offset = half_pair_spacing   # P closer to edge -> inner (below)
+                        n_offset = -half_pair_spacing  # N further -> outer (above)
                     else:
-                        # Channel is below pads - P (left) goes to lower offset, N to upper
-                        # This way P's 45° stub going down-left doesn't cross N's stub going down-right
-                        p_offset = half_pair_spacing   # lower (towards channel)
-                        n_offset = -half_pair_spacing  # upper (away from channel)
+                        p_offset = -half_pair_spacing  # P further -> outer (above)
+                        n_offset = half_pair_spacing   # N closer to edge -> inner (below)
                 else:
-                    # P is right of N (reversed)
-                    if channel_above:
-                        p_offset = half_pair_spacing
-                        n_offset = -half_pair_spacing
+                    # Channel is below pads - inner side is above (negative offset)
+                    if pad_closer_to_edge_is_p:
+                        p_offset = -half_pair_spacing  # P closer to edge -> inner (above)
+                        n_offset = half_pair_spacing   # N further -> outer (below)
                     else:
-                        p_offset = -half_pair_spacing
-                        n_offset = half_pair_spacing
+                        p_offset = half_pair_spacing   # P further -> outer (below)
+                        n_offset = -half_pair_spacing  # N closer to edge -> inner (above)
             elif channel and channel.orientation == 'vertical' and not is_cross_escape:
                 # Vertical channel - pads are vertically adjacent, escaping up/down
                 # Traces will be offset in X (one left, one right of channel center)
-                channel_left = channel.position < p_pad.global_x
+                # Rule: pad closer to escape edge goes to inner side (closer to pads),
+                #       pad further from edge goes to outer side (away from pads)
+                channel_right = channel.position > p_pad.global_x
+                p_is_above = p_pad.global_y < n_pad.global_y
 
-                if p_pad.global_y < n_pad.global_y:
-                    # P is above N
-                    if channel_left:
-                        p_offset = -half_pair_spacing
-                        n_offset = half_pair_spacing
+                if escape_dir == 'up':
+                    # Escaping up - pad above (smaller Y) is closer to edge
+                    pad_closer_to_edge_is_p = p_is_above
+                else:  # down
+                    # Escaping down - pad below (larger Y) is closer to edge
+                    pad_closer_to_edge_is_p = not p_is_above
+
+                if channel_right:
+                    # Channel is right of pads - inner side is left (negative offset)
+                    if pad_closer_to_edge_is_p:
+                        p_offset = -half_pair_spacing  # P closer to edge -> inner (left)
+                        n_offset = half_pair_spacing   # N further -> outer (right)
                     else:
-                        p_offset = half_pair_spacing
-                        n_offset = -half_pair_spacing
+                        p_offset = half_pair_spacing   # P further -> outer (right)
+                        n_offset = -half_pair_spacing  # N closer to edge -> inner (left)
                 else:
-                    # P is below N
-                    if channel_left:
-                        p_offset = half_pair_spacing
-                        n_offset = -half_pair_spacing
+                    # Channel is left of pads - inner side is right (positive offset)
+                    if pad_closer_to_edge_is_p:
+                        p_offset = half_pair_spacing   # P closer to edge -> inner (right)
+                        n_offset = -half_pair_spacing  # N further -> outer (left)
                     else:
-                        p_offset = -half_pair_spacing
-                        n_offset = half_pair_spacing
+                        p_offset = -half_pair_spacing  # P further -> outer (left)
+                        n_offset = half_pair_spacing   # N closer to edge -> inner (right)
             else:
                 # Edge pads or cross-escape - no offset needed, they converge with 45° stubs
                 p_offset = 0
@@ -1808,10 +1822,15 @@ def generate_bga_fanout(footprint: Footprint,
                         # They need to converge to pair spacing using 45° stubs
                         # Final X positions: center_x +/- half_pair_spacing
 
-                        # Target X for converged pair
-                        if is_p_route:
+                        # Determine which pad is on the left vs right
+                        p_is_left = p_pad.global_x < n_pad.global_x
+
+                        # Target X for converged pair - left pad goes to left target, right pad to right target
+                        if (is_p_route and p_is_left) or (not is_p_route and not p_is_left):
+                            # This pad is on the left, target is left of center
                             target_x = center_x - half_pair_spacing
                         else:
+                            # This pad is on the right, target is right of center
                             target_x = center_x + half_pair_spacing
 
                         # Distance each trace needs to move in X (towards center)
@@ -1846,10 +1865,15 @@ def generate_bga_fanout(footprint: Footprint,
                         # Pads are vertically adjacent
                         # They need to converge to pair spacing using 45° stubs
 
-                        # Target Y for converged pair
-                        if is_p_route:
+                        # Determine which pad is on the top vs bottom (smaller Y = top in KiCad)
+                        p_is_top = p_pad.global_y < n_pad.global_y
+
+                        # Target Y for converged pair - top pad goes to top target, bottom to bottom
+                        if (is_p_route and p_is_top) or (not is_p_route and not p_is_top):
+                            # This pad is on top, target is above center
                             target_y = center_y - half_pair_spacing
                         else:
+                            # This pad is on bottom, target is below center
                             target_y = center_y + half_pair_spacing
 
                         # Distance each trace needs to move in Y (towards center)
