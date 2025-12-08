@@ -16,5 +16,8 @@ python bga_fanout.py routed_output.kicad_pcb --component U3 --output routed_outp
 # DDR on DDR chip
 python bga_fanout.py routed_output.kicad_pcb --component U1 --output routed_output.kicad_pcb --nets "*U1A*" --primary-escape horizontal
 
+# Route the FTDI tracks, letting them sneak into the BGA for now
+python .\batch_grid_router.py routed_output.kicad_pcb routed_output.kicad_pcb "Net-(U2A-*)" --no-bga-zone
+
 # Check for errors
 python.exe .\check_drc.py .\routed_output.kicad_pcb
