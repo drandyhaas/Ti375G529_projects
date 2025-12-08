@@ -49,7 +49,7 @@ See [rust_router/README.md](rust_router/README.md) for detailed build instructio
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 | `check_drc.py` | DRC checker for detecting clearance violations |
 | `visualize_routing.py` | Matplotlib visualization of routing progress |
-| `bga_fanout.py` | BGA fanout stub generation |
+| `bga_fanout.py` | BGA fanout stub generation for differential pairs |
 | `qfn_fanout.py` | QFN fanout stub generation |
 | `apply_fanouts.py` | Apply generated fanouts to PCB file |
 | `rust_router/` | Rust A* implementation with Python bindings |
@@ -311,6 +311,61 @@ MPS ordering is most effective when:
 - The routing region is relatively flat (not radial like BGA fanout)
 
 For BGA fanout routing where nets radiate from center, `inside_out` ordering typically performs better.
+
+## BGA Fanout Generation
+
+The `bga_fanout.py` script generates differential pair fanout stubs from BGA pads to channel exit points. It creates 45° stubs that route pairs from their pads to vertical or horizontal channels between pad rows/columns.
+
+### Basic Usage
+
+```bash
+python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
+    --nets "*/lvds*" --diff-pairs "*lvds*" --primary-escape vertical
+```
+
+### Command-Line Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--output`, `-o` | (required) | Output PCB file |
+| `--component`, `-c` | (auto) | Component reference (auto-detected if not specified) |
+| `--layers`, `-l` | `F.Cu In1.Cu In2.Cu B.Cu` | Routing layers to use |
+| `--width`, `-w` | `0.1` | Track width in mm |
+| `--clearance` | `0.1` | Track clearance in mm |
+| `--nets`, `-n` | (all) | Net patterns to include (wildcards supported) |
+| `--diff-pairs`, `-d` | (none) | Differential pair patterns (e.g., `*lvds*`) |
+| `--diff-pair-gap` | `0.1` | Gap between P/N traces in mm |
+| `--exit-margin` | `0.5` | Distance past BGA boundary for stub endpoints |
+| `--primary-escape`, `-p` | `horizontal` | Primary escape direction (`horizontal` or `vertical`) |
+
+### Features
+
+- **Differential pair routing**: P/N traces are routed together with constant spacing
+- **Multi-layer support**: Automatically distributes pairs across 4 layers to avoid collisions
+- **45° stubs**: Traces exit pads at 45° angles to reach channel positions
+- **Collision detection and resolution**: Detects collisions and reassigns layers to resolve them
+- **Edge pair handling**: Pairs on BGA edges route directly outward
+- **Alternate channel fallback**: When a channel is blocked, uses neighboring channels in the opposite direction
+
+### Example Output
+
+```
+Found U3: BGA-529_23x23_19.0x19.0mm
+  Channels: 22 horizontal, 22 vertical
+  Found 56 differential pairs
+  Escape direction distribution:
+    up: 56
+    down: 56
+  Generated 399 track segments
+  INFO: 50 potential collisions detected (will attempt to resolve)
+    Reassigned /fpga_adc/lvds_rx1_7 to B.Cu
+    Reassigned /fpga_adc/lvds_rx4_6 to In2.Cu
+  After resolution: 0 collisions remaining
+    B.Cu: 14 routes
+    F.Cu: 38 routes
+    In1.Cu: 38 routes
+    In2.Cu: 22 routes
+```
 
 ## Limitations
 

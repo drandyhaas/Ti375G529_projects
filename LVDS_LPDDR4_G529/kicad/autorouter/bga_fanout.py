@@ -2300,7 +2300,7 @@ def generate_bga_fanout(footprint: Footprint,
                     collision_pairs.append((t1, t2))
 
     if collision_count > 0:
-        print(f"  WARNING: {collision_count} potential collisions detected!")
+        print(f"  INFO: {collision_count} potential collisions detected (will attempt to resolve)")
         for t1, t2 in collision_pairs:
             print(f"    {t1['layer']} net{t1['net_id']}: {t1['start']}->{t1['end']}")
             print(f"    {t2['layer']} net{t2['net_id']}: {t2['start']}->{t2['end']}")
