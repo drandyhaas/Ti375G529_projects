@@ -262,10 +262,18 @@ def is_edge_pad(pad_x: float, pad_y: float, grid: BGAGrid, tolerance: float = 0.
 
 def find_escape_channel(pad_x: float, pad_y: float,
                         grid: BGAGrid,
-                        channels: List[Channel]) -> Tuple[Optional[Channel], str]:
+                        channels: List[Channel],
+                        force_orientation: str = None) -> Tuple[Optional[Channel], str]:
     """
     Find the best channel for a pad to escape through.
     Returns (channel, direction). Channel is None for edge pads.
+
+    Args:
+        pad_x, pad_y: Pad position
+        grid: BGA grid info
+        channels: Available routing channels
+        force_orientation: If set to 'horizontal' or 'vertical', only allow
+                          escapes in that orientation (left/right or up/down)
     """
     # Check if this is an edge pad first
     is_edge, edge_dir = is_edge_pad(pad_x, pad_y, grid)
@@ -277,28 +285,44 @@ def find_escape_channel(pad_x: float, pad_y: float,
     dist_up = pad_y - grid.min_y
     dist_down = grid.max_y - pad_y
 
-    min_dist = min(dist_left, dist_right, dist_up, dist_down)
+    # Build list of (distance, direction, orientation) options
+    options = [
+        (dist_left, 'left', 'horizontal'),
+        (dist_right, 'right', 'horizontal'),
+        (dist_up, 'up', 'vertical'),
+        (dist_down, 'down', 'vertical'),
+    ]
 
+    # Filter to forced orientation if specified
+    if force_orientation:
+        options = [(d, dir, o) for d, dir, o in options if o == force_orientation]
+
+    # Sort by distance (closest first)
+    options.sort(key=lambda x: x[0])
+
+    # Pick the best option
+    for dist, escape_dir, orientation in options:
+        if orientation == 'horizontal':
+            h_channels = [c for c in channels if c.orientation == 'horizontal']
+            if h_channels:
+                best = min(h_channels, key=lambda c: abs(c.position - pad_y))
+                return best, escape_dir
+        else:  # vertical
+            v_channels = [c for c in channels if c.orientation == 'vertical']
+            if v_channels:
+                best = min(v_channels, key=lambda c: abs(c.position - pad_x))
+                return best, escape_dir
+
+    # Fallback: return closest edge direction even without channel
+    min_dist = min(dist_left, dist_right, dist_up, dist_down)
     if min_dist == dist_right:
-        escape_dir = 'right'
-        h_channels = [c for c in channels if c.orientation == 'horizontal']
-        best = min(h_channels, key=lambda c: abs(c.position - pad_y))
-        return best, escape_dir
+        return None, 'right'
     elif min_dist == dist_left:
-        escape_dir = 'left'
-        h_channels = [c for c in channels if c.orientation == 'horizontal']
-        best = min(h_channels, key=lambda c: abs(c.position - pad_y))
-        return best, escape_dir
+        return None, 'left'
     elif min_dist == dist_down:
-        escape_dir = 'down'
-        v_channels = [c for c in channels if c.orientation == 'vertical']
-        best = min(v_channels, key=lambda c: abs(c.position - pad_x))
-        return best, escape_dir
+        return None, 'down'
     else:
-        escape_dir = 'up'
-        v_channels = [c for c in channels if c.orientation == 'vertical']
-        best = min(v_channels, key=lambda c: abs(c.position - pad_x))
-        return best, escape_dir
+        return None, 'up'
 
 
 def get_pair_escape_options(p_pad_x: float, p_pad_y: float,
@@ -951,7 +975,8 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
                         track_width: float = 0.1,
                         clearance: float = 0.1,
                         rebalance: bool = False,
-                        pre_occupied: Dict[Tuple[str, str, float], str] = None) -> Dict[str, Tuple[Optional[Channel], str]]:
+                        pre_occupied: Dict[Tuple[str, str, float], str] = None,
+                        force_escape_direction: bool = False) -> Dict[str, Tuple[Optional[Channel], str]]:
     """
     Assign escape directions to all differential pairs, avoiding overlaps.
 
@@ -972,6 +997,7 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
         clearance: Clearance for spacing calculation
         rebalance: If True, rebalance directions to achieve even H/V mix
         pre_occupied: Dict of already-occupied exit positions from existing fanouts
+        force_escape_direction: If True, only use primary orientation (no fallback)
 
     Returns:
         Dictionary of pair_id -> (channel, escape_direction)
@@ -1159,40 +1185,55 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
             unassigned.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
 
     # Second pass: assign remaining to secondary direction (with alternate channels)
+    # Skip this pass if force_escape_direction is True
     still_unassigned = []
-    for pair_id, pair, cx, cy, primary_dist, secondary_dist in unassigned:
-        # Get all escape options including alternate channels
-        all_options = get_pair_escape_options(
-            pair.p_pad.global_x, pair.p_pad.global_y,
-            pair.n_pad.global_x, pair.n_pad.global_y,
-            grid, channels, include_alternate_channels=True
-        )
+    if force_escape_direction:
+        # When forcing primary direction only, skip secondary and go directly to force assignment
+        still_unassigned = unassigned
+    else:
+        for pair_id, pair, cx, cy, primary_dist, secondary_dist in unassigned:
+            # Get all escape options including alternate channels
+            all_options = get_pair_escape_options(
+                pair.p_pad.global_x, pair.p_pad.global_y,
+                pair.n_pad.global_x, pair.n_pad.global_y,
+                grid, channels, include_alternate_channels=True
+            )
 
-        # Filter to secondary orientation options
-        secondary_dirs = ['up', 'down'] if secondary_orientation == 'vertical' else ['left', 'right']
-        secondary_options = [(ch, d) for ch, d in all_options if d in secondary_dirs]
+            # Filter to secondary orientation options
+            secondary_dirs = ['up', 'down'] if secondary_orientation == 'vertical' else ['left', 'right']
+            secondary_options = [(ch, d) for ch, d in all_options if d in secondary_dirs]
 
-        # Try each option in order until one succeeds
-        assigned = False
-        for channel, escape_dir in secondary_options:
-            can_do, layer = can_assign(pair, channel, escape_dir)
-            if can_do:
-                do_assign(pair_id, pair, channel, escape_dir, layer)
-                assigned = True
-                break
+            # Try each option in order until one succeeds
+            assigned = False
+            for channel, escape_dir in secondary_options:
+                can_do, layer = can_assign(pair, channel, escape_dir)
+                if can_do:
+                    do_assign(pair_id, pair, channel, escape_dir, layer)
+                    assigned = True
+                    break
 
-        if not assigned:
-            still_unassigned.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
+            if not assigned:
+                still_unassigned.append((pair_id, pair, cx, cy, primary_dist, secondary_dist))
 
     # Third pass: force assign remaining (collision unavoidable)
     for pair_id, pair, cx, cy, primary_dist, secondary_dist in still_unassigned:
-        channel, escape_dir = find_diff_pair_escape(
-            pair.p_pad.global_x, pair.p_pad.global_y,
-            pair.n_pad.global_x, pair.n_pad.global_y,
-            grid, channels, 'auto'
-        )
-        assignments[pair_id] = (channel, escape_dir)
-        print(f"    Warning: {pair_id} forced assignment (may have overlaps)")
+        if force_escape_direction:
+            # When forcing direction, use primary orientation forced assignment
+            channel, escape_dir = find_diff_pair_escape(
+                pair.p_pad.global_x, pair.p_pad.global_y,
+                pair.n_pad.global_x, pair.n_pad.global_y,
+                grid, channels, primary_orientation
+            )
+            assignments[pair_id] = (channel, escape_dir)
+            print(f"    Warning: {pair_id} forced to {primary_orientation} (may have overlaps)")
+        else:
+            channel, escape_dir = find_diff_pair_escape(
+                pair.p_pad.global_x, pair.p_pad.global_y,
+                pair.n_pad.global_x, pair.n_pad.global_y,
+                grid, channels, 'auto'
+            )
+            assignments[pair_id] = (channel, escape_dir)
+            print(f"    Warning: {pair_id} forced assignment (may have overlaps)")
 
     # Count direction distribution (excluding edge pairs which are fixed)
     def count_directions():
@@ -2155,6 +2196,7 @@ def generate_bga_fanout(footprint: Footprint,
                         diff_pair_gap: float = 0.1,
                         exit_margin: float = 0.5,
                         primary_escape: str = 'horizontal',
+                        force_escape_direction: bool = False,
                         rebalance_escape: bool = False,
                         via_size: float = 0.3,
                         via_drill: float = 0.2,
@@ -2243,14 +2285,16 @@ def generate_bga_fanout(footprint: Footprint,
             print(f"  Found {len(diff_pairs)} differential pairs")
 
         # Pre-assign escape directions for all pairs to avoid overlaps
-        print(f"  Assigning escape directions (primary: {primary_escape})...")
+        force_str = " (forced)" if force_escape_direction else ""
+        print(f"  Assigning escape directions (primary: {primary_escape}{force_str})...")
         pair_escape_assignments, pair_layer_assignments = assign_pair_escapes(
             diff_pairs, grid, channels, layers,
             primary_orientation=primary_escape,
             track_width=track_width,
             clearance=clearance,
             rebalance=rebalance_escape,
-            pre_occupied=pre_occupied_exits
+            pre_occupied=pre_occupied_exits,
+            force_escape_direction=force_escape_direction
         )
 
     # Build lookup from net_name to pair info
@@ -2727,7 +2771,9 @@ def generate_bga_fanout(footprint: Footprint,
                 routes.append(route)
         else:
             # Single-ended signal (not part of a pair)
-            channel, escape_dir = find_escape_channel(pad.global_x, pad.global_y, grid, channels)
+            force_orient = primary_escape if force_escape_direction else None
+            channel, escape_dir = find_escape_channel(pad.global_x, pad.global_y, grid, channels,
+                                                       force_orientation=force_orient)
             is_edge = channel is None
 
             if is_edge:
@@ -3263,6 +3309,9 @@ def main():
                         default='horizontal',
                         help='Primary escape direction preference (default: horizontal). '
                              'Pairs will use this direction first, then switch if channels are full.')
+    parser.add_argument('--force-escape-direction', action='store_true',
+                        help='Only use the primary escape direction (horizontal or vertical). '
+                             'Do not fall back to the secondary direction.')
     parser.add_argument('--rebalance-escape', action='store_true',
                         help='Rebalance escape directions after initial assignment. '
                              'Pairs near secondary edge but far from primary edge will be '
@@ -3311,6 +3360,7 @@ def main():
         diff_pair_gap=args.diff_pair_gap,
         exit_margin=args.exit_margin,
         primary_escape=args.primary_escape,
+        force_escape_direction=args.force_escape_direction,
         rebalance_escape=args.rebalance_escape,
         check_for_previous=args.check_for_previous
     )

@@ -336,6 +336,7 @@ python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
 | `--diff-pair-gap` | `0.1` | Gap between P/N traces in mm |
 | `--exit-margin` | `0.5` | Distance past BGA boundary for stub endpoints |
 | `--primary-escape`, `-p` | `horizontal` | Primary escape direction (`horizontal` or `vertical`) |
+| `--force-escape-direction` | (disabled) | Only use the primary escape direction (no fallback to secondary) |
 | `--rebalance-escape` | (disabled) | Rebalance escape directions for even distribution around chip |
 | `--check-for-previous` | (disabled) | Skip pads with existing fanouts and avoid occupied channels |
 
@@ -351,6 +352,78 @@ python bga_fanout.py input.kicad_pcb --output output.kicad_pcb --component U3 \
 - **Escape rebalancing**: Optional rebalancing spreads exits evenly around chip perimeter for easier routing
 - **Incremental fanout**: With `--check-for-previous`, skips already-fanned-out pads and avoids occupied channels
 - **Graceful failure handling**: Reports nets that cannot be routed without conflicts and removes them from output
+
+### Escape Direction Assignment Algorithm
+
+The fanout generator assigns escape directions to differential pairs and single-ended signals using a multi-pass algorithm that balances routing quality with collision avoidance.
+
+#### Escape Directions
+
+Each pad can escape in one of four directions:
+- **Horizontal**: `left` or `right` (uses horizontal channels between pad rows)
+- **Vertical**: `up` or `down` (uses vertical channels between pad columns)
+
+The `--primary-escape` option sets which orientation is tried first (default: `horizontal`).
+
+#### Pass 1: Edge Pairs (Fixed Assignment)
+
+Pads on the outer edge of the BGA have fixed escape directions - they route directly outward:
+- Left edge → `left`
+- Right edge → `right`
+- Top edge → `up`
+- Bottom edge → `down`
+
+Edge pairs always use the top layer (F.Cu) and are assigned first before inner pairs.
+
+#### Pass 2: Primary Orientation
+
+Inner pairs are sorted by distance to the primary escape edge (closest first, since they have fewer routing options). For each pair:
+
+1. Get all escape options in the primary orientation (e.g., `left`/`right` for horizontal)
+2. Include alternate channels (neighboring channels on opposite side of pad) as fallback options
+3. Try each option, checking if the exit position is available on any inner layer (In1.Cu, In2.Cu, B.Cu)
+4. If available, assign the pair to that channel/layer combination
+
+#### Pass 3: Secondary Orientation (Fallback)
+
+Pairs that couldn't be assigned in Pass 2 try the secondary orientation:
+
+1. Get all escape options in the secondary orientation (e.g., `up`/`down` for vertical)
+2. Try each option with the same availability check
+3. If available, assign the pair
+
+**Note**: This pass is skipped when `--force-escape-direction` is set.
+
+#### Pass 4: Forced Assignment
+
+Any pairs still unassigned are force-assigned:
+- With `--force-escape-direction`: Uses the primary orientation (may cause overlaps)
+- Without: Uses automatic direction selection (nearest edge)
+
+A warning is printed for each forced assignment.
+
+#### Pass 5: Rebalancing (Optional)
+
+When `--rebalance-escape` is enabled, the algorithm attempts to balance the distribution of horizontal vs vertical escapes:
+
+1. Count pairs assigned to each orientation
+2. If one direction has significantly more pairs, identify candidates to switch
+3. Candidates are pairs far from the primary edge but close to the secondary edge
+4. Switch candidates to the underpopulated direction if a free channel/layer is available
+
+#### Collision Resolution
+
+After initial assignment, the generator detects collisions (overlapping tracks) and resolves them:
+
+1. **Layer reassignment**: Move one of the colliding routes to a different layer
+2. **Alternate channel**: Try the neighboring channel on the opposite side of the pad
+3. **Jogged route**: Move a blocking route to a farther channel using a jogged path:
+   - 45° stub from pad
+   - Vertical/horizontal jog (one pitch distance)
+   - Continue to farther channel
+   - 45° exit jog
+
+Routes that cannot be resolved are removed and reported as failures.
 
 ### Example Output
 
