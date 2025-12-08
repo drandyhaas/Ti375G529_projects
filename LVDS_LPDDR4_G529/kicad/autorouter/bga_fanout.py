@@ -300,22 +300,98 @@ def find_escape_channel(pad_x: float, pad_y: float,
         return best, escape_dir
 
 
+def get_pair_escape_options(p_pad_x: float, p_pad_y: float,
+                             n_pad_x: float, n_pad_y: float,
+                             grid: BGAGrid,
+                             channels: List[Channel]) -> List[Tuple[Optional[Channel], str]]:
+    """
+    Get all valid escape options for a differential pair, ordered by preference.
+
+    Returns list of (channel, direction) tuples, best options first.
+    Returns empty list for edge/half-edge pairs (they have fixed escape).
+    """
+    center_x = (p_pad_x + n_pad_x) / 2
+    center_y = (p_pad_y + n_pad_y) / 2
+
+    # Check if this is an edge pair - no options, fixed escape
+    is_edge_p, _ = is_edge_pad(p_pad_x, p_pad_y, grid)
+    is_edge_n, _ = is_edge_pad(n_pad_x, n_pad_y, grid)
+    if is_edge_p or is_edge_n:
+        return []  # Edge pairs have fixed escape direction
+
+    # Calculate distances to each edge
+    dist_left = center_x - grid.min_x
+    dist_right = grid.max_x - center_x
+    dist_up = center_y - grid.min_y
+    dist_down = grid.max_y - center_y
+
+    min_pad_y = min(p_pad_y, n_pad_y)
+    max_pad_y = max(p_pad_y, n_pad_y)
+    min_pad_x = min(p_pad_x, n_pad_x)
+    max_pad_x = max(p_pad_x, n_pad_x)
+
+    options = []
+
+    # Horizontal escape options (left/right)
+    h_channels = [c for c in channels if c.orientation == 'horizontal']
+    channels_above = [c for c in h_channels if c.position < min_pad_y]
+    channels_below = [c for c in h_channels if c.position > max_pad_y]
+
+    # Best horizontal channel
+    if dist_up <= dist_down and channels_above:
+        h_channel = max(channels_above, key=lambda c: c.position)
+    elif channels_below:
+        h_channel = min(channels_below, key=lambda c: c.position)
+    elif channels_above:
+        h_channel = max(channels_above, key=lambda c: c.position)
+    else:
+        h_channel = min(h_channels, key=lambda c: abs(c.position - center_y)) if h_channels else None
+
+    if h_channel:
+        h_dir = 'left' if dist_left <= dist_right else 'right'
+        h_dist = min(dist_left, dist_right)
+        options.append((h_channel, h_dir, h_dist))
+
+    # Vertical escape options (up/down)
+    v_channels = [c for c in channels if c.orientation == 'vertical']
+    channels_left = [c for c in v_channels if c.position < min_pad_x]
+    channels_right = [c for c in v_channels if c.position > max_pad_x]
+
+    # Best vertical channel
+    if dist_left <= dist_right and channels_left:
+        v_channel = max(channels_left, key=lambda c: c.position)
+    elif channels_right:
+        v_channel = min(channels_right, key=lambda c: c.position)
+    elif channels_left:
+        v_channel = max(channels_left, key=lambda c: c.position)
+    else:
+        v_channel = min(v_channels, key=lambda c: abs(c.position - center_x)) if v_channels else None
+
+    if v_channel:
+        v_dir = 'up' if dist_up <= dist_down else 'down'
+        v_dist = min(dist_up, dist_down)
+        options.append((v_channel, v_dir, v_dist))
+
+    # Sort by distance (closest edge first)
+    options.sort(key=lambda x: x[2])
+
+    # Return without the distance
+    return [(ch, d) for ch, d, _ in options]
+
+
 def find_diff_pair_escape(p_pad_x: float, p_pad_y: float,
                           n_pad_x: float, n_pad_y: float,
                           grid: BGAGrid,
-                          channels: List[Channel]) -> Tuple[Optional[Channel], str]:
+                          channels: List[Channel],
+                          preferred_orientation: str = 'auto') -> Tuple[Optional[Channel], str]:
     """
     Find the best escape channel for a differential pair.
 
-    For horizontally adjacent pads (P and N side by side in X):
-    - Use HORIZONTAL channels to escape LEFT or RIGHT
-    - The pair travels together with P and N offset in Y within the channel
-    - The 45° stub goes DOWN (or UP) to reach the channel, then the channel
-      runs horizontally to the BGA edge
-
-    For vertically adjacent pads:
-    - Use VERTICAL channels to escape UP or DOWN
-    - The pair travels together with P and N offset in X
+    Args:
+        preferred_orientation: 'horizontal', 'vertical', or 'auto'
+            - 'horizontal': prefer left/right escape
+            - 'vertical': prefer up/down escape
+            - 'auto': choose based on closest edge
 
     Returns (channel, direction). Channel is None for edge pads.
     """
@@ -332,84 +408,266 @@ def find_diff_pair_escape(p_pad_x: float, p_pad_y: float,
         return None, edge_dir_p
 
     # Check for "half-edge" pair: one pad on edge, one inner
-    # Returns special marker 'half_edge_<dir>' to indicate this case
     if is_edge_p or is_edge_n:
         edge_dir = edge_dir_p if is_edge_p else edge_dir_n
         return None, f'half_edge_{edge_dir}'
 
-    # Determine if pads are horizontally or vertically adjacent
-    dx = abs(p_pad_x - n_pad_x)
-    dy = abs(p_pad_y - n_pad_y)
+    # Get all escape options
+    options = get_pair_escape_options(p_pad_x, p_pad_y, n_pad_x, n_pad_y, grid, channels)
 
-    pads_horizontal = dx > dy  # Pads are side by side horizontally
+    if not options:
+        # Fallback - shouldn't happen for inner pairs
+        return None, 'right'
 
-    # Calculate distances to each edge from pair center
-    dist_left = center_x - grid.min_x
-    dist_right = grid.max_x - center_x
-    dist_up = center_y - grid.min_y
-    dist_down = grid.max_y - center_y
-
-    if pads_horizontal:
-        # Pads are horizontally adjacent (like P at x=144.5, N at x=145.5)
-        # Use HORIZONTAL channels to escape LEFT or RIGHT
-        # The 45° stub goes to the nearest horizontal channel (above or below)
-        # Then the channel segment runs horizontally to the edge
-
-        h_channels = [c for c in channels if c.orientation == 'horizontal']
-
-        # Find horizontal channels above and below the pads
-        min_pad_y = min(p_pad_y, n_pad_y)
-        max_pad_y = max(p_pad_y, n_pad_y)
-        channels_above = [c for c in h_channels if c.position < min_pad_y]
-        channels_below = [c for c in h_channels if c.position > max_pad_y]
-
-        # Choose LEFT or RIGHT based on which edge is closer
-        if dist_left <= dist_right:
-            escape_dir = 'left'
-        else:
-            escape_dir = 'right'
-
-        # Choose channel above or below based on distance to top/bottom edge
-        # Prefer the channel towards the nearest edge for shorter routes
-        if dist_up <= dist_down and channels_above:
-            best = max(channels_above, key=lambda c: c.position)  # Closest above
-        elif channels_below:
-            best = min(channels_below, key=lambda c: c.position)  # Closest below
-        elif channels_above:
-            best = max(channels_above, key=lambda c: c.position)
-        else:
-            # Fallback - use any horizontal channel
-            best = min(h_channels, key=lambda c: abs(c.position - center_y))
-
-        return best, escape_dir
+    if preferred_orientation == 'auto':
+        # Use first (best) option
+        return options[0]
+    elif preferred_orientation == 'horizontal':
+        # Prefer horizontal (left/right)
+        for ch, d in options:
+            if d in ['left', 'right']:
+                return ch, d
+        return options[0]  # Fallback
+    elif preferred_orientation == 'vertical':
+        # Prefer vertical (up/down)
+        for ch, d in options:
+            if d in ['up', 'down']:
+                return ch, d
+        return options[0]  # Fallback
     else:
-        # Pads are vertically adjacent
-        # Use VERTICAL channels to escape UP or DOWN
+        return options[0]
 
-        v_channels = [c for c in channels if c.orientation == 'vertical']
 
-        min_pad_x = min(p_pad_x, n_pad_x)
-        max_pad_x = max(p_pad_x, n_pad_x)
-        channels_left = [c for c in v_channels if c.position < min_pad_x]
-        channels_right = [c for c in v_channels if c.position > max_pad_x]
+def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
+                        grid: BGAGrid,
+                        channels: List[Channel],
+                        layers: List[str],
+                        primary_orientation: str = 'horizontal',
+                        track_width: float = 0.1,
+                        clearance: float = 0.1) -> Dict[str, Tuple[Optional[Channel], str]]:
+    """
+    Assign escape directions to all differential pairs, avoiding overlaps.
 
-        # Choose UP or DOWN based on which edge is closer
-        if dist_up <= dist_down:
-            escape_dir = 'up'
+    Strategy:
+    1. Sort pairs by distance to nearest edge (closest first - they have fewer options)
+    2. Try primary orientation first for each pair
+    3. If channel/layer is occupied, try secondary orientation
+    4. Track channel occupancy per layer
+    5. After assignment, try to balance if one direction is overpopulated
+
+    Args:
+        diff_pairs: Dictionary of pair_id -> DiffPair
+        grid: BGA grid info
+        channels: Available channels
+        layers: Available routing layers
+        primary_orientation: 'horizontal' or 'vertical'
+        track_width: Track width for spacing calculation
+        clearance: Clearance for spacing calculation
+
+    Returns:
+        Dictionary of pair_id -> (channel, escape_direction)
+    """
+    # Track which exit positions are used per layer
+    # Key: (layer, exit_x or exit_y rounded to 0.1mm)
+    # For horizontal escape: track exit Y positions
+    # For vertical escape: track exit X positions
+    used_exits: Dict[Tuple[str, str, float], Set[str]] = defaultdict(set)  # (layer, 'h'/'v', pos) -> set of pair_ids
+
+    pair_spacing = track_width * 2 + clearance  # Space needed for a diff pair
+
+    assignments: Dict[str, Tuple[Optional[Channel], str]] = {}
+
+    # Collect pair info with distances
+    pair_info = []
+    for pair_id, pair in diff_pairs.items():
+        if not pair.is_complete:
+            continue
+        p_pad = pair.p_pad
+        n_pad = pair.n_pad
+        center_x = (p_pad.global_x + n_pad.global_x) / 2
+        center_y = (p_pad.global_y + n_pad.global_y) / 2
+
+        # Check if edge pair
+        is_edge_p, edge_dir_p = is_edge_pad(p_pad.global_x, p_pad.global_y, grid)
+        is_edge_n, edge_dir_n = is_edge_pad(n_pad.global_x, n_pad.global_y, grid)
+
+        if is_edge_p and is_edge_n:
+            # Both on edge - fixed assignment
+            assignments[pair_id] = (None, edge_dir_p)
+            continue
+        elif is_edge_p or is_edge_n:
+            # Half-edge - fixed assignment
+            edge_dir = edge_dir_p if is_edge_p else edge_dir_n
+            assignments[pair_id] = (None, f'half_edge_{edge_dir}')
+            continue
+
+        # Calculate distance to nearest edge
+        dist_left = center_x - grid.min_x
+        dist_right = grid.max_x - center_x
+        dist_up = center_y - grid.min_y
+        dist_down = grid.max_y - center_y
+        min_dist = min(dist_left, dist_right, dist_up, dist_down)
+
+        pair_info.append((pair_id, pair, min_dist, center_x, center_y))
+
+    # Sort by distance to edge (closest first - they have fewer routing options)
+    pair_info.sort(key=lambda x: x[2])
+
+    secondary_orientation = 'vertical' if primary_orientation == 'horizontal' else 'horizontal'
+
+    def try_assign(pair_id: str, pair: DiffPair, orientation: str) -> bool:
+        """Try to assign a pair to the given orientation. Returns True if successful."""
+        p_pad = pair.p_pad
+        n_pad = pair.n_pad
+        center_x = (p_pad.global_x + n_pad.global_x) / 2
+        center_y = (p_pad.global_y + n_pad.global_y) / 2
+
+        channel, escape_dir = find_diff_pair_escape(
+            p_pad.global_x, p_pad.global_y,
+            n_pad.global_x, n_pad.global_y,
+            grid, channels, orientation
+        )
+
+        if channel is None:
+            return False
+
+        # Check if this conflicts with existing assignments
+        # For cross-escape (convergence), check the exit position
+        pads_horizontal = abs(p_pad.global_x - n_pad.global_x) > abs(p_pad.global_y - n_pad.global_y)
+        is_cross = (pads_horizontal and escape_dir in ['up', 'down']) or \
+                   (not pads_horizontal and escape_dir in ['left', 'right'])
+
+        if is_cross:
+            # Convergence routing - exits at center +/- half_pair_spacing
+            if escape_dir in ['up', 'down']:
+                # Vertical exit - check X positions
+                exit_pos = round(center_x, 1)
+                pos_key = 'v'
+            else:
+                # Horizontal exit - check Y positions
+                exit_pos = round(center_y, 1)
+                pos_key = 'h'
         else:
-            escape_dir = 'down'
+            # Channel routing - exits at channel position +/- offset
+            if escape_dir in ['left', 'right']:
+                exit_pos = round(channel.position, 1)
+                pos_key = 'h'
+            else:
+                exit_pos = round(channel.position, 1)
+                pos_key = 'v'
 
-        # Choose channel left or right
-        if dist_left <= dist_right and channels_left:
-            best = max(channels_left, key=lambda c: c.position)
-        elif channels_right:
-            best = min(channels_right, key=lambda c: c.position)
-        elif channels_left:
-            best = max(channels_left, key=lambda c: c.position)
-        else:
-            best = min(v_channels, key=lambda c: abs(c.position - center_x))
+        # Check all layers for conflicts
+        # A position is available if there's at least one free layer
+        conflicts_per_layer = {}
+        for layer in layers:
+            key = (layer, pos_key, exit_pos)
+            nearby_pairs = used_exits[key]
+            # Also check adjacent positions for spacing
+            for delta in [-pair_spacing, 0, pair_spacing]:
+                adj_key = (layer, pos_key, round(exit_pos + delta, 1))
+                nearby_pairs = nearby_pairs.union(used_exits[adj_key])
+            conflicts_per_layer[layer] = len(nearby_pairs)
 
-        return best, escape_dir
+        # Find layer with fewest conflicts
+        best_layer = min(layers, key=lambda l: conflicts_per_layer[l])
+        if conflicts_per_layer[best_layer] >= 1:
+            # All layers have conflicts at this position
+            return False
+
+        # Assign this pair
+        assignments[pair_id] = (channel, escape_dir)
+        key = (best_layer, pos_key, exit_pos)
+        used_exits[key].add(pair_id)
+        return True
+
+    # First pass: try primary orientation
+    unassigned = []
+    for pair_id, pair, min_dist, cx, cy in pair_info:
+        if not try_assign(pair_id, pair, primary_orientation):
+            unassigned.append((pair_id, pair, min_dist, cx, cy))
+
+    # Second pass: try secondary orientation for unassigned
+    still_unassigned = []
+    for pair_id, pair, min_dist, cx, cy in unassigned:
+        if not try_assign(pair_id, pair, secondary_orientation):
+            still_unassigned.append((pair_id, pair, min_dist, cx, cy))
+
+    # Third pass: force assign remaining (they'll have collisions)
+    for pair_id, pair, min_dist, cx, cy in still_unassigned:
+        # Use auto mode as fallback
+        channel, escape_dir = find_diff_pair_escape(
+            pair.p_pad.global_x, pair.p_pad.global_y,
+            pair.n_pad.global_x, pair.n_pad.global_y,
+            grid, channels, 'auto'
+        )
+        assignments[pair_id] = (channel, escape_dir)
+
+    # Count direction distribution
+    dir_counts = defaultdict(int)
+    for ch, d in assignments.values():
+        if d.startswith('half_edge_'):
+            d = d.replace('half_edge_', '')
+        dir_counts[d] += 1
+
+    h_count = dir_counts['left'] + dir_counts['right']
+    v_count = dir_counts['up'] + dir_counts['down']
+
+    print(f"    Initial assignment: horizontal={h_count}, vertical={v_count}")
+
+    # Try to balance if very uneven (>2:1 ratio)
+    if h_count > 0 and v_count > 0:
+        ratio = max(h_count, v_count) / min(h_count, v_count)
+        if ratio > 2.0:
+            # Find pairs to switch from overpopulated to underpopulated direction
+            overpopulated = 'horizontal' if h_count > v_count else 'vertical'
+            underpopulated = 'vertical' if h_count > v_count else 'horizontal'
+
+            # Find switchable pairs (farthest from their current exit edge)
+            switchable = []
+            for pair_id, pair, min_dist, cx, cy in pair_info:
+                if pair_id not in assignments:
+                    continue
+                ch, d = assignments[pair_id]
+                if d.startswith('half_edge_'):
+                    continue  # Can't switch edge pairs
+                if ch is None:
+                    continue
+
+                current_is_horiz = d in ['left', 'right']
+                if (overpopulated == 'horizontal') == current_is_horiz:
+                    # This pair is in the overpopulated direction
+                    # Calculate distance to current exit edge
+                    if d == 'left':
+                        exit_dist = cx - grid.min_x
+                    elif d == 'right':
+                        exit_dist = grid.max_x - cx
+                    elif d == 'up':
+                        exit_dist = cy - grid.min_y
+                    else:  # down
+                        exit_dist = grid.max_y - cy
+                    switchable.append((pair_id, pair, exit_dist, cx, cy))
+
+            # Sort by exit distance (farthest first - they benefit most from switching)
+            switchable.sort(key=lambda x: -x[2])
+
+            # Try to switch some pairs
+            target_switch = abs(h_count - v_count) // 2
+            switched = 0
+            for pair_id, pair, exit_dist, cx, cy in switchable:
+                if switched >= target_switch:
+                    break
+                # Try to assign to underpopulated direction
+                old_assignment = assignments[pair_id]
+                if try_assign(pair_id, pair, underpopulated):
+                    switched += 1
+                else:
+                    # Restore old assignment
+                    assignments[pair_id] = old_assignment
+
+            if switched > 0:
+                print(f"    Balanced: switched {switched} pairs to {underpopulated}")
+
+    return assignments
 
 
 def create_45_stub(pad_x: float, pad_y: float,
@@ -763,7 +1021,8 @@ def generate_bga_fanout(footprint: Footprint,
                         track_width: float = 0.1,
                         clearance: float = 0.1,
                         diff_pair_gap: float = 0.1,
-                        exit_margin: float = 0.5) -> Tuple[List[Dict], List[Dict]]:
+                        exit_margin: float = 0.5,
+                        primary_escape: str = 'horizontal') -> Tuple[List[Dict], List[Dict]]:
     """
     Generate BGA fanout tracks for a footprint.
 
@@ -782,6 +1041,7 @@ def generate_bga_fanout(footprint: Footprint,
         clearance: Minimum clearance between tracks
         diff_pair_gap: Gap between P and N traces of a differential pair
         exit_margin: How far past BGA boundary to extend
+        primary_escape: Primary escape direction preference ('horizontal' or 'vertical')
 
     Returns:
         (tracks, vias) - tracks are the segments, vias is empty (pad vias assumed)
@@ -808,9 +1068,19 @@ def generate_bga_fanout(footprint: Footprint,
 
     # Find differential pairs if patterns specified
     diff_pairs: Dict[str, DiffPair] = {}
+    pair_escape_assignments: Dict[str, Tuple[Optional[Channel], str]] = {}
     if diff_pair_patterns:
         diff_pairs = find_differential_pairs(footprint, diff_pair_patterns)
         print(f"  Found {len(diff_pairs)} differential pairs")
+
+        # Pre-assign escape directions for all pairs to avoid overlaps
+        print(f"  Assigning escape directions (primary: {primary_escape})...")
+        pair_escape_assignments = assign_pair_escapes(
+            diff_pairs, grid, channels, layers,
+            primary_orientation=primary_escape,
+            track_width=track_width,
+            clearance=clearance
+        )
 
     # Build lookup from net_name to pair info
     net_to_pair: Dict[str, Tuple[str, bool]] = {}  # net_name -> (pair_id, is_p)
@@ -854,13 +1124,29 @@ def generate_bga_fanout(footprint: Footprint,
             p_pad = pair.p_pad
             n_pad = pair.n_pad
 
-            # Use specialized diff pair escape finder that avoids routing between P and N
-            channel, escape_dir = find_diff_pair_escape(
-                p_pad.global_x, p_pad.global_y,
-                n_pad.global_x, n_pad.global_y,
-                grid, channels
-            )
+            # Use pre-assigned escape direction if available, otherwise compute
+            if pair_id in pair_escape_assignments:
+                channel, escape_dir = pair_escape_assignments[pair_id]
+            else:
+                channel, escape_dir = find_diff_pair_escape(
+                    p_pad.global_x, p_pad.global_y,
+                    n_pad.global_x, n_pad.global_y,
+                    grid, channels
+                )
             is_edge = channel is None
+
+            # Determine if pads are horizontally or vertically adjacent
+            pads_horizontal = abs(p_pad.global_x - n_pad.global_x) > abs(p_pad.global_y - n_pad.global_y)
+
+            # Check if escape direction is "cross" to pad orientation
+            # Cross case: horizontal pads escaping vertically, or vertical pads escaping horizontally
+            # In cross case, pads converge with 45° stubs (like edge pairs)
+            is_cross_escape = False
+            if channel:
+                if pads_horizontal and escape_dir in ['up', 'down']:
+                    is_cross_escape = True
+                elif not pads_horizontal and escape_dir in ['left', 'right']:
+                    is_cross_escape = True
 
             # Determine which pad is "positive" offset and which is "negative"
             # For horizontal channel (left/right escape): offset is in Y direction
@@ -869,7 +1155,7 @@ def generate_bga_fanout(footprint: Footprint,
             # Key insight: To avoid crossing, the pad that is FURTHER from the channel
             # should get the offset that brings it CLOSER to the channel center,
             # while the pad CLOSER to the channel gets offset AWAY from channel center.
-            if channel and channel.orientation == 'horizontal':
+            if channel and channel.orientation == 'horizontal' and not is_cross_escape:
                 # Horizontal channel - pads are horizontally adjacent, escaping left/right
                 # Traces will be offset in Y (one above, one below channel center)
                 #
@@ -896,7 +1182,7 @@ def generate_bga_fanout(footprint: Footprint,
                     else:
                         p_offset = -half_pair_spacing
                         n_offset = half_pair_spacing
-            elif channel and channel.orientation == 'vertical':
+            elif channel and channel.orientation == 'vertical' and not is_cross_escape:
                 # Vertical channel - pads are vertically adjacent, escaping up/down
                 # Traces will be offset in X (one left, one right of channel center)
                 channel_left = channel.position < p_pad.global_x
@@ -918,7 +1204,7 @@ def generate_bga_fanout(footprint: Footprint,
                         p_offset = -half_pair_spacing
                         n_offset = half_pair_spacing
             else:
-                # Edge pads - no offset needed, they escape directly
+                # Edge pads or cross-escape - no offset needed, they converge with 45° stubs
                 p_offset = 0
                 n_offset = 0
 
@@ -1137,14 +1423,12 @@ def generate_bga_fanout(footprint: Footprint,
                     routes.append(route)
                     continue  # Skip the normal edge/inner handling below
 
-                if is_edge:
-                    # Edge pads for diff pairs: converge with 45° stubs to meet at pair spacing
+                if is_edge or is_cross_escape:
+                    # Edge pads or cross-escape: converge with 45° stubs to meet at pair spacing
+                    # Cross-escape: horizontal pads escaping vertically, or vertical pads escaping horizontally
                     # Calculate the center point between P and N pads
                     center_x = (p_pad.global_x + n_pad.global_x) / 2
                     center_y = (p_pad.global_y + n_pad.global_y) / 2
-
-                    # Determine if pads are horizontally or vertically adjacent
-                    pads_horizontal = abs(p_pad.global_x - n_pad.global_x) > abs(p_pad.global_y - n_pad.global_y)
 
                     if pads_horizontal:
                         # Pads are side by side horizontally (like T9 and T10 in screenshot)
@@ -1220,7 +1504,7 @@ def generate_bga_fanout(footprint: Footprint,
                         else:  # up
                             exit_pos = (stub_end[0], grid.min_y - exit_margin)
                 else:
-                    # Inner pads: 45° stub to channel with offset, then channel to exit
+                    # Inner pads with aligned escape: 45° stub to channel with offset, then channel to exit
                     stub_end = create_45_stub(pad_info.global_x, pad_info.global_y,
                                              channel, escape_dir, offset)
                     exit_pos = calculate_exit_point(stub_end, channel, escape_dir,
@@ -1275,6 +1559,15 @@ def generate_bga_fanout(footprint: Footprint,
     print(f"  Found {len(routes)} pads to fanout")
     paired_count = sum(1 for r in routes if r.pair_id is not None)
     print(f"    {paired_count} are part of differential pairs")
+
+    # Print escape direction distribution
+    escape_counts = defaultdict(int)
+    for r in routes:
+        escape_counts[r.escape_dir] += 1
+    print(f"  Escape direction distribution:")
+    for direction in ['left', 'right', 'up', 'down']:
+        if escape_counts[direction] > 0:
+            print(f"    {direction}: {escape_counts[direction]}")
 
     # Print all net names being fanned out
     net_names = sorted(set(r.pad.net_name for r in routes if r.pad.net_name))
@@ -1624,6 +1917,10 @@ def main():
                         help='Gap between differential pair traces in mm')
     parser.add_argument('--exit-margin', type=float, default=0.5,
                         help='Distance past BGA boundary')
+    parser.add_argument('--primary-escape', '-p', choices=['horizontal', 'vertical'],
+                        default='horizontal',
+                        help='Primary escape direction preference (default: horizontal). '
+                             'Pairs will use this direction first, then switch if channels are full.')
 
     args = parser.parse_args()
 
@@ -1663,7 +1960,8 @@ def main():
         track_width=args.width,
         clearance=args.clearance,
         diff_pair_gap=args.diff_pair_gap,
-        exit_margin=args.exit_margin
+        exit_margin=args.exit_margin,
+        primary_escape=args.primary_escape
     )
 
     if tracks:
