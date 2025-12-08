@@ -196,27 +196,27 @@ impl GridObstacleMap {
             gx >= *min_gx && gx <= *max_gx && gy >= *min_gy && gy <= *max_gy
         });
 
-        // Check if cell is in blocked_cells
+        // Check if cell is in blocked_cells (tracks, stubs, pads from other nets)
         let in_blocked_cells = self.blocked_cells[layer].contains(&key);
 
-        // If in BGA zone: allowed_cells overrides BOTH the zone blocking AND any blocked_cells
-        // added for the BGA zone (since Python adds BGA zone cells to blocked_cells too)
+        // If cell is blocked by other nets' obstacles, check if it's a source/target cell
+        // source_target_cells can override blocking for exact endpoint positions only
+        if in_blocked_cells {
+            if self.source_target_cells[layer].contains(&key) {
+                return false;
+            }
+            // Blocked by other net's track/stub - this takes precedence over BGA zone allowed_cells
+            return true;
+        }
+
+        // If in BGA zone: allowed_cells overrides the zone blocking
+        // (but NOT blocking from blocked_cells which was already checked above)
         if in_bga_zone {
             if self.allowed_cells.contains(&key) {
                 // Allowed cell inside BGA zone - permit routing here
                 return false;
             }
-            // Not allowed - block on all layers inside BGA zone
-            return true;
-        }
-
-        // Outside BGA zone: check regular obstacles
-        // source_target_cells can override regular blocking to allow routing to start/end
-        // NOTE: source_target_cells is now per-layer - only allows override on the specific layer
-        if in_blocked_cells {
-            if self.source_target_cells[layer].contains(&key) {
-                return false;
-            }
+            // Not allowed - block inside BGA zone
             return true;
         }
 
@@ -793,7 +793,7 @@ impl VisualRouter {
 }
 
 /// Module version
-const VERSION: &str = "0.3.2";
+const VERSION: &str = "0.3.3";
 
 /// Python module
 #[pymodule]
