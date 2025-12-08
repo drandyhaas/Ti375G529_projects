@@ -2431,6 +2431,10 @@ def main():
                         default='horizontal',
                         help='Primary escape direction preference (default: horizontal). '
                              'Pairs will use this direction first, then switch if channels are full.')
+    parser.add_argument('--rebalance-escape', action='store_true',
+                        help='Rebalance escape directions after initial assignment. '
+                             'Pairs near secondary edge but far from primary edge will be '
+                             'reassigned to secondary direction for more even distribution.')
 
     args = parser.parse_args()
 
@@ -2471,7 +2475,8 @@ def main():
         clearance=args.clearance,
         diff_pair_gap=args.diff_pair_gap,
         exit_margin=args.exit_margin,
-        primary_escape=args.primary_escape
+        primary_escape=args.primary_escape,
+        rebalance_escape=args.rebalance_escape
     )
 
     if tracks:
