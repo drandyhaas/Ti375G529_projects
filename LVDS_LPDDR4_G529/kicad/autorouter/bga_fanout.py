@@ -622,8 +622,12 @@ def assign_pair_escapes(diff_pairs: Dict[str, DiffPair],
 
         pos_key, pos = get_exit_key(pair, channel, escape_dir)
 
+        # Inner pairs (using channels) should NOT use F.Cu (first layer) to avoid
+        # clearance violations with pads on the top layer. Only edge pairs use F.Cu.
+        inner_layers = layers[1:] if len(layers) > 1 else layers
+
         # Check each layer for availability
-        for layer in layers:
+        for layer in inner_layers:
             is_free = True
             # Check this position and nearby positions for spacing
             for delta in [-pair_spacing, -pair_spacing/2, 0, pair_spacing/2, pair_spacing]:
@@ -1139,6 +1143,10 @@ def assign_layers_smart(routes: List[FanoutRoute],
 
         # Greedy layer assignment
         # For each route, find a layer where it doesn't conflict with already-assigned routes
+        # Inner pairs (using channels) should NOT use F.Cu (first layer) to avoid
+        # clearance violations with pads on the top layer
+        inner_layers = available_layers[1:] if len(available_layers) > 1 else available_layers
+
         for route in group_routes:
             # If this route is part of a pair that's already assigned, use that layer
             if route.pair_id and route.pair_id in assigned_pairs:
@@ -1151,7 +1159,7 @@ def assign_layers_smart(routes: List[FanoutRoute],
 
             assigned = False
 
-            for layer in available_layers:
+            for layer in inner_layers:
                 conflict = False
                 # Check against all previously assigned routes on this layer in this group
                 for other in group_routes:
@@ -1221,14 +1229,14 @@ def assign_layers_smart(routes: List[FanoutRoute],
                     break
 
             if not assigned:
-                # Couldn't find a conflict-free layer - use first layer and warn
-                route.layer = available_layers[0]
+                # Couldn't find a conflict-free layer - use first inner layer and warn
+                route.layer = inner_layers[0]
                 print(f"  Warning: Could not find collision-free layer for route at {route.pad_pos}")
                 if route.pair_id:
                     assigned_pairs.add(route.pair_id)
                     for partner in pair_routes[route.pair_id]:
                         if partner is not route:
-                            partner.layer = available_layers[0]
+                            partner.layer = inner_layers[0]
 
 
 def check_segment_collision(seg1_start: Tuple[float, float], seg1_end: Tuple[float, float],
@@ -1319,6 +1327,17 @@ def try_reassign_layer(pair_id: str, routes: List[FanoutRoute], tracks: List[Dic
 
     current_layer = pair_routes[0].layer
 
+    # Check if this pair has any edge route (either full edge or half-edge)
+    # Edge and half-edge pairs can use F.Cu; only fully inner pairs are restricted
+    has_edge = any(r.is_edge for r in pair_routes)
+
+    # Only fully inner pairs should NOT use F.Cu (first layer)
+    # to avoid clearance violations with pads on the top layer
+    if has_edge:
+        candidate_layers = available_layers
+    else:
+        candidate_layers = available_layers[1:] if len(available_layers) > 1 else available_layers
+
     # Get tracks for this pair
     pair_track_indices = [i for i, t in enumerate(tracks) if t.get('pair_id') == pair_id]
 
@@ -1326,13 +1345,13 @@ def try_reassign_layer(pair_id: str, routes: List[FanoutRoute], tracks: List[Dic
     other_tracks = [t for i, t in enumerate(tracks) if i not in pair_track_indices]
 
     # Count tracks per layer for load balancing
-    layer_counts = {layer: 0 for layer in available_layers}
+    layer_counts = {layer: 0 for layer in candidate_layers}
     for t in other_tracks:
         if t['layer'] in layer_counts:
             layer_counts[t['layer']] += 1
 
     # Sort layers by count (prefer less crowded layers)
-    sorted_layers = sorted(available_layers, key=lambda l: layer_counts.get(l, 0))
+    sorted_layers = sorted(candidate_layers, key=lambda l: layer_counts.get(l, 0))
 
     # Try each candidate layer
     for candidate_layer in sorted_layers:
