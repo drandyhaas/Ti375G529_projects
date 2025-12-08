@@ -383,13 +383,22 @@ def get_pair_escape_options(p_pad_x: float, p_pad_y: float,
     result = [(ch, d) for ch, d, _ in options]
 
     # If requested, add alternate channels as fallback options
-    if include_alternate_channels and v_channel:
-        v_dir = 'up' if dist_up <= dist_down else 'down'
-        # Add other vertical channels sorted by distance from the primary channel
-        other_v_channels = [c for c in v_channels if c != v_channel]
-        other_v_channels.sort(key=lambda c: abs(c.position - v_channel.position))
-        for alt_ch in other_v_channels[:3]:  # Add up to 3 alternates
-            result.append((alt_ch, v_dir))
+    if include_alternate_channels:
+        # Add alternate vertical channels
+        if v_channel:
+            v_dir = 'up' if dist_up <= dist_down else 'down'
+            other_v_channels = [c for c in v_channels if c != v_channel]
+            other_v_channels.sort(key=lambda c: abs(c.position - v_channel.position))
+            for alt_ch in other_v_channels[:3]:  # Add up to 3 alternates
+                result.append((alt_ch, v_dir))
+
+        # Add alternate horizontal channels
+        if h_channel:
+            h_dir = 'left' if dist_left <= dist_right else 'right'
+            other_h_channels = [c for c in h_channels if c != h_channel]
+            other_h_channels.sort(key=lambda c: abs(c.position - h_channel.position))
+            for alt_ch in other_h_channels[:3]:  # Add up to 3 alternates
+                result.append((alt_ch, h_dir))
 
     return result
 
