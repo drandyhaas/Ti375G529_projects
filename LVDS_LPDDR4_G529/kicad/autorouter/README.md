@@ -22,23 +22,19 @@ A fast Rust-accelerated A* autorouter for KiCad PCB files using integer grid coo
 
 ## Requirements
 
-The router requires the Rust module for A* pathfinding. Build it first:
+The router requires the Rust module for A* pathfinding. Use the build script:
 
 ```bash
-cd rust_router
-cargo build --release
-
-# Windows:
-cp target/release/grid_router.dll grid_router.pyd
-
-# Linux:
-cp target/release/libgrid_router.so grid_router.so
-
-# macOS:
-cp target/release/libgrid_router.dylib grid_router.so
+python build_router.py
 ```
 
-See [rust_router/README.md](rust_router/README.md) for detailed build instructions.
+This script:
+- Builds the Rust module with `cargo build --release`
+- Copies the compiled library to the correct location (`rust_router/grid_router.pyd` on Windows, `.so` on Linux/macOS)
+- Verifies the build by importing and printing the version
+- Removes any stale module copies from the parent directory
+
+For manual building, see [rust_router/README.md](rust_router/README.md).
 
 ## Files
 
