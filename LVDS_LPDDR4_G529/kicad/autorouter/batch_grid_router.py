@@ -1568,7 +1568,7 @@ def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1):
                 len_in = math.sqrt(dx_in*dx_in + dy_in*dy_in) or 1
                 len_out = math.sqrt(dx_out*dx_out + dy_out*dy_out) or 1
 
-                # Bisector direction
+                # Bisector direction (sum of unit vectors)
                 dx = dx_in/len_in + dx_out/len_out
                 dy = dy_in/len_in + dy_out/len_out
 
@@ -1578,8 +1578,15 @@ def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1):
         # Normalize and compute perpendicular offset
         length = math.sqrt(dx*dx + dy*dy) or 1
         ndx, ndy = dx/length, dy/length
-        perp_x = -ndy * sign * spacing_mm
-        perp_y = ndx * sign * spacing_mm
+
+        # Corner compensation: scale offset by 2/length to maintain perpendicular distance
+        # When summing two unit vectors, length = 2*cos(θ/2) where θ is angle between them
+        # To maintain spacing_mm perpendicular to each segment, multiply by 2/length
+        # Cap the scaling to avoid extreme miter extensions at very sharp corners (>135° turn)
+        corner_scale = min(2.0 / length, 3.0) if length > 0.1 else 1.0
+
+        perp_x = -ndy * sign * spacing_mm * corner_scale
+        perp_y = ndx * sign * spacing_mm * corner_scale
 
         result.append((x + perp_x, y + perp_y, layer))
 
