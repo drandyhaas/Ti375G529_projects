@@ -40,10 +40,12 @@ For manual building, see [rust_router/README.md](rust_router/README.md).
 
 | File | Description |
 |------|-------------|
+| `build_router.py` | Build script for Rust module (handles all platforms) |
 | `batch_grid_router.py` | Main router - routes multiple nets using Rust A* |
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures (handles pad rotation) |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 | `check_drc.py` | DRC checker for detecting clearance violations |
+| `test_diffpair.py` | Test script for differential pair routing |
 | `bga_fanout.py` | BGA fanout stub generation for differential pairs |
 | `qfn_fanout.py` | QFN fanout stub generation |
 | `list_nets.py` | List all net names on a component (sorted alphabetically) |
