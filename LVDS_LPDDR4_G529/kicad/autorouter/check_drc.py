@@ -5,8 +5,17 @@ DRC Checker - Find overlapping tracks and vias between different nets.
 import sys
 import argparse
 import math
-from typing import List, Tuple, Set
+import fnmatch
+from typing import List, Tuple, Set, Optional
 from kicad_parser import parse_kicad_pcb, Segment, Via
+
+
+def matches_any_pattern(name: str, patterns: List[str]) -> bool:
+    """Check if a net name matches any of the given patterns (fnmatch style)."""
+    for pattern in patterns:
+        if fnmatch.fnmatch(name, pattern):
+            return True
+    return False
 
 
 def point_to_segment_distance(px: float, py: float,
@@ -103,12 +112,37 @@ def check_via_via_overlap(via1: Via, via2: Via, clearance: float, tolerance: flo
     return False, 0.0
 
 
-def run_drc(pcb_file: str, clearance: float = 0.1):
-    """Run DRC checks on the PCB file."""
+def run_drc(pcb_file: str, clearance: float = 0.1, net_patterns: Optional[List[str]] = None):
+    """Run DRC checks on the PCB file.
+
+    Args:
+        pcb_file: Path to the KiCad PCB file
+        clearance: Minimum clearance in mm
+        net_patterns: Optional list of net name patterns (fnmatch style) to focus on.
+                     If provided, only checks involving at least one matching net are reported.
+    """
     print(f"Loading {pcb_file}...")
     pcb_data = parse_kicad_pcb(pcb_file)
 
     print(f"Found {len(pcb_data.segments)} segments and {len(pcb_data.vias)} vias")
+
+    # Helper to check if a net_id matches the filter patterns
+    def net_matches_filter(net_id: int) -> bool:
+        if net_patterns is None:
+            return True  # No filter, include all
+        net_info = pcb_data.nets.get(net_id, None)
+        if net_info is None:
+            return False
+        return matches_any_pattern(net_info.name, net_patterns)
+
+    # Helper to check if a violation involves at least one matching net
+    def violation_matches_filter(net1_str: str, net2_str: str) -> bool:
+        if net_patterns is None:
+            return True
+        return matches_any_pattern(net1_str, net_patterns) or matches_any_pattern(net2_str, net_patterns)
+
+    if net_patterns:
+        print(f"Filtering to nets matching: {net_patterns}")
 
     # Group segments and vias by net
     segments_by_net = {}
@@ -128,9 +162,22 @@ def run_drc(pcb_file: str, clearance: float = 0.1):
     # Check segment-to-segment violations (different nets only)
     print("\nChecking segment-to-segment clearances...")
     net_ids = list(segments_by_net.keys())
+
+    # If filtering, only check pairs where at least one net matches
+    if net_patterns:
+        matching_seg_nets = [n for n in net_ids if net_matches_filter(n)]
+        print(f"  Found {len(matching_seg_nets)} matching segment nets out of {len(net_ids)}")
+    else:
+        matching_seg_nets = None
+
     for i, net1 in enumerate(net_ids):
+        net1_matches = matching_seg_nets is None or net1 in matching_seg_nets
         for net2 in net_ids[i+1:]:
             if net1 == net2:
+                continue
+            # Skip if neither net matches the filter
+            net2_matches = matching_seg_nets is None or net2 in matching_seg_nets
+            if not net1_matches and not net2_matches:
                 continue
             for seg1 in segments_by_net[net1]:
                 for seg2 in segments_by_net[net2]:
@@ -153,9 +200,24 @@ def run_drc(pcb_file: str, clearance: float = 0.1):
     # Check via-to-segment violations (different nets only)
     print("Checking via-to-segment clearances...")
     via_net_ids = list(vias_by_net.keys())
+
+    # Pre-compute matching via nets
+    if net_patterns:
+        matching_via_nets = set(n for n in via_net_ids if net_matches_filter(n))
+        matching_seg_net_set = set(matching_seg_nets) if matching_seg_nets else set()
+        print(f"  Found {len(matching_via_nets)} matching via nets out of {len(via_net_ids)}")
+    else:
+        matching_via_nets = None
+        matching_seg_net_set = None
+
     for via_net in via_net_ids:
+        via_net_matches = matching_via_nets is None or via_net in matching_via_nets
         for seg_net in net_ids:
             if via_net == seg_net:
+                continue
+            # Skip if neither net matches
+            seg_net_matches = matching_seg_net_set is None or seg_net in matching_seg_net_set
+            if not via_net_matches and not seg_net_matches:
                 continue
             for via in vias_by_net[via_net]:
                 for seg in segments_by_net.get(seg_net, []):
@@ -178,7 +240,12 @@ def run_drc(pcb_file: str, clearance: float = 0.1):
     # Check via-to-via violations (all nets, including same-net)
     print("Checking via-to-via clearances...")
     for i, net1 in enumerate(via_net_ids):
+        net1_matches = matching_via_nets is None or net1 in matching_via_nets
         for net2 in via_net_ids[i+1:]:
+            # Skip if neither net matches
+            net2_matches = matching_via_nets is None or net2 in matching_via_nets
+            if not net1_matches and not net2_matches:
+                continue
             for via1 in vias_by_net[net1]:
                 for via2 in vias_by_net[net2]:
                     # Skip if same via (can happen with same-net checking)
@@ -198,8 +265,8 @@ def run_drc(pcb_file: str, clearance: float = 0.1):
                             'loc1': (via1.x, via1.y),
                             'loc2': (via2.x, via2.y),
                         })
-        # Also check same-net via pairs
-        if net1 in vias_by_net:
+        # Also check same-net via pairs (only if this net matches filter)
+        if net1_matches and net1 in vias_by_net:
             vias_list = vias_by_net[net1]
             for j in range(len(vias_list)):
                 for k in range(j + 1, len(vias_list)):
@@ -265,7 +332,9 @@ if __name__ == "__main__":
     parser.add_argument('pcb', help='Input PCB file')
     parser.add_argument('--clearance', '-c', type=float, default=0.1,
                         help='Minimum clearance in mm (default: 0.1)')
+    parser.add_argument('--nets', '-n', nargs='+', default=None,
+                        help='Optional net name patterns to focus on (fnmatch wildcards supported, e.g., "*lvds*")')
 
     args = parser.parse_args()
 
-    run_drc(args.pcb, args.clearance)
+    run_drc(args.pcb, args.clearance, args.nets)

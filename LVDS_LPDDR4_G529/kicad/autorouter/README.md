@@ -527,12 +527,33 @@ python check_drc.py input.kicad_pcb [OPTIONS]
 |--------|---------|-------------|
 | `pcb` | (required) | Input PCB file to check |
 | `--clearance`, `-c` | `0.1` | Minimum clearance in mm |
+| `--nets`, `-n` | (all) | Net patterns to focus on (fnmatch wildcards supported) |
 
-### Example
+### Examples
 
 ```bash
+# Check all nets
 python check_drc.py routed_output.kicad_pcb --clearance 0.1
+
+# Check only specific nets (much faster for large PCBs)
+python check_drc.py routed_output.kicad_pcb --nets "*lvds_rx3_10*"
+
+# Check multiple net patterns
+python check_drc.py routed_output.kicad_pcb --nets "*DATA*" "*CLK*"
 ```
+
+### Net Filtering
+
+The `--nets` option allows focusing DRC checks on specific nets, which is significantly faster for large PCBs with many nets. When net patterns are provided:
+
+- Only violations involving at least one matching net are reported
+- Net pairs where neither matches the filter are skipped entirely (not just filtered at output)
+- Uses fnmatch wildcards: `*` matches any characters, `?` matches single character
+
+This is useful for:
+- Quickly checking newly routed nets without waiting for full PCB analysis
+- Debugging specific differential pairs or signal groups
+- Iterative routing where you only care about recently changed nets
 
 The checker reports:
 - **Segment-to-segment** violations (tracks too close on same layer)
