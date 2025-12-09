@@ -31,13 +31,15 @@ def main():
     diff_pair_pattern = "*lvds*"
 
     # Step 1: Build the Rust router
-    ret = run_command(
+    build=False
+    if build:
+        ret = run_command(
         [sys.executable, "build_router.py"],
         "Step 1: Building Rust router"
-    )
-    if ret != 0:
-        print("\nERROR: Build failed!")
-        return 1
+        )
+        if ret != 0:
+            print("\nERROR: Build failed!")
+            return 1
 
     # Step 2: Route the differential pair
     ret = run_command(
