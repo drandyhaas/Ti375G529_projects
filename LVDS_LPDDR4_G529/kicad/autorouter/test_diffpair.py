@@ -26,7 +26,7 @@ def main():
 
     # Configuration
     input_pcb = "routed_output.kicad_pcb"
-    output_pcb = "test_diffpair.kicad_pcb"
+    output_pcb = "test_batch_diffpair.kicad_pcb"
     net_pattern = "*lvds_rx3_10*"
     diff_pair_pattern = "*lvds*"
 

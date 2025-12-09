@@ -45,7 +45,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'rust_router'))
 # Import Rust router
 try:
     import grid_router
-    from grid_router import GridObstacleMap, GridRouter, DiffPairRouter
+    from grid_router import GridObstacleMap, GridRouter
     version = getattr(grid_router, '__version__', 'unknown')
     print(f"Using Rust router v{version}")
 except ImportError as e:
@@ -702,11 +702,15 @@ def compute_mps_net_ordering(pcb_data: PCBData, net_ids: List[int],
 
 
 def build_base_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
-                            nets_to_route: List[int]) -> GridObstacleMap:
+                            nets_to_route: List[int],
+                            extra_clearance: float = 0.0) -> GridObstacleMap:
     """Build base obstacle map with static obstacles (BGA zones, pads, pre-existing tracks/vias).
 
     Excludes all nets that will be routed (nets_to_route) - their stubs will be added
     per-net in the routing loop (excluding the current net being routed).
+
+    Args:
+        extra_clearance: Additional clearance to add for routing (e.g., for diff pair centerline routing)
     """
     coord = GridCoord(config.grid_step)
     num_layers = len(config.layers)
@@ -726,13 +730,13 @@ def build_base_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
                 for gy in range(gmin_y, gmax_y + 1):
                     obstacles.add_blocked_cell(gx, gy, layer_idx)
 
-    # Precompute grid expansions
-    expansion_mm = config.track_width / 2 + config.clearance
+    # Precompute grid expansions (with extra clearance)
+    expansion_mm = config.track_width / 2 + config.clearance + extra_clearance
     expansion_grid = max(1, coord.to_grid_dist(expansion_mm))
-    via_block_mm = config.via_size / 2 + config.track_width / 2 + config.clearance
+    via_block_mm = config.via_size / 2 + config.track_width / 2 + config.clearance + extra_clearance
     via_block_grid = max(1, coord.to_grid_dist(via_block_mm))
-    via_track_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.track_width / 2 + config.clearance))
-    via_via_expansion_grid = max(1, coord.to_grid_dist(config.via_size + config.clearance))
+    via_track_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.track_width / 2 + config.clearance + extra_clearance))
+    via_via_expansion_grid = max(1, coord.to_grid_dist(config.via_size + config.clearance + extra_clearance))
 
     # Add segments as obstacles (excluding nets we'll route - their stubs added per-net)
     for seg in pcb_data.segments:
@@ -755,20 +759,21 @@ def build_base_obstacle_map(pcb_data: PCBData, config: GridRouteConfig,
         if net_id in nets_to_route_set:
             continue
         for pad in pads:
-            _add_pad_obstacle(obstacles, pad, coord, layer_map, config)
+            _add_pad_obstacle(obstacles, pad, coord, layer_map, config, extra_clearance)
 
     return obstacles
 
 
 def add_net_stubs_as_obstacles(obstacles: GridObstacleMap, pcb_data: PCBData,
-                                net_id: int, config: GridRouteConfig):
+                                net_id: int, config: GridRouteConfig,
+                                extra_clearance: float = 0.0):
     """Add a net's stub segments as obstacles to the map."""
     coord = GridCoord(config.grid_step)
     layer_map = {name: idx for idx, name in enumerate(config.layers)}
 
-    expansion_mm = config.track_width / 2 + config.clearance
+    expansion_mm = config.track_width / 2 + config.clearance + extra_clearance
     expansion_grid = max(1, coord.to_grid_dist(expansion_mm))
-    via_block_mm = config.via_size / 2 + config.track_width / 2 + config.clearance
+    via_block_mm = config.via_size / 2 + config.track_width / 2 + config.clearance + extra_clearance
     via_block_grid = max(1, coord.to_grid_dist(via_block_mm))
 
     for seg in pcb_data.segments:
@@ -781,24 +786,26 @@ def add_net_stubs_as_obstacles(obstacles: GridObstacleMap, pcb_data: PCBData,
 
 
 def add_net_pads_as_obstacles(obstacles: GridObstacleMap, pcb_data: PCBData,
-                               net_id: int, config: GridRouteConfig):
+                               net_id: int, config: GridRouteConfig,
+                               extra_clearance: float = 0.0):
     """Add a net's pads as obstacles to the map."""
     coord = GridCoord(config.grid_step)
     layer_map = {name: idx for idx, name in enumerate(config.layers)}
 
     pads = pcb_data.pads_by_net.get(net_id, [])
     for pad in pads:
-        _add_pad_obstacle(obstacles, pad, coord, layer_map, config)
+        _add_pad_obstacle(obstacles, pad, coord, layer_map, config, extra_clearance)
 
 
 def add_net_vias_as_obstacles(obstacles: GridObstacleMap, pcb_data: PCBData,
-                               net_id: int, config: GridRouteConfig):
+                               net_id: int, config: GridRouteConfig,
+                               extra_clearance: float = 0.0):
     """Add a net's vias as obstacles to the map."""
     coord = GridCoord(config.grid_step)
     num_layers = len(config.layers)
 
-    via_track_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.track_width / 2 + config.clearance))
-    via_via_expansion_grid = max(1, coord.to_grid_dist(config.via_size + config.clearance))
+    via_track_expansion_grid = max(1, coord.to_grid_dist(config.via_size / 2 + config.track_width / 2 + config.clearance + extra_clearance))
+    via_via_expansion_grid = max(1, coord.to_grid_dist(config.via_size + config.clearance + extra_clearance))
 
     for via in pcb_data.vias:
         if via.net_id != net_id:
@@ -882,13 +889,14 @@ def _add_via_obstacle(obstacles: GridObstacleMap, via, coord: GridCoord,
 
 
 def _add_pad_obstacle(obstacles: GridObstacleMap, pad, coord: GridCoord,
-                      layer_map: Dict[str, int], config: GridRouteConfig):
+                      layer_map: Dict[str, int], config: GridRouteConfig,
+                      extra_clearance: float = 0.0):
     """Add a pad as obstacle to the map."""
     gx, gy = coord.to_grid(pad.global_x, pad.global_y)
 
     # Rectangular expansion for track clearance
-    half_x_mm = pad.size_x / 2 + config.clearance
-    half_y_mm = pad.size_y / 2 + config.clearance
+    half_x_mm = pad.size_x / 2 + config.clearance + extra_clearance
+    half_y_mm = pad.size_y / 2 + config.clearance + extra_clearance
     expand_x = coord.to_grid_dist(half_x_mm)
     expand_y = coord.to_grid_dist(half_y_mm)
 
@@ -1407,10 +1415,187 @@ def get_diff_pair_endpoints(pcb_data: PCBData, p_net_id: int, n_net_id: int,
     return paired_sources, paired_targets, None
 
 
+def simplify_path(path):
+    """
+    Simplify a path by removing intermediate points on straight lines.
+    Only keeps corner points and endpoints.
+
+    Args:
+        path: List of (gx, gy, layer) grid coordinates
+
+    Returns:
+        Simplified path with collinear points removed
+    """
+    if len(path) <= 2:
+        return list(path)
+
+    result = [path[0]]
+
+    for i in range(1, len(path) - 1):
+        prev = path[i - 1]
+        curr = path[i]
+        next_pt = path[i + 1]
+
+        # Keep if layer changes
+        if prev[2] != curr[2] or curr[2] != next_pt[2]:
+            result.append(curr)
+            continue
+
+        # Direction vectors
+        dx1 = curr[0] - prev[0]
+        dy1 = curr[1] - prev[1]
+        dx2 = next_pt[0] - curr[0]
+        dy2 = next_pt[1] - curr[1]
+
+        # Normalize (handle zero case)
+        len1 = math.sqrt(dx1*dx1 + dy1*dy1) or 1
+        len2 = math.sqrt(dx2*dx2 + dy2*dy2) or 1
+
+        # Check if directions are the same (collinear)
+        ndx1, ndy1 = dx1/len1, dy1/len1
+        ndx2, ndy2 = dx2/len2, dy2/len2
+
+        # Not collinear if directions differ (keep this corner point)
+        if abs(ndx1 - ndx2) > 0.01 or abs(ndy1 - ndy2) > 0.01:
+            result.append(curr)
+
+    result.append(path[-1])
+    return result
+
+
+def smooth_path_for_diffpair(path, min_segment_length=3):
+    """
+    Smooth a path by removing short zigzag segments that cause diff pair crossing.
+
+    For differential pairs, short alternating segments (e.g., diagonal-horizontal-diagonal)
+    cause perpendicular offsets to swing wildly. This function removes intermediate points
+    that create very short segments.
+
+    Args:
+        path: List of (gx, gy, layer) grid coordinates (already simplified)
+        min_segment_length: Minimum segment length in grid units to keep
+
+    Returns:
+        Smoothed path with short zigzag segments removed
+    """
+    if len(path) <= 2:
+        return list(path)
+
+    result = [path[0]]
+
+    i = 1
+    while i < len(path) - 1:
+        curr = path[i]
+
+        # Check segment lengths
+        prev = result[-1]
+        next_pt = path[i + 1]
+
+        # Distance from previous kept point to current
+        dist_prev = math.sqrt((curr[0] - prev[0])**2 + (curr[1] - prev[1])**2)
+
+        # Distance from current to next
+        dist_next = math.sqrt((next_pt[0] - curr[0])**2 + (next_pt[1] - curr[1])**2)
+
+        # Keep if layer changes
+        if prev[2] != curr[2] or curr[2] != next_pt[2]:
+            result.append(curr)
+            i += 1
+            continue
+
+        # Skip if both segments are short (part of a zigzag)
+        if dist_prev < min_segment_length and dist_next < min_segment_length:
+            # Skip this point, let it connect directly
+            i += 1
+            continue
+
+        result.append(curr)
+        i += 1
+
+    result.append(path[-1])
+    return result
+
+
+def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1):
+    """
+    Create a path parallel to centerline using floating-point perpendicular offsets.
+
+    Uses bisector-based offsets at corners for smooth parallel paths.
+
+    Args:
+        centerline_path: List of (gx, gy, layer) grid coordinates
+        coord: GridCoord converter for grid<->float
+        sign: +1 for one track, -1 for the other
+        spacing_mm: Distance from centerline in mm
+
+    Returns:
+        List of (x, y, layer) floating-point coordinates
+    """
+    if len(centerline_path) < 2:
+        return [(coord.to_float(p[0], p[1])[0], coord.to_float(p[0], p[1])[1], p[2])
+                for p in centerline_path]
+
+    result = []
+
+    for i in range(len(centerline_path)):
+        gx, gy, layer = centerline_path[i]
+        x, y = coord.to_float(gx, gy)
+
+        if i == 0:
+            # First point: perpendicular to first segment
+            next_x, next_y = coord.to_float(centerline_path[1][0], centerline_path[1][1])
+            dx, dy = next_x - x, next_y - y
+        elif i == len(centerline_path) - 1:
+            # Last point: perpendicular to last segment
+            prev_x, prev_y = coord.to_float(centerline_path[i-1][0], centerline_path[i-1][1])
+            dx, dy = x - prev_x, y - prev_y
+        else:
+            # Corner: use bisector of incoming and outgoing directions
+            prev = centerline_path[i-1]
+            next_pt = centerline_path[i+1]
+
+            if prev[2] != layer or next_pt[2] != layer:
+                # Layer change - use incoming direction
+                prev_x, prev_y = coord.to_float(prev[0], prev[1])
+                dx, dy = x - prev_x, y - prev_y
+            else:
+                prev_x, prev_y = coord.to_float(prev[0], prev[1])
+                next_x, next_y = coord.to_float(next_pt[0], next_pt[1])
+
+                dx_in, dy_in = x - prev_x, y - prev_y
+                dx_out, dy_out = next_x - x, next_y - y
+
+                len_in = math.sqrt(dx_in*dx_in + dy_in*dy_in) or 1
+                len_out = math.sqrt(dx_out*dx_out + dy_out*dy_out) or 1
+
+                # Bisector direction
+                dx = dx_in/len_in + dx_out/len_out
+                dy = dy_in/len_in + dy_out/len_out
+
+                if abs(dx) < 0.01 and abs(dy) < 0.01:
+                    dx, dy = dx_in, dy_in
+
+        # Normalize and compute perpendicular offset
+        length = math.sqrt(dx*dx + dy*dy) or 1
+        ndx, ndy = dx/length, dy/length
+        perp_x = -ndy * sign * spacing_mm
+        perp_y = ndx * sign * spacing_mm
+
+        result.append((x + perp_x, y + perp_y, layer))
+
+    return result
+
+
 def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                                     config: GridRouteConfig,
                                     obstacles: GridObstacleMap) -> Optional[dict]:
-    """Route a differential pair using pre-built obstacles."""
+    """
+    Route a differential pair using centerline + offset approach.
+
+    1. Routes a single centerline path using A* (GridRouter)
+    2. Simplifies the path by removing collinear points
+    3. Creates P and N paths using perpendicular offsets from centerline
+    """
     p_net_id = diff_pair.p_net_id
     n_net_id = diff_pair.n_net_id
 
@@ -1427,165 +1612,155 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     coord = GridCoord(config.grid_step)
     layer_names = config.layers
 
-    # Calculate half-spacing in grid units
+    # Calculate spacing for perpendicular offset
     # Center-to-center spacing = track_width + diff_pair_gap
     center_to_center = config.track_width + config.diff_pair_gap
-    half_spacing_grid = max(1, coord.to_grid_dist(center_to_center / 2))
+    spacing_mm = center_to_center / 2  # Half-spacing for each track from centerline
 
-    # Extract grid-only coords for routing
-    sources_grid = [(s[0], s[1], s[2], s[3], s[4]) for s in sources]  # p_gx, p_gy, n_gx, n_gy, layer
-    targets_grid = [(t[0], t[1], t[2], t[3], t[4]) for t in targets]
+    # Get P and N source/target coordinates
+    src = sources[0]
+    tgt = targets[0]
 
-    # Add source and target positions as allowed cells
-    allow_radius = 10
-    for src in sources:
-        p_gx, p_gy, n_gx, n_gy = src[0], src[1], src[2], src[3]
-        for dx in range(-allow_radius, allow_radius + 1):
-            for dy in range(-allow_radius, allow_radius + 1):
-                obstacles.add_allowed_cell(p_gx + dx, p_gy + dy)
-                obstacles.add_allowed_cell(n_gx + dx, n_gy + dy)
+    p_src_gx, p_src_gy = src[0], src[1]
+    n_src_gx, n_src_gy = src[2], src[3]
+    src_layer = src[4]
 
-    for tgt in targets:
-        p_gx, p_gy, n_gx, n_gy = tgt[0], tgt[1], tgt[2], tgt[3]
-        for dx in range(-allow_radius, allow_radius + 1):
-            for dy in range(-allow_radius, allow_radius + 1):
-                obstacles.add_allowed_cell(p_gx + dx, p_gy + dy)
-                obstacles.add_allowed_cell(n_gx + dx, n_gy + dy)
+    p_tgt_gx, p_tgt_gy = tgt[0], tgt[1]
+    n_tgt_gx, n_tgt_gy = tgt[2], tgt[3]
+    tgt_layer = tgt[4]
 
-    # Mark exact source/target cells for both P and N
-    for src in sources:
-        p_gx, p_gy, n_gx, n_gy, layer = src[0], src[1], src[2], src[3], src[4]
-        obstacles.add_source_target_cell(p_gx, p_gy, layer)
-        obstacles.add_source_target_cell(n_gx, n_gy, layer)
+    # Calculate centerline endpoints
+    center_src_gx = (p_src_gx + n_src_gx) // 2
+    center_src_gy = (p_src_gy + n_src_gy) // 2
+    center_tgt_gx = (p_tgt_gx + n_tgt_gx) // 2
+    center_tgt_gy = (p_tgt_gy + n_tgt_gy) // 2
 
-    for tgt in targets:
-        p_gx, p_gy, n_gx, n_gy, layer = tgt[0], tgt[1], tgt[2], tgt[3], tgt[4]
-        obstacles.add_source_target_cell(p_gx, p_gy, layer)
-        obstacles.add_source_target_cell(n_gx, n_gy, layer)
+    # Add source and target positions as allowed cells (around centerline)
+    allow_radius = 15
+    for dx in range(-allow_radius, allow_radius + 1):
+        for dy in range(-allow_radius, allow_radius + 1):
+            obstacles.add_allowed_cell(center_src_gx + dx, center_src_gy + dy)
+            obstacles.add_allowed_cell(center_tgt_gx + dx, center_tgt_gy + dy)
 
-    # Create differential pair router
-    router = DiffPairRouter(
-        via_cost=config.via_cost * 1000,
-        h_weight=config.heuristic_weight,
-        half_spacing_grid=half_spacing_grid
-    )
+    obstacles.add_source_target_cell(center_src_gx, center_src_gy, src_layer)
+    obstacles.add_source_target_cell(center_tgt_gx, center_tgt_gy, tgt_layer)
 
-    # Try routing
-    total_iterations = 0
+    # Create router for centerline
+    router = GridRouter(via_cost=config.via_cost * 1000, h_weight=config.heuristic_weight)
 
-    # Format for Rust: (p_gx, p_gy, n_gx, n_gy, layer)
-    rust_sources = [(s[0], s[1], s[2], s[3], s[4]) for s in sources]
-    rust_targets = [(t[0], t[1], t[2], t[3], t[4]) for t in targets]
+    # Route centerline
+    center_sources = [(center_src_gx, center_src_gy, src_layer)]
+    center_targets = [(center_tgt_gx, center_tgt_gy, tgt_layer)]
 
-    p_path, n_path, iterations = router.route_diff_pair(
-        obstacles, rust_sources, rust_targets, config.max_iterations
-    )
-    total_iterations += iterations
+    path, iterations = router.route_multi(obstacles, center_sources, center_targets, config.max_iterations)
+    total_iterations = iterations
 
-    if p_path is None or n_path is None:
+    if path is None:
         # Try reverse direction
         print(f"No route found after {iterations} iterations, trying backwards...")
-        p_path, n_path, iterations = router.route_diff_pair(
-            obstacles, rust_targets, rust_sources, config.max_iterations
-        )
-        total_iterations += iterations
+        path, iter2 = router.route_multi(obstacles, center_targets, center_sources, config.max_iterations)
+        total_iterations += iter2
+        if path is not None:
+            path = list(reversed(path))
 
-    if p_path is None or n_path is None:
+    if path is None:
         print(f"No route found after {total_iterations} iterations (both directions)")
         return {'failed': True, 'iterations': total_iterations}
 
-    print(f"Route found in {total_iterations} iterations, path length: {len(p_path)}")
+    # Simplify path by removing collinear points
+    simplified_path = simplify_path(path)
+    print(f"Route found in {total_iterations} iterations, path: {len(path)} -> {len(simplified_path)} points")
 
-    # Convert paths to segments and vias
+    # Create P and N paths using perpendicular offsets from centerline
+    p_float_path = create_parallel_path_float(simplified_path, coord, sign=+1, spacing_mm=spacing_mm)
+    n_float_path = create_parallel_path_float(simplified_path, coord, sign=-1, spacing_mm=spacing_mm)
+
+    # Convert floating-point paths to segments and vias
     new_segments = []
     new_vias = []
 
-    # Helper to convert a single path to segments/vias
-    def path_to_geometry(path, net_id, original_start, original_end):
+    def float_path_to_geometry(float_path, net_id, original_start, original_end):
+        """Convert floating-point path (x, y, layer) to segments and vias."""
         segs = []
         vias = []
 
         # Add connecting segment from original start if needed
-        if original_start:
-            first_grid_x, first_grid_y = coord.to_float(path[0][0], path[0][1])
+        if original_start and len(float_path) > 0:
+            first_x, first_y, first_layer = float_path[0]
             orig_x, orig_y = original_start
-            if abs(orig_x - first_grid_x) > 0.001 or abs(orig_y - first_grid_y) > 0.001:
-                seg = Segment(
+            if abs(orig_x - first_x) > 0.001 or abs(orig_y - first_y) > 0.001:
+                segs.append(Segment(
                     start_x=orig_x, start_y=orig_y,
-                    end_x=first_grid_x, end_y=first_grid_y,
+                    end_x=first_x, end_y=first_y,
                     width=config.track_width,
-                    layer=layer_names[path[0][2]],
+                    layer=layer_names[first_layer],
                     net_id=net_id
-                )
-                segs.append(seg)
+                ))
 
         # Convert path
-        for i in range(len(path) - 1):
-            gx1, gy1, layer1 = path[i]
-            gx2, gy2, layer2 = path[i + 1]
-
-            x1, y1 = coord.to_float(gx1, gy1)
-            x2, y2 = coord.to_float(gx2, gy2)
+        for i in range(len(float_path) - 1):
+            x1, y1, layer1 = float_path[i]
+            x2, y2, layer2 = float_path[i + 1]
 
             if layer1 != layer2:
-                via = Via(
+                vias.append(Via(
                     x=x1, y=y1,
                     size=config.via_size,
                     drill=config.via_drill,
                     layers=[layer_names[layer1], layer_names[layer2]],
                     net_id=net_id
-                )
-                vias.append(via)
-            else:
-                if (x1, y1) != (x2, y2):
-                    seg = Segment(
-                        start_x=x1, start_y=y1,
-                        end_x=x2, end_y=y2,
-                        width=config.track_width,
-                        layer=layer_names[layer1],
-                        net_id=net_id
-                    )
-                    segs.append(seg)
+                ))
+            elif abs(x1 - x2) > 0.001 or abs(y1 - y2) > 0.001:
+                segs.append(Segment(
+                    start_x=x1, start_y=y1,
+                    end_x=x2, end_y=y2,
+                    width=config.track_width,
+                    layer=layer_names[layer1],
+                    net_id=net_id
+                ))
 
         # Add connecting segment to original end if needed
-        if original_end:
-            last_grid_x, last_grid_y = coord.to_float(path[-1][0], path[-1][1])
+        if original_end and len(float_path) > 0:
+            last_x, last_y, last_layer = float_path[-1]
             orig_x, orig_y = original_end
-            if abs(orig_x - last_grid_x) > 0.001 or abs(orig_y - last_grid_y) > 0.001:
-                seg = Segment(
-                    start_x=last_grid_x, start_y=last_grid_y,
+            if abs(orig_x - last_x) > 0.001 or abs(orig_y - last_y) > 0.001:
+                segs.append(Segment(
+                    start_x=last_x, start_y=last_y,
                     end_x=orig_x, end_y=orig_y,
                     width=config.track_width,
-                    layer=layer_names[path[-1][2]],
+                    layer=layer_names[last_layer],
                     net_id=net_id
-                )
-                segs.append(seg)
+                ))
 
         return segs, vias
 
-    # Get original coordinates for P net
-    p_start = (sources[0][5], sources[0][6]) if sources else None  # P original coords from source
-    p_end = (targets[0][5], targets[0][6]) if targets else None  # P original coords from target
-
-    # Get original coordinates for N net
-    n_start = (sources[0][7], sources[0][8]) if sources else None  # N original coords from source
-    n_end = (targets[0][7], targets[0][8]) if targets else None  # N original coords from target
+    # Get original coordinates for P and N nets
+    p_start = (sources[0][5], sources[0][6]) if sources else None
+    p_end = (targets[0][5], targets[0][6]) if targets else None
+    n_start = (sources[0][7], sources[0][8]) if sources else None
+    n_end = (targets[0][7], targets[0][8]) if targets else None
 
     # Convert P path
-    p_segs, p_vias = path_to_geometry(p_path, p_net_id, p_start, p_end)
+    p_segs, p_vias = float_path_to_geometry(p_float_path, p_net_id, p_start, p_end)
     new_segments.extend(p_segs)
     new_vias.extend(p_vias)
 
     # Convert N path
-    n_segs, n_vias = path_to_geometry(n_path, n_net_id, n_start, n_end)
+    n_segs, n_vias = float_path_to_geometry(n_float_path, n_net_id, n_start, n_end)
     new_segments.extend(n_segs)
     new_vias.extend(n_vias)
+
+    # Convert float paths back to grid format for return value
+    p_path = [(coord.to_grid(x, y)[0], coord.to_grid(x, y)[1], layer)
+              for x, y, layer in p_float_path]
+    n_path = [(coord.to_grid(x, y)[0], coord.to_grid(x, y)[1], layer)
+              for x, y, layer in n_float_path]
 
     return {
         'new_segments': new_segments,
         'new_vias': new_vias,
         'iterations': total_iterations,
-        'path_length': len(p_path),
+        'path_length': len(simplified_path),
         'p_path': p_path,
         'n_path': n_path,
     }
@@ -1820,6 +1995,15 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
     base_elapsed = time.time() - base_start
     print(f"Base obstacle map built in {base_elapsed:.2f}s")
 
+    # Build separate base obstacle map with extra clearance for diff pair centerline routing
+    # Extra clearance = spacing from centerline to each track (at least one track width)
+    diff_pair_extra_clearance = (config.track_width + config.diff_pair_gap) / 2 + config.track_width
+    print(f"Building diff pair obstacle map (extra clearance: {diff_pair_extra_clearance:.3f}mm)...")
+    dp_base_start = time.time()
+    diff_pair_base_obstacles = build_base_obstacle_map(pcb_data, config, all_net_ids_to_route, diff_pair_extra_clearance)
+    dp_base_elapsed = time.time() - dp_base_start
+    print(f"Diff pair obstacle map built in {dp_base_elapsed:.2f}s")
+
     # Track which nets have been routed (their segments/vias are now in pcb_data)
     routed_net_ids = []
     remaining_net_ids = list(all_net_ids_to_route)
@@ -1836,22 +2020,22 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
 
         start_time = time.time()
 
-        # Clone base obstacles
-        obstacles = base_obstacles.clone()
+        # Clone diff pair base obstacles (with extra clearance for centerline routing)
+        obstacles = diff_pair_base_obstacles.clone()
 
-        # Add previously routed nets' segments/vias/pads as obstacles
+        # Add previously routed nets' segments/vias/pads as obstacles (with extra clearance)
         for routed_id in routed_net_ids:
-            add_net_stubs_as_obstacles(obstacles, pcb_data, routed_id, config)
-            add_net_vias_as_obstacles(obstacles, pcb_data, routed_id, config)
-            add_net_pads_as_obstacles(obstacles, pcb_data, routed_id, config)
+            add_net_stubs_as_obstacles(obstacles, pcb_data, routed_id, config, diff_pair_extra_clearance)
+            add_net_vias_as_obstacles(obstacles, pcb_data, routed_id, config, diff_pair_extra_clearance)
+            add_net_pads_as_obstacles(obstacles, pcb_data, routed_id, config, diff_pair_extra_clearance)
 
         # Add other unrouted nets' stubs, vias, and pads as obstacles (excluding both P and N)
         other_unrouted = [nid for nid in remaining_net_ids
                          if nid != pair.p_net_id and nid != pair.n_net_id]
         for other_net_id in other_unrouted:
-            add_net_stubs_as_obstacles(obstacles, pcb_data, other_net_id, config)
-            add_net_vias_as_obstacles(obstacles, pcb_data, other_net_id, config)
-            add_net_pads_as_obstacles(obstacles, pcb_data, other_net_id, config)
+            add_net_stubs_as_obstacles(obstacles, pcb_data, other_net_id, config, diff_pair_extra_clearance)
+            add_net_vias_as_obstacles(obstacles, pcb_data, other_net_id, config, diff_pair_extra_clearance)
+            add_net_pads_as_obstacles(obstacles, pcb_data, other_net_id, config, diff_pair_extra_clearance)
 
         # Add stub proximity costs for remaining unrouted nets
         unrouted_stubs = get_stub_endpoints(pcb_data, other_unrouted)
