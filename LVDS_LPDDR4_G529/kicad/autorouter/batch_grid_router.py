@@ -15,14 +15,29 @@ import os
 import time
 import fnmatch
 import random
+import math
 from typing import List, Optional, Tuple, Dict
 from dataclasses import dataclass, field
 
 from kicad_parser import (
-    parse_kicad_pcb, PCBData, Segment, Via,
+    parse_kicad_pcb, PCBData, Segment, Via, Pad,
     auto_detect_bga_exclusion_zones, find_components_by_type, detect_package_type
 )
 from kicad_writer import generate_segment_sexpr, generate_via_sexpr
+
+
+@dataclass
+class DiffPair:
+    """Represents a differential pair with P and N nets."""
+    base_name: str  # Common name without _P/_N suffix
+    p_net_id: Optional[int] = None
+    n_net_id: Optional[int] = None
+    p_net_name: Optional[str] = None
+    n_net_name: Optional[str] = None
+
+    @property
+    def is_complete(self) -> bool:
+        return self.p_net_id is not None and self.n_net_id is not None
 
 # Add rust_router directory to path for importing the compiled module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'rust_router'))
@@ -30,7 +45,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'rust_router'))
 # Import Rust router
 try:
     import grid_router
-    from grid_router import GridObstacleMap, GridRouter
+    from grid_router import GridObstacleMap, GridRouter, DiffPairRouter
     version = getattr(grid_router, '__version__', 'unknown')
     print(f"Using Rust router v{version}")
 except ImportError as e:
@@ -60,6 +75,8 @@ class GridRouteConfig:
     stub_proximity_cost: float = 3.0  # mm equivalent cost at stub center
     # Direction search order: "forward", "backwards", or "random"
     direction_order: str = "forward"
+    # Differential pair routing parameters
+    diff_pair_gap: float = 0.1  # mm - gap between P and N traces (center-to-center = track_width + gap)
 
 
 class GridCoord:
@@ -79,6 +96,91 @@ class GridCoord:
     def to_grid_dist(self, dist_mm: float) -> int:
         """Convert a distance in mm to grid units."""
         return round(dist_mm * self.inv_step)
+
+
+def extract_diff_pair_base(net_name: str) -> Optional[Tuple[str, bool]]:
+    """
+    Extract differential pair base name and polarity from net name.
+
+    Looks for common differential pair naming conventions:
+    - name_P / name_N
+    - nameP / nameN
+    - name+ / name-
+
+    Returns (base_name, is_positive) or None if not a diff pair.
+    """
+    if not net_name:
+        return None
+
+    # Try _P/_N suffix (most common for LVDS)
+    if net_name.endswith('_P'):
+        return (net_name[:-2], True)
+    if net_name.endswith('_N'):
+        return (net_name[:-2], False)
+
+    # Try P/N suffix without underscore
+    if net_name.endswith('P') and len(net_name) > 1:
+        # Check it's not just ending in P as part of name
+        if net_name[-2] in '0123456789_':
+            return (net_name[:-1], True)
+    if net_name.endswith('N') and len(net_name) > 1:
+        if net_name[-2] in '0123456789_':
+            return (net_name[:-1], False)
+
+    # Try +/- suffix
+    if net_name.endswith('+'):
+        return (net_name[:-1], True)
+    if net_name.endswith('-'):
+        return (net_name[:-1], False)
+
+    return None
+
+
+def find_differential_pairs(pcb_data: PCBData, patterns: List[str]) -> Dict[str, DiffPair]:
+    """
+    Find all differential pairs in the PCB matching the given glob patterns.
+
+    Args:
+        pcb_data: PCB data with net information
+        patterns: Glob patterns for nets to treat as diff pairs (e.g., '*lvds*')
+
+    Returns:
+        Dict mapping base_name to DiffPair with complete P/N pairs
+    """
+    pairs: Dict[str, DiffPair] = {}
+
+    # Collect all net names from pcb_data
+    for net_id, net in pcb_data.nets.items():
+        net_name = net.name
+        if not net_name or net_id == 0:
+            continue
+
+        # Check if this net matches any diff pair pattern
+        matched = any(fnmatch.fnmatch(net_name, pattern) for pattern in patterns)
+        if not matched:
+            continue
+
+        # Try to extract diff pair info
+        result = extract_diff_pair_base(net_name)
+        if result is None:
+            continue
+
+        base_name, is_p = result
+
+        if base_name not in pairs:
+            pairs[base_name] = DiffPair(base_name=base_name)
+
+        if is_p:
+            pairs[base_name].p_net_id = net_id
+            pairs[base_name].p_net_name = net_name
+        else:
+            pairs[base_name].n_net_id = net_id
+            pairs[base_name].n_net_name = net_name
+
+    # Filter to only complete pairs
+    complete_pairs = {k: v for k, v in pairs.items() if v.is_complete}
+
+    return complete_pairs
 
 
 def find_connected_groups(segments: List[Segment], tolerance: float = 0.01) -> List[List[Segment]]:
@@ -122,6 +224,48 @@ def find_connected_groups(segments: List[Segment], tolerance: float = 0.01) -> L
     return list(groups.values())
 
 
+def find_stub_free_ends(segments: List[Segment], pads: List[Pad], tolerance: float = 0.05) -> List[Tuple[float, float, str]]:
+    """
+    Find the free ends of a segment group (endpoints not connected to other segments or pads).
+
+    Args:
+        segments: Connected group of segments
+        pads: Pads that might be connected to the segments
+        tolerance: Distance tolerance for considering points as connected
+
+    Returns:
+        List of (x, y, layer) tuples for free endpoints
+    """
+    if not segments:
+        return []
+
+    # Count how many times each endpoint appears
+    endpoint_counts: Dict[Tuple[float, float, str], int] = {}
+    for seg in segments:
+        key_start = (round(seg.start_x, 3), round(seg.start_y, 3), seg.layer)
+        key_end = (round(seg.end_x, 3), round(seg.end_y, 3), seg.layer)
+        endpoint_counts[key_start] = endpoint_counts.get(key_start, 0) + 1
+        endpoint_counts[key_end] = endpoint_counts.get(key_end, 0) + 1
+
+    # Get pad positions
+    pad_positions = [(round(p.global_x, 3), round(p.global_y, 3)) for p in pads]
+
+    # Free ends are endpoints that appear only once AND are not near a pad
+    free_ends = []
+    for (x, y, layer), count in endpoint_counts.items():
+        if count == 1:
+            # Check if near a pad
+            near_pad = False
+            for px, py in pad_positions:
+                if abs(x - px) < tolerance and abs(y - py) < tolerance:
+                    near_pad = True
+                    break
+            if not near_pad:
+                free_ends.append((x, y, layer))
+
+    return free_ends
+
+
 def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> Tuple[List, List, str]:
     """
     Find source and target endpoints for a net, considering segments, pads, and existing vias.
@@ -139,7 +283,7 @@ def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -
     net_pads = pcb_data.pads_by_net.get(net_id, [])
     net_vias = [v for v in pcb_data.vias if v.net_id == net_id]
 
-    # Case 1: Multiple segment groups - use segments as before
+    # Case 1: Multiple segment groups - find free ends of each group
     if len(net_segments) >= 2:
         groups = find_connected_groups(net_segments)
         if len(groups) >= 2:
@@ -147,27 +291,23 @@ def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -
             source_segs = groups[0]
             target_segs = groups[1]
 
+            # Find free ends (endpoints not connected to other segments or pads)
+            source_free_ends = find_stub_free_ends(source_segs, net_pads)
+            target_free_ends = find_stub_free_ends(target_segs, net_pads)
+
             sources = []
-            for seg in source_segs:
-                layer_idx = layer_map.get(seg.layer)
-                if layer_idx is None:
-                    continue
-                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-                sources.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
-                if (gx1, gy1) != (gx2, gy2):
-                    sources.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
+            for x, y, layer in source_free_ends:
+                layer_idx = layer_map.get(layer)
+                if layer_idx is not None:
+                    gx, gy = coord.to_grid(x, y)
+                    sources.append((gx, gy, layer_idx, x, y))
 
             targets = []
-            for seg in target_segs:
-                layer_idx = layer_map.get(seg.layer)
-                if layer_idx is None:
-                    continue
-                gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-                gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-                targets.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
-                if (gx1, gy1) != (gx2, gy2):
-                    targets.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
+            for x, y, layer in target_free_ends:
+                layer_idx = layer_map.get(layer)
+                if layer_idx is not None:
+                    gx, gy = coord.to_grid(x, y)
+                    targets.append((gx, gy, layer_idx, x, y))
 
             if sources and targets:
                 return sources, targets, None
@@ -196,17 +336,14 @@ def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -
                     unconnected_pads.append(pad)
 
             if unconnected_pads:
-                # Use segment endpoints as source, unconnected pad(s) as target
+                # Use free ends of segment group as source, unconnected pad(s) as target
+                source_free_ends = find_stub_free_ends(seg_group, net_pads)
                 sources = []
-                for seg in seg_group:
-                    layer_idx = layer_map.get(seg.layer)
-                    if layer_idx is None:
-                        continue
-                    gx1, gy1 = coord.to_grid(seg.start_x, seg.start_y)
-                    gx2, gy2 = coord.to_grid(seg.end_x, seg.end_y)
-                    sources.append((gx1, gy1, layer_idx, seg.start_x, seg.start_y))
-                    if (gx1, gy1) != (gx2, gy2):
-                        sources.append((gx2, gy2, layer_idx, seg.end_x, seg.end_y))
+                for x, y, layer in source_free_ends:
+                    layer_idx = layer_map.get(layer)
+                    if layer_idx is not None:
+                        gx, gy = coord.to_grid(x, y)
+                        sources.append((gx, gy, layer_idx, x, y))
 
                 targets = []
                 for pad in unconnected_pads:
@@ -1191,6 +1328,269 @@ def add_route_to_pcb_data(pcb_data: PCBData, result: dict) -> None:
         pcb_data.vias.append(via)
 
 
+def get_diff_pair_endpoints(pcb_data: PCBData, p_net_id: int, n_net_id: int,
+                             config: GridRouteConfig) -> Tuple[List, List, str]:
+    """
+    Find source and target endpoints for a differential pair.
+
+    Returns:
+        (sources, targets, error_message)
+        - sources: List of (p_gx, p_gy, n_gx, n_gy, layer_idx)
+        - targets: List of (p_gx, p_gy, n_gx, n_gy, layer_idx)
+        - error_message: None if successful, otherwise describes why routing can't proceed
+    """
+    coord = GridCoord(config.grid_step)
+    layer_map = {name: idx for idx, name in enumerate(config.layers)}
+
+    # Get endpoints for P and N nets separately
+    p_sources, p_targets, p_error = get_net_endpoints(pcb_data, p_net_id, config)
+    n_sources, n_targets, n_error = get_net_endpoints(pcb_data, n_net_id, config)
+
+    if p_error:
+        return [], [], f"P net: {p_error}"
+    if n_error:
+        return [], [], f"N net: {n_error}"
+
+    if not p_sources or not p_targets:
+        return [], [], "P net has no valid source/target endpoints"
+    if not n_sources or not n_targets:
+        return [], [], "N net has no valid source/target endpoints"
+
+    # Match P and N endpoints by proximity
+    # For each P source, find the closest N source on the same layer
+    def find_closest_match(p_endpoint, n_endpoints):
+        """Find N endpoint closest to P endpoint on same layer."""
+        p_gx, p_gy, p_layer = p_endpoint[0], p_endpoint[1], p_endpoint[2]
+        best_match = None
+        best_dist = float('inf')
+        for n in n_endpoints:
+            n_gx, n_gy, n_layer = n[0], n[1], n[2]
+            if n_layer != p_layer:
+                continue
+            dist = abs(p_gx - n_gx) + abs(p_gy - n_gy)
+            if dist < best_dist:
+                best_dist = dist
+                best_match = n
+        return best_match, best_dist
+
+    # Match sources
+    paired_sources = []
+    for p_src in p_sources:
+        n_match, dist = find_closest_match(p_src, n_sources)
+        if n_match is not None:
+            paired_sources.append((
+                p_src[0], p_src[1],  # P grid coords
+                n_match[0], n_match[1],  # N grid coords
+                p_src[2],  # layer
+                p_src[3], p_src[4],  # P original coords
+                n_match[3], n_match[4]  # N original coords
+            ))
+
+    # Match targets
+    paired_targets = []
+    for p_tgt in p_targets:
+        n_match, dist = find_closest_match(p_tgt, n_targets)
+        if n_match is not None:
+            paired_targets.append((
+                p_tgt[0], p_tgt[1],  # P grid coords
+                n_match[0], n_match[1],  # N grid coords
+                p_tgt[2],  # layer
+                p_tgt[3], p_tgt[4],  # P original coords
+                n_match[3], n_match[4]  # N original coords
+            ))
+
+    if not paired_sources:
+        return [], [], "Could not match P and N source endpoints"
+    if not paired_targets:
+        return [], [], "Could not match P and N target endpoints"
+
+    return paired_sources, paired_targets, None
+
+
+def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
+                                    config: GridRouteConfig,
+                                    obstacles: GridObstacleMap) -> Optional[dict]:
+    """Route a differential pair using pre-built obstacles."""
+    p_net_id = diff_pair.p_net_id
+    n_net_id = diff_pair.n_net_id
+
+    # Find endpoints
+    sources, targets, error = get_diff_pair_endpoints(pcb_data, p_net_id, n_net_id, config)
+    if error:
+        print(f"  {error}")
+        return None
+
+    if not sources or not targets:
+        print(f"  No valid source/target endpoints found")
+        return None
+
+    coord = GridCoord(config.grid_step)
+    layer_names = config.layers
+
+    # Calculate half-spacing in grid units
+    # Center-to-center spacing = track_width + diff_pair_gap
+    center_to_center = config.track_width + config.diff_pair_gap
+    half_spacing_grid = max(1, coord.to_grid_dist(center_to_center / 2))
+
+    # Extract grid-only coords for routing
+    sources_grid = [(s[0], s[1], s[2], s[3], s[4]) for s in sources]  # p_gx, p_gy, n_gx, n_gy, layer
+    targets_grid = [(t[0], t[1], t[2], t[3], t[4]) for t in targets]
+
+    # Add source and target positions as allowed cells
+    allow_radius = 10
+    for src in sources:
+        p_gx, p_gy, n_gx, n_gy = src[0], src[1], src[2], src[3]
+        for dx in range(-allow_radius, allow_radius + 1):
+            for dy in range(-allow_radius, allow_radius + 1):
+                obstacles.add_allowed_cell(p_gx + dx, p_gy + dy)
+                obstacles.add_allowed_cell(n_gx + dx, n_gy + dy)
+
+    for tgt in targets:
+        p_gx, p_gy, n_gx, n_gy = tgt[0], tgt[1], tgt[2], tgt[3]
+        for dx in range(-allow_radius, allow_radius + 1):
+            for dy in range(-allow_radius, allow_radius + 1):
+                obstacles.add_allowed_cell(p_gx + dx, p_gy + dy)
+                obstacles.add_allowed_cell(n_gx + dx, n_gy + dy)
+
+    # Mark exact source/target cells for both P and N
+    for src in sources:
+        p_gx, p_gy, n_gx, n_gy, layer = src[0], src[1], src[2], src[3], src[4]
+        obstacles.add_source_target_cell(p_gx, p_gy, layer)
+        obstacles.add_source_target_cell(n_gx, n_gy, layer)
+
+    for tgt in targets:
+        p_gx, p_gy, n_gx, n_gy, layer = tgt[0], tgt[1], tgt[2], tgt[3], tgt[4]
+        obstacles.add_source_target_cell(p_gx, p_gy, layer)
+        obstacles.add_source_target_cell(n_gx, n_gy, layer)
+
+    # Create differential pair router
+    router = DiffPairRouter(
+        via_cost=config.via_cost * 1000,
+        h_weight=config.heuristic_weight,
+        half_spacing_grid=half_spacing_grid
+    )
+
+    # Try routing
+    total_iterations = 0
+
+    # Format for Rust: (p_gx, p_gy, n_gx, n_gy, layer)
+    rust_sources = [(s[0], s[1], s[2], s[3], s[4]) for s in sources]
+    rust_targets = [(t[0], t[1], t[2], t[3], t[4]) for t in targets]
+
+    p_path, n_path, iterations = router.route_diff_pair(
+        obstacles, rust_sources, rust_targets, config.max_iterations
+    )
+    total_iterations += iterations
+
+    if p_path is None or n_path is None:
+        # Try reverse direction
+        print(f"No route found after {iterations} iterations, trying backwards...")
+        p_path, n_path, iterations = router.route_diff_pair(
+            obstacles, rust_targets, rust_sources, config.max_iterations
+        )
+        total_iterations += iterations
+
+    if p_path is None or n_path is None:
+        print(f"No route found after {total_iterations} iterations (both directions)")
+        return {'failed': True, 'iterations': total_iterations}
+
+    print(f"Route found in {total_iterations} iterations, path length: {len(p_path)}")
+
+    # Convert paths to segments and vias
+    new_segments = []
+    new_vias = []
+
+    # Helper to convert a single path to segments/vias
+    def path_to_geometry(path, net_id, original_start, original_end):
+        segs = []
+        vias = []
+
+        # Add connecting segment from original start if needed
+        if original_start:
+            first_grid_x, first_grid_y = coord.to_float(path[0][0], path[0][1])
+            orig_x, orig_y = original_start
+            if abs(orig_x - first_grid_x) > 0.001 or abs(orig_y - first_grid_y) > 0.001:
+                seg = Segment(
+                    start_x=orig_x, start_y=orig_y,
+                    end_x=first_grid_x, end_y=first_grid_y,
+                    width=config.track_width,
+                    layer=layer_names[path[0][2]],
+                    net_id=net_id
+                )
+                segs.append(seg)
+
+        # Convert path
+        for i in range(len(path) - 1):
+            gx1, gy1, layer1 = path[i]
+            gx2, gy2, layer2 = path[i + 1]
+
+            x1, y1 = coord.to_float(gx1, gy1)
+            x2, y2 = coord.to_float(gx2, gy2)
+
+            if layer1 != layer2:
+                via = Via(
+                    x=x1, y=y1,
+                    size=config.via_size,
+                    drill=config.via_drill,
+                    layers=[layer_names[layer1], layer_names[layer2]],
+                    net_id=net_id
+                )
+                vias.append(via)
+            else:
+                if (x1, y1) != (x2, y2):
+                    seg = Segment(
+                        start_x=x1, start_y=y1,
+                        end_x=x2, end_y=y2,
+                        width=config.track_width,
+                        layer=layer_names[layer1],
+                        net_id=net_id
+                    )
+                    segs.append(seg)
+
+        # Add connecting segment to original end if needed
+        if original_end:
+            last_grid_x, last_grid_y = coord.to_float(path[-1][0], path[-1][1])
+            orig_x, orig_y = original_end
+            if abs(orig_x - last_grid_x) > 0.001 or abs(orig_y - last_grid_y) > 0.001:
+                seg = Segment(
+                    start_x=last_grid_x, start_y=last_grid_y,
+                    end_x=orig_x, end_y=orig_y,
+                    width=config.track_width,
+                    layer=layer_names[path[-1][2]],
+                    net_id=net_id
+                )
+                segs.append(seg)
+
+        return segs, vias
+
+    # Get original coordinates for P net
+    p_start = (sources[0][5], sources[0][6]) if sources else None  # P original coords from source
+    p_end = (targets[0][5], targets[0][6]) if targets else None  # P original coords from target
+
+    # Get original coordinates for N net
+    n_start = (sources[0][7], sources[0][8]) if sources else None  # N original coords from source
+    n_end = (targets[0][7], targets[0][8]) if targets else None  # N original coords from target
+
+    # Convert P path
+    p_segs, p_vias = path_to_geometry(p_path, p_net_id, p_start, p_end)
+    new_segments.extend(p_segs)
+    new_vias.extend(p_vias)
+
+    # Convert N path
+    n_segs, n_vias = path_to_geometry(n_path, n_net_id, n_start, n_end)
+    new_segments.extend(n_segs)
+    new_vias.extend(n_vias)
+
+    return {
+        'new_segments': new_segments,
+        'new_vias': new_vias,
+        'iterations': total_iterations,
+        'path_length': len(p_path),
+        'p_path': p_path,
+        'n_path': n_path,
+    }
+
+
 def batch_route(input_file: str, output_file: str, net_names: List[str],
                 layers: List[str] = None,
                 bga_exclusion_zones: Optional[List[Tuple[float, float, float, float]]] = None,
@@ -1206,7 +1606,9 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
                 max_iterations: int = 100000,
                 heuristic_weight: float = 1.5,
                 stub_proximity_radius: float = 1.0,
-                stub_proximity_cost: float = 3.0) -> Tuple[int, int, float]:
+                stub_proximity_cost: float = 3.0,
+                diff_pair_patterns: Optional[List[str]] = None,
+                diff_pair_gap: float = 0.1) -> Tuple[int, int, float]:
     """
     Route multiple nets using the Rust router.
 
@@ -1233,6 +1635,8 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         heuristic_weight: A* heuristic weight, higher=faster but less optimal (default: 1.5)
         stub_proximity_radius: Radius around stubs to penalize in mm (default: 1.0)
         stub_proximity_cost: Cost penalty near stubs in mm equivalent (default: 3.0)
+        diff_pair_patterns: Glob patterns for nets to route as differential pairs
+        diff_pair_gap: Gap between P and N traces in differential pairs (default: 0.1mm)
 
     Returns:
         (successful_count, failed_count, total_time)
@@ -1272,10 +1676,29 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         bga_exclusion_zones=bga_exclusion_zones,
         stub_proximity_radius=stub_proximity_radius,
         stub_proximity_cost=stub_proximity_cost,
+        diff_pair_gap=diff_pair_gap,
     )
     if direction_order is not None:
         config_kwargs['direction_order'] = direction_order
     config = GridRouteConfig(**config_kwargs)
+
+    # Find differential pairs if patterns provided
+    diff_pairs: Dict[str, DiffPair] = {}
+    diff_pair_net_ids = set()  # Net IDs that are part of differential pairs
+    if diff_pair_patterns:
+        diff_pairs = find_differential_pairs(pcb_data, diff_pair_patterns)
+        if diff_pairs:
+            print(f"\nFound {len(diff_pairs)} differential pairs:")
+            for pair_name, pair in list(diff_pairs.items())[:5]:
+                print(f"  {pair_name}: {pair.p_net_name} / {pair.n_net_name}")
+            if len(diff_pairs) > 5:
+                print(f"  ... and {len(diff_pairs) - 5} more")
+            # Track which net IDs are part of pairs
+            for pair in diff_pairs.values():
+                diff_pair_net_ids.add(pair.p_net_id)
+                diff_pair_net_ids.add(pair.n_net_id)
+        else:
+            print(f"\nNo differential pairs found matching patterns: {diff_pair_patterns}")
 
     # Find net IDs - check both pcb.nets and pads_by_net
     net_ids = []
@@ -1362,7 +1785,25 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
     elif ordering_strategy == "original":
         print(f"\nUsing original net order (no sorting)")
 
-    print(f"\nRouting {len(net_ids)} nets...")
+    # Separate single-ended nets from differential pairs
+    single_ended_nets = []
+    diff_pair_ids_to_route = []  # (pair_name, pair) tuples
+    processed_pair_net_ids = set()
+
+    for net_name, net_id in net_ids:
+        if net_id in diff_pair_net_ids and net_id not in processed_pair_net_ids:
+            # Find the differential pair this net belongs to
+            for pair_name, pair in diff_pairs.items():
+                if pair.p_net_id == net_id or pair.n_net_id == net_id:
+                    diff_pair_ids_to_route.append((pair_name, pair))
+                    processed_pair_net_ids.add(pair.p_net_id)
+                    processed_pair_net_ids.add(pair.n_net_id)
+                    break
+        elif net_id not in diff_pair_net_ids:
+            single_ended_nets.append((net_name, net_id))
+
+    total_routes = len(single_ended_nets) + len(diff_pair_ids_to_route)
+    print(f"\nRouting {total_routes} items ({len(single_ended_nets)} single-ended nets, {len(diff_pair_ids_to_route)} differential pairs)...")
     print("=" * 60)
 
     results = []
@@ -1383,8 +1824,71 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
     routed_net_ids = []
     remaining_net_ids = list(all_net_ids_to_route)
 
-    for i, (net_name, net_id) in enumerate(net_ids):
-        print(f"\n[{i+1}/{len(net_ids)}] Routing {net_name} (id={net_id})")
+    route_index = 0
+
+    # Route differential pairs first (they're more constrained)
+    for pair_name, pair in diff_pair_ids_to_route:
+        route_index += 1
+        print(f"\n[{route_index}/{total_routes}] Routing diff pair {pair_name}")
+        print(f"  P: {pair.p_net_name} (id={pair.p_net_id})")
+        print(f"  N: {pair.n_net_name} (id={pair.n_net_id})")
+        print("-" * 40)
+
+        start_time = time.time()
+
+        # Clone base obstacles
+        obstacles = base_obstacles.clone()
+
+        # Add previously routed nets' segments/vias/pads as obstacles
+        for routed_id in routed_net_ids:
+            add_net_stubs_as_obstacles(obstacles, pcb_data, routed_id, config)
+            add_net_vias_as_obstacles(obstacles, pcb_data, routed_id, config)
+            add_net_pads_as_obstacles(obstacles, pcb_data, routed_id, config)
+
+        # Add other unrouted nets' stubs, vias, and pads as obstacles (excluding both P and N)
+        other_unrouted = [nid for nid in remaining_net_ids
+                         if nid != pair.p_net_id and nid != pair.n_net_id]
+        for other_net_id in other_unrouted:
+            add_net_stubs_as_obstacles(obstacles, pcb_data, other_net_id, config)
+            add_net_vias_as_obstacles(obstacles, pcb_data, other_net_id, config)
+            add_net_pads_as_obstacles(obstacles, pcb_data, other_net_id, config)
+
+        # Add stub proximity costs for remaining unrouted nets
+        unrouted_stubs = get_stub_endpoints(pcb_data, other_unrouted)
+        if unrouted_stubs:
+            add_stub_proximity_costs(obstacles, unrouted_stubs, config)
+
+        # Add same-net via clearance for both P and N
+        add_same_net_via_clearance(obstacles, pcb_data, pair.p_net_id, config)
+        add_same_net_via_clearance(obstacles, pcb_data, pair.n_net_id, config)
+
+        # Route the differential pair
+        result = route_diff_pair_with_obstacles(pcb_data, pair, config, obstacles)
+        elapsed = time.time() - start_time
+        total_time += elapsed
+
+        if result and not result.get('failed'):
+            print(f"  SUCCESS: {len(result['new_segments'])} segments, {len(result['new_vias'])} vias, {result['iterations']} iterations ({elapsed:.2f}s)")
+            results.append(result)
+            successful += 1
+            total_iterations += result['iterations']
+            add_route_to_pcb_data(pcb_data, result)
+            if pair.p_net_id in remaining_net_ids:
+                remaining_net_ids.remove(pair.p_net_id)
+            if pair.n_net_id in remaining_net_ids:
+                remaining_net_ids.remove(pair.n_net_id)
+            routed_net_ids.append(pair.p_net_id)
+            routed_net_ids.append(pair.n_net_id)
+        else:
+            iterations = result['iterations'] if result else 0
+            print(f"  FAILED: Could not find route ({elapsed:.2f}s)")
+            failed += 1
+            total_iterations += iterations
+
+    # Route single-ended nets
+    for net_name, net_id in single_ended_nets:
+        route_index += 1
+        print(f"\n[{route_index}/{total_routes}] Routing {net_name} (id={net_id})")
         print("-" * 40)
 
         start_time = time.time()
@@ -1523,6 +2027,13 @@ Wildcard patterns supported:
 Examples:
   python batch_grid_router.py fanout_starting_point.kicad_pcb routed.kicad_pcb "Net-(U2A-DATA_*)"
   python batch_grid_router.py input.kicad_pcb output.kicad_pcb "Net-(U2A-DATA_*)" --ordering mps
+
+Differential pair routing:
+  python batch_grid_router.py input.kicad_pcb output.kicad_pcb "*lvds*" --diff-pairs "*lvds*"
+
+  The --diff-pairs option specifies patterns for nets that should be routed as differential pairs.
+  Nets matching these patterns with _P/_N, P/N, or +/- suffixes will be routed together
+  maintaining constant spacing (controlled by --diff-pair-gap).
 """
     )
     parser.add_argument("input_file", help="Input KiCad PCB file")
@@ -1567,6 +2078,12 @@ Examples:
     parser.add_argument("--stub-proximity-cost", type=float, default=2.0,
                         help="Cost penalty near stubs in mm equivalent (default: 2.0)")
 
+    # Differential pair routing
+    parser.add_argument("--diff-pairs", "-D", nargs="+",
+                        help="Glob patterns for nets to route as differential pairs (e.g., '*lvds*')")
+    parser.add_argument("--diff-pair-gap", type=float, default=0.1,
+                        help="Gap between P and N traces of differential pairs in mm (default: 0.1)")
+
     args = parser.parse_args()
 
     # Load PCB to expand wildcards
@@ -1594,4 +2111,6 @@ Examples:
                 max_iterations=args.max_iterations,
                 heuristic_weight=args.heuristic_weight,
                 stub_proximity_radius=args.stub_proximity_radius,
-                stub_proximity_cost=args.stub_proximity_cost)
+                stub_proximity_cost=args.stub_proximity_cost,
+                diff_pair_patterns=args.diff_pairs,
+                diff_pair_gap=args.diff_pair_gap)
