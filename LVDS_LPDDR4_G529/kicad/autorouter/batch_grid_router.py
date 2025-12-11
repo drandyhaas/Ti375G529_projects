@@ -1695,9 +1695,32 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     simplified_path = simplify_path(path)
     print(f"Route found in {total_iterations} iterations, path: {len(path)} -> {len(simplified_path)} points")
 
+    # Determine which side of the centerline P is on at the source end.
+    # Use cross product of (centerline direction) x (centerline-to-P vector) to get the sign.
+    # This ensures the offset paths align with the actual stub positions.
+    if len(simplified_path) >= 2:
+        # Get centerline direction at source (first segment direction)
+        c0_x, c0_y = coord.to_float(simplified_path[0][0], simplified_path[0][1])
+        c1_x, c1_y = coord.to_float(simplified_path[1][0], simplified_path[1][1])
+        centerline_dx = c1_x - c0_x
+        centerline_dy = c1_y - c0_y
+
+        # Get P source position relative to centerline start
+        p_src_x, p_src_y = coord.to_float(p_src_gx, p_src_gy)
+        to_p_dx = p_src_x - c0_x
+        to_p_dy = p_src_y - c0_y
+
+        # Cross product: positive if P is on the "left" side (counterclockwise from centerline direction)
+        cross = centerline_dx * to_p_dy - centerline_dy * to_p_dx
+        p_sign = +1 if cross >= 0 else -1
+    else:
+        p_sign = +1  # fallback
+
+    n_sign = -p_sign
+
     # Create P and N paths using perpendicular offsets from centerline
-    p_float_path = create_parallel_path_float(simplified_path, coord, sign=+1, spacing_mm=spacing_mm)
-    n_float_path = create_parallel_path_float(simplified_path, coord, sign=-1, spacing_mm=spacing_mm)
+    p_float_path = create_parallel_path_float(simplified_path, coord, sign=p_sign, spacing_mm=spacing_mm)
+    n_float_path = create_parallel_path_float(simplified_path, coord, sign=n_sign, spacing_mm=spacing_mm)
 
     # Convert floating-point paths to segments and vias
     new_segments = []
