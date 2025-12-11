@@ -1364,48 +1364,65 @@ def get_diff_pair_endpoints(pcb_data: PCBData, p_net_id: int, n_net_id: int,
     if not n_sources or not n_targets:
         return [], [], "N net has no valid source/target endpoints"
 
-    # Match P and N endpoints by proximity
-    # For each P source, find the closest N source on the same layer
-    def find_closest_match(p_endpoint, n_endpoints):
-        """Find N endpoint closest to P endpoint on same layer."""
-        p_gx, p_gy, p_layer = p_endpoint[0], p_endpoint[1], p_endpoint[2]
-        best_match = None
+    # Determine source vs target based on proximity between P and N endpoints.
+    # The "source" side is where P and N endpoints are closest together,
+    # and "target" side is where the other P and N endpoints are closest.
+    # This ensures P and N agree on which end is source vs target.
+
+    # Combine all P endpoints and all N endpoints (ignoring the source/target
+    # classification from get_net_endpoints since it may differ between P and N)
+    p_all = p_sources + p_targets
+    n_all = n_sources + n_targets
+
+    def find_closest_pair(p_endpoints, n_endpoints):
+        """Find the P and N endpoints that are closest to each other on same layer."""
+        best_p, best_n = None, None
         best_dist = float('inf')
-        for n in n_endpoints:
-            n_gx, n_gy, n_layer = n[0], n[1], n[2]
-            if n_layer != p_layer:
-                continue
-            dist = abs(p_gx - n_gx) + abs(p_gy - n_gy)
-            if dist < best_dist:
-                best_dist = dist
-                best_match = n
-        return best_match, best_dist
+        for p in p_endpoints:
+            p_gx, p_gy, p_layer = p[0], p[1], p[2]
+            for n in n_endpoints:
+                n_gx, n_gy, n_layer = n[0], n[1], n[2]
+                if n_layer != p_layer:
+                    continue
+                dist = abs(p_gx - n_gx) + abs(p_gy - n_gy)
+                if dist < best_dist:
+                    best_dist = dist
+                    best_p, best_n = p, n
+        return best_p, best_n, best_dist
 
-    # Match sources
-    paired_sources = []
-    for p_src in p_sources:
-        n_match, dist = find_closest_match(p_src, n_sources)
-        if n_match is not None:
-            paired_sources.append((
-                p_src[0], p_src[1],  # P grid coords
-                n_match[0], n_match[1],  # N grid coords
-                p_src[2],  # layer
-                p_src[3], p_src[4],  # P original coords
-                n_match[3], n_match[4]  # N original coords
-            ))
+    # Find the closest P-N pair - this becomes one end (we'll call it "source")
+    p_src, n_src, src_dist = find_closest_pair(p_all, n_all)
+    if p_src is None or n_src is None:
+        return [], [], "Could not find matching P and N endpoints on same layer"
 
-    # Match targets
-    paired_targets = []
-    for p_tgt in p_targets:
-        n_match, dist = find_closest_match(p_tgt, n_targets)
-        if n_match is not None:
-            paired_targets.append((
-                p_tgt[0], p_tgt[1],  # P grid coords
-                n_match[0], n_match[1],  # N grid coords
-                p_tgt[2],  # layer
-                p_tgt[3], p_tgt[4],  # P original coords
-                n_match[3], n_match[4]  # N original coords
-            ))
+    # Remove the matched endpoints from consideration
+    p_remaining = [p for p in p_all if p != p_src]
+    n_remaining = [n for n in n_all if n != n_src]
+
+    if not p_remaining or not n_remaining:
+        return [], [], "Not enough endpoints for source and target"
+
+    # Find the closest P-N pair from remaining - this becomes the other end ("target")
+    p_tgt, n_tgt, tgt_dist = find_closest_pair(p_remaining, n_remaining)
+    if p_tgt is None or n_tgt is None:
+        return [], [], "Could not find matching P and N target endpoints on same layer"
+
+    # Build the paired source and target tuples
+    paired_sources = [(
+        p_src[0], p_src[1],  # P grid coords
+        n_src[0], n_src[1],  # N grid coords
+        p_src[2],  # layer
+        p_src[3], p_src[4],  # P original coords
+        n_src[3], n_src[4]  # N original coords
+    )]
+
+    paired_targets = [(
+        p_tgt[0], p_tgt[1],  # P grid coords
+        n_tgt[0], n_tgt[1],  # N grid coords
+        p_tgt[2],  # layer
+        p_tgt[3], p_tgt[4],  # P original coords
+        n_tgt[3], n_tgt[4]  # N original coords
+    )]
 
     if not paired_sources:
         return [], [], "Could not match P and N source endpoints"
