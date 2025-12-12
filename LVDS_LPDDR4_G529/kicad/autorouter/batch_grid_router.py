@@ -1904,7 +1904,6 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     # Also ensure minimum via-via spacing is met
     # When vias are on a bend, use the average of incoming and outgoing perpendiculars
     min_via_spacing = config.via_size + config.clearance  # Minimum center-to-center distance
-    debug_segment_info = None  # Will store debug segment info if layer change found
 
     if p_float_path and n_float_path and len(simplified_path) >= 2:
         for i in range(len(simplified_path) - 1):
@@ -2011,12 +2010,34 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                         # N is inner - place on debug line, diff pair spacing from P approach (toward center)
                         n_old_x = p_old_x + in_perp_x * diff_pair_spacing
                         n_old_y = p_old_y + in_perp_y * diff_pair_spacing
+
+                    # Calculate EXIT positions using OUTGOING perpendicular through inner via
+                    out_perp_x, out_perp_y = -out_dir_y, out_dir_x
+
+                    # Same logic for exit: outer is track-via clearance from inner via,
+                    # inner is diff pair spacing from outer
+                    if inner_is_p:
+                        # N is outer - place on outgoing debug line, track-via clearance from inner (P) via
+                        n_exit_x = inner_via_x + out_perp_x * track_via_clearance
+                        n_exit_y = inner_via_y + out_perp_y * track_via_clearance
+                        # P is inner - place on outgoing debug line, diff pair spacing from N exit (toward center)
+                        p_exit_x = n_exit_x - out_perp_x * diff_pair_spacing
+                        p_exit_y = n_exit_y - out_perp_y * diff_pair_spacing
+                    else:
+                        # P is outer - place on outgoing debug line, track-via clearance from inner (N) via
+                        p_exit_x = inner_via_x - out_perp_x * track_via_clearance
+                        p_exit_y = inner_via_y - out_perp_y * track_via_clearance
+                        # N is inner - place on outgoing debug line, diff pair spacing from P exit (toward center)
+                        n_exit_x = p_exit_x + out_perp_x * diff_pair_spacing
+                        n_exit_y = p_exit_y + out_perp_y * diff_pair_spacing
                 else:
-                    # No bend - use averaged perpendicular
+                    # No bend - use averaged perpendicular for both approach and exit
                     p_old_x = cx + perp_x * p_sign * spacing_mm
                     p_old_y = cy + perp_y * p_sign * spacing_mm
                     n_old_x = cx + perp_x * n_sign * spacing_mm
                     n_old_y = cy + perp_y * n_sign * spacing_mm
+                    p_exit_x, p_exit_y = p_old_x, p_old_y
+                    n_exit_x, n_exit_y = n_old_x, n_old_y
 
                 # Update position at index i to approach position (track approaches via from here on layer1)
                 p_float_path[i] = (p_old_x, p_old_y, layer1)
@@ -2030,75 +2051,13 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                 p_float_path[i + 2] = (p_via_x, p_via_y, layer2)
                 n_float_path[i + 2] = (n_via_x, n_via_y, layer2)
 
-                # Insert old position after via on layer2 (short transition segment on layer2)
-                p_float_path.insert(i + 3, (p_old_x, p_old_y, layer2))
-                n_float_path.insert(i + 3, (n_old_x, n_old_y, layer2))
-
-                print(f"  Via alignment at index {i}: centerline=({cx:.3f},{cy:.3f})")
-                print(f"    Via spacing: {via_spacing:.3f}mm, track spacing: {spacing_mm:.3f}mm")
-                print(f"    P: old=({p_old_x:.3f},{p_old_y:.3f}) -> via=({p_via_x:.3f},{p_via_y:.3f}) -> old")
-                print(f"    N: old=({n_old_x:.3f},{n_old_y:.3f}) -> via=({n_via_x:.3f},{n_via_y:.3f}) -> old")
-
-                # DEBUG: Store info for debug segment to add later (after new_segments is created)
-                if in_dir_x is not None and out_dir_x is not None:
-                    # Perpendicular to incoming direction
-                    in_perp_x, in_perp_y = -in_dir_y, in_dir_x
-
-                    # Determine which via is on the inside of the bend using cross product
-                    # cross = in_dir × out_dir = in_dir_x * out_dir_y - in_dir_y * out_dir_x
-                    cross = in_dir_x * out_dir_y - in_dir_y * out_dir_x
-                    # cross > 0: turning left (CCW), inner is on the right of incoming direction
-                    # cross < 0: turning right (CW), inner is on the left of incoming direction
-
-                    # The perpendicular (-in_dir_y, in_dir_x) points to the left of incoming direction
-                    # So if cross < 0 (turning right), inner via is in the -perp direction
-                    if cross < 0:
-                        # Turning right - inner via is in -perp direction (p_sign * perp if p_sign < 0)
-                        inner_via_x = p_via_x if p_sign < 0 else n_via_x
-                        inner_via_y = p_via_y if p_sign < 0 else n_via_y
-                    else:
-                        # Turning left - inner via is in +perp direction (p_sign * perp if p_sign > 0)
-                        inner_via_x = p_via_x if p_sign > 0 else n_via_x
-                        inner_via_y = p_via_y if p_sign > 0 else n_via_y
-
-                    # Store debug segment info to add later
-                    debug_half_len = 0.5  # 0.5mm each side = 1mm total
-                    debug_segment_info = {
-                        'start_x': inner_via_x - in_perp_x * debug_half_len,
-                        'start_y': inner_via_y - in_perp_y * debug_half_len,
-                        'end_x': inner_via_x + in_perp_x * debug_half_len,
-                        'end_y': inner_via_y + in_perp_y * debug_half_len,
-                    }
-                    print(f"    DEBUG: Inner via at ({inner_via_x:.3f},{inner_via_y:.3f}), cross={cross:.3f}")
-
-    # DEBUG: Check endpoint spacing
-    if p_float_path and n_float_path:
-        p_start = p_float_path[0]
-        n_start = n_float_path[0]
-        p_end = p_float_path[-1]
-        n_end = n_float_path[-1]
-        start_dist = math.sqrt((p_start[0]-n_start[0])**2 + (p_start[1]-n_start[1])**2)
-        end_dist = math.sqrt((p_end[0]-n_end[0])**2 + (p_end[1]-n_end[1])**2)
-        print(f"  DEBUG: P start=({p_start[0]:.3f},{p_start[1]:.3f}), N start=({n_start[0]:.3f},{n_start[1]:.3f}), dist={start_dist:.3f}mm")
-        print(f"  DEBUG: P end=({p_end[0]:.3f},{p_end[1]:.3f}), N end=({n_end[0]:.3f},{n_end[1]:.3f}), dist={end_dist:.3f}mm")
-        print(f"  DEBUG: Expected spacing={spacing_mm*2:.3f}mm (2x offset={spacing_mm:.3f}mm)")
+                # Insert exit position after via on layer2 (using outgoing perpendicular)
+                p_float_path.insert(i + 3, (p_exit_x, p_exit_y, layer2))
+                n_float_path.insert(i + 3, (n_exit_x, n_exit_y, layer2))
 
     # Convert floating-point paths to segments and vias
     new_segments = []
     new_vias = []
-
-    # Add debug segment if we stored info for one
-    if debug_segment_info is not None:
-        debug_seg = Segment(
-            start_x=debug_segment_info['start_x'],
-            start_y=debug_segment_info['start_y'],
-            end_x=debug_segment_info['end_x'],
-            end_y=debug_segment_info['end_y'],
-            width=0.1,
-            layer='In4.Cu',
-            net_id=p_net_id
-        )
-        new_segments.append(debug_seg)
 
     # DEBUG: Use different layers to visualize different segment types
     DEBUG_LAYERS = False
