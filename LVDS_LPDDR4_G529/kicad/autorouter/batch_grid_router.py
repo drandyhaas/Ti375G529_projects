@@ -1811,8 +1811,8 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
 
     # Add turn segments at start and end to face the connector stubs
     # This makes the centerline turn to align with stub direction before connecting
-    # Use most of the setback distance to minimize connector length
-    turn_length_mm = setback * 0.8  # Length of the turn segment in mm
+    # Use a shorter turn length to reduce connector segment length
+    turn_length_mm = setback * 0.3  # Length of the turn segment in mm
     turn_length_grid = int(turn_length_mm / config.grid_step)
 
     if len(simplified_path) >= 2 and turn_length_grid > 0:
@@ -1868,6 +1868,29 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     n_float_path = create_parallel_path_float(simplified_path, coord, sign=n_sign, spacing_mm=spacing_mm,
                                                start_dir=start_stub_dir, end_dir=end_stub_dir)
 
+    # Fix the first/last points to align with actual stub positions
+    # This ensures connectors are parallel (same direction) rather than converging
+    # Calculate where each path should start/end based on stub positions + stub direction
+    connector_length = turn_length_mm  # Distance from stub to turn point
+    if p_float_path and n_float_path and len(p_float_path) >= 2:
+        # Replace first points with positions directly in front of each stub
+        p_float_path[0] = (p_src_x + src_dir_x * connector_length,
+                          p_src_y + src_dir_y * connector_length,
+                          p_float_path[0][2])
+        n_float_path[0] = (n_src_x + src_dir_x * connector_length,
+                          n_src_y + src_dir_y * connector_length,
+                          n_float_path[0][2])
+
+        # Replace last points with positions directly in front of each target stub
+        # tgt_dir points away from stubs toward centerline, so add it
+        p_float_path[-1] = (p_tgt_x + tgt_dir_x * connector_length,
+                           p_tgt_y + tgt_dir_y * connector_length,
+                           p_float_path[-1][2])
+        n_float_path[-1] = (n_tgt_x + tgt_dir_x * connector_length,
+                           n_tgt_y + tgt_dir_y * connector_length,
+                           n_float_path[-1][2])
+
+
     # DEBUG: Check endpoint spacing
     if p_float_path and n_float_path:
         p_start = p_float_path[0]
@@ -1885,7 +1908,7 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     new_vias = []
 
     # DEBUG: Use different layers to visualize different segment types
-    DEBUG_LAYERS = False
+    DEBUG_LAYERS = True
     DEBUG_CENTERLINE_LAYER = 'In3.Cu'  # Centerline parallel path segments
     DEBUG_CONNECTOR_LAYER = 'In4.Cu'   # Connectors from stubs to centerline
 
