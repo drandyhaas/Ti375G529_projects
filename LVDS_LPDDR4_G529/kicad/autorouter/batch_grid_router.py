@@ -1872,22 +1872,31 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     # This ensures connectors are parallel (same direction) rather than converging
     # Calculate where each path should start/end based on stub positions + stub direction
     connector_length = turn_length_mm  # Distance from stub to turn point
+    connector_spread = 0.05  # Spread connector endpoints by this fraction to add clearance margin
     if p_float_path and n_float_path and len(p_float_path) >= 2:
+        # Calculate P-N offset vectors at source and target
+        src_pn_dx = (n_src_x - p_src_x) / 2  # Half-offset from centerline to each track
+        src_pn_dy = (n_src_y - p_src_y) / 2
+        tgt_pn_dx = (n_tgt_x - p_tgt_x) / 2
+        tgt_pn_dy = (n_tgt_y - p_tgt_y) / 2
+
         # Replace first points with positions directly in front of each stub
-        p_float_path[0] = (p_src_x + src_dir_x * connector_length,
-                          p_src_y + src_dir_y * connector_length,
+        # Spread outward slightly to add clearance margin at transition to centerline
+        p_float_path[0] = (p_src_x + src_dir_x * connector_length - src_pn_dx * connector_spread,
+                          p_src_y + src_dir_y * connector_length - src_pn_dy * connector_spread,
                           p_float_path[0][2])
-        n_float_path[0] = (n_src_x + src_dir_x * connector_length,
-                          n_src_y + src_dir_y * connector_length,
+        n_float_path[0] = (n_src_x + src_dir_x * connector_length + src_pn_dx * connector_spread,
+                          n_src_y + src_dir_y * connector_length + src_pn_dy * connector_spread,
                           n_float_path[0][2])
 
         # Replace last points with positions directly in front of each target stub
         # tgt_dir points away from stubs toward centerline, so add it
-        p_float_path[-1] = (p_tgt_x + tgt_dir_x * connector_length,
-                           p_tgt_y + tgt_dir_y * connector_length,
+        # Spread outward slightly to add clearance margin at transition to centerline
+        p_float_path[-1] = (p_tgt_x + tgt_dir_x * connector_length - tgt_pn_dx * connector_spread,
+                           p_tgt_y + tgt_dir_y * connector_length - tgt_pn_dy * connector_spread,
                            p_float_path[-1][2])
-        n_float_path[-1] = (n_tgt_x + tgt_dir_x * connector_length,
-                           n_tgt_y + tgt_dir_y * connector_length,
+        n_float_path[-1] = (n_tgt_x + tgt_dir_x * connector_length + tgt_pn_dx * connector_spread,
+                           n_tgt_y + tgt_dir_y * connector_length + tgt_pn_dy * connector_spread,
                            n_float_path[-1][2])
 
 
@@ -1908,7 +1917,7 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     new_vias = []
 
     # DEBUG: Use different layers to visualize different segment types
-    DEBUG_LAYERS = True
+    DEBUG_LAYERS = False
     DEBUG_CENTERLINE_LAYER = 'In3.Cu'  # Centerline parallel path segments
     DEBUG_CONNECTOR_LAYER = 'In4.Cu'   # Connectors from stubs to centerline
 
