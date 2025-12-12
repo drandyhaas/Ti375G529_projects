@@ -1809,6 +1809,29 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     simplified_path = simplify_path(path)
     print(f"Route found in {total_iterations} iterations, path: {len(path)} -> {len(simplified_path)} points")
 
+    # Add turn segments at start and end to face the connector stubs
+    # This makes the centerline turn to align with stub direction before connecting
+    # Use most of the setback distance to minimize connector length
+    turn_length_mm = setback * 0.8  # Length of the turn segment in mm
+    turn_length_grid = int(turn_length_mm / config.grid_step)
+
+    if len(simplified_path) >= 2 and turn_length_grid > 0:
+        # Add turn segment at start (facing source stubs)
+        first_gx, first_gy, first_layer = simplified_path[0]
+        # Move backward along stub direction to create turn point
+        turn_start_gx = first_gx - int(src_dir_x * turn_length_grid)
+        turn_start_gy = first_gy - int(src_dir_y * turn_length_grid)
+        simplified_path.insert(0, (turn_start_gx, turn_start_gy, first_layer))
+
+        # Add turn segment at end (facing target stubs)
+        last_gx, last_gy, last_layer = simplified_path[-1]
+        # Move toward stubs (opposite of tgt_dir which points outward from stubs)
+        turn_end_gx = last_gx - int(tgt_dir_x * turn_length_grid)
+        turn_end_gy = last_gy - int(tgt_dir_y * turn_length_grid)
+        simplified_path.append((turn_end_gx, turn_end_gy, last_layer))
+
+        print(f"  Added turn segments: path now {len(simplified_path)} points")
+
 
     # Determine which side of the centerline P is on
     # Use the first segment direction of the simplified path
@@ -1862,7 +1885,7 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     new_vias = []
 
     # DEBUG: Use different layers to visualize different segment types
-    DEBUG_LAYERS = True
+    DEBUG_LAYERS = False
     DEBUG_CENTERLINE_LAYER = 'In3.Cu'  # Centerline parallel path segments
     DEBUG_CONNECTOR_LAYER = 'In4.Cu'   # Connectors from stubs to centerline
 

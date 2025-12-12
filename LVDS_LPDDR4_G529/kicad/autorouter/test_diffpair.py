@@ -45,7 +45,9 @@ def main():
     ret = run_command(
         [sys.executable, "batch_grid_router.py",
          input_pcb, output_pcb, net_pattern,
-         "--no-bga-zones", "--diff-pairs", diff_pair_pattern],
+         "--no-bga-zones",
+         "--diff-pair-centerline-setback", "4",
+         "--diff-pairs", diff_pair_pattern],
         "Step 2: Routing differential pair"
     )
     if ret != 0:
