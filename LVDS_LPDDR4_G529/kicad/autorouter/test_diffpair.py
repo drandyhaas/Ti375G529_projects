@@ -27,7 +27,8 @@ def main():
     # Configuration
     input_pcb = "routed_output.kicad_pcb"
     output_pcb = "test_batch_diffpair.kicad_pcb"
-    net_pattern = "*lvds_rx3_10*"
+    #net_pattern = "*lvds_rx3_10*" #no layer change and no polarity change
+    net_pattern = "*lvds_rx3_7*" #layer change but no polarity change
     diff_pair_pattern = "*lvds*"
 
     # Step 1: Build the Rust router
@@ -46,7 +47,7 @@ def main():
         [sys.executable, "batch_grid_router.py",
          input_pcb, output_pcb, net_pattern,
          "--no-bga-zones",
-         "--diff-pair-centerline-setback", "4",
+         "--diff-pair-centerline-setback", "1.5",
          "--diff-pairs", diff_pair_pattern],
         "Step 2: Routing differential pair"
     )
