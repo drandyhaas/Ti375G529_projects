@@ -1860,8 +1860,8 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     if len(simplified_path) >= 2:
         last_gx1, last_gy1, _ = simplified_path[-2]
         last_gx2, last_gy2, _ = simplified_path[-1]
-        last_cx1, last_cy1 = coord.grid_to_mm(last_gx1, last_gy1)
-        last_cx2, last_cy2 = coord.grid_to_mm(last_gx2, last_gy2)
+        last_cx1, last_cy1 = coord.to_float(last_gx1, last_gy1)
+        last_cx2, last_cy2 = coord.to_float(last_gx2, last_gy2)
         last_len = math.sqrt((last_cx2 - last_cx1)**2 + (last_cy2 - last_cy1)**2)
         if last_len > 0.001:
             tgt_path_dir_x = (last_cx2 - last_cx1) / last_len

@@ -27,8 +27,9 @@ def main():
     # Configuration
     input_pcb = "routed_output.kicad_pcb"
     output_pcb = "test_batch_diffpair.kicad_pcb"
-    #net_pattern = "*lvds_rx3_10*" #no layer change and no polarity change
-    net_pattern = "*lvds_rx3_7*" #layer change but no polarity change
+    #net_pattern = "*lvds_rx3_10_*" #no layer change and no polarity change
+    #net_pattern = "*lvds_rx3_7_*" #layer change but no polarity change
+    net_pattern = "*lvds_rx4_1_*" #layer change and polarity change
     diff_pair_pattern = "*lvds*"
 
     # Step 1: Build the Rust router
