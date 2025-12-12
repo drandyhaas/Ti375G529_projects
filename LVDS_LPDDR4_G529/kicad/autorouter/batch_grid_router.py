@@ -77,6 +77,7 @@ class GridRouteConfig:
     direction_order: str = "forward"
     # Differential pair routing parameters
     diff_pair_gap: float = 0.1  # mm - gap between P and N traces (center-to-center = track_width + gap)
+    diff_pair_centerline_setback: float = 0.4  # mm - distance in front of stubs to start centerline route
 
 
 class GridCoord:
@@ -264,6 +265,49 @@ def find_stub_free_ends(segments: List[Segment], pads: List[Pad], tolerance: flo
                 free_ends.append((x, y, layer))
 
     return free_ends
+
+
+def get_stub_direction(segments: List[Segment], stub_x: float, stub_y: float, stub_layer: str,
+                       tolerance: float = 0.05) -> Tuple[float, float]:
+    """
+    Find the direction a stub is pointing (from pad toward free end).
+
+    Args:
+        segments: List of segments for the net
+        stub_x, stub_y: Position of the stub free end
+        stub_layer: Layer of the stub
+        tolerance: Distance tolerance for matching endpoints
+
+    Returns:
+        (dx, dy): Normalized direction vector pointing in the stub direction
+    """
+    # Find the segment that has this stub endpoint
+    for seg in segments:
+        if seg.layer != stub_layer:
+            continue
+
+        # Check if start matches stub position
+        if abs(seg.start_x - stub_x) < tolerance and abs(seg.start_y - stub_y) < tolerance:
+            # Direction from end to start (toward the free end)
+            dx = seg.start_x - seg.end_x
+            dy = seg.start_y - seg.end_y
+            length = math.sqrt(dx*dx + dy*dy)
+            if length > 0:
+                return (dx / length, dy / length)
+            return (0, 0)
+
+        # Check if end matches stub position
+        if abs(seg.end_x - stub_x) < tolerance and abs(seg.end_y - stub_y) < tolerance:
+            # Direction from start to end (toward the free end)
+            dx = seg.end_x - seg.start_x
+            dy = seg.end_y - seg.start_y
+            length = math.sqrt(dx*dx + dy*dy)
+            if length > 0:
+                return (dx / length, dy / length)
+            return (0, 0)
+
+    # Fallback - no matching segment found
+    return (0, 0)
 
 
 def get_net_endpoints(pcb_data: PCBData, net_id: int, config: GridRouteConfig) -> Tuple[List, List, str]:
@@ -1533,7 +1577,7 @@ def smooth_path_for_diffpair(path, min_segment_length=3):
     return result
 
 
-def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1):
+def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1, start_dir=None, end_dir=None):
     """
     Create a path parallel to centerline using floating-point perpendicular offsets.
 
@@ -1544,6 +1588,8 @@ def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1):
         coord: GridCoord converter for grid<->float
         sign: +1 for one track, -1 for the other
         spacing_mm: Distance from centerline in mm
+        start_dir: Optional (dx, dy) direction to use at start point for perpendicular calc
+        end_dir: Optional (dx, dy) direction to use at end point for perpendicular calc
 
     Returns:
         List of (x, y, layer) floating-point coordinates
@@ -1558,14 +1604,25 @@ def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1):
         gx, gy, layer = centerline_path[i]
         x, y = coord.to_float(gx, gy)
 
+        use_corner_scale = True  # Only apply corner scaling for bisector calculations
         if i == 0:
-            # First point: perpendicular to first segment
-            next_x, next_y = coord.to_float(centerline_path[1][0], centerline_path[1][1])
-            dx, dy = next_x - x, next_y - y
+            # First point: use start_dir if provided, else perpendicular to first segment
+            if start_dir is not None:
+                dx, dy = start_dir
+                use_corner_scale = False  # Provided direction, no corner scaling
+            else:
+                next_x, next_y = coord.to_float(centerline_path[1][0], centerline_path[1][1])
+                dx, dy = next_x - x, next_y - y
+                use_corner_scale = False  # Single segment, no corner scaling
         elif i == len(centerline_path) - 1:
-            # Last point: perpendicular to last segment
-            prev_x, prev_y = coord.to_float(centerline_path[i-1][0], centerline_path[i-1][1])
-            dx, dy = x - prev_x, y - prev_y
+            # Last point: use end_dir if provided, else perpendicular to last segment
+            if end_dir is not None:
+                dx, dy = end_dir
+                use_corner_scale = False  # Provided direction, no corner scaling
+            else:
+                prev_x, prev_y = coord.to_float(centerline_path[i-1][0], centerline_path[i-1][1])
+                dx, dy = x - prev_x, y - prev_y
+                use_corner_scale = False  # Single segment, no corner scaling
         else:
             # Corner: use bisector of incoming and outgoing directions
             prev = centerline_path[i-1]
@@ -1600,7 +1657,11 @@ def create_parallel_path_float(centerline_path, coord, sign, spacing_mm=0.1):
         # When summing two unit vectors, length = 2*cos(θ/2) where θ is angle between them
         # To maintain spacing_mm perpendicular to each segment, multiply by 2/length
         # Cap the scaling to avoid extreme miter extensions at very sharp corners (>135° turn)
-        corner_scale = min(2.0 / length, 3.0) if length > 0.1 else 1.0
+        # Only apply at actual corners (bisector calculations), not at endpoints
+        if use_corner_scale:
+            corner_scale = min(2.0 / length, 3.0) if length > 0.1 else 1.0
+        else:
+            corner_scale = 1.0
 
         perp_x = -ndy * sign * spacing_mm * corner_scale
         perp_y = ndx * sign * spacing_mm * corner_scale
@@ -1636,11 +1697,6 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     coord = GridCoord(config.grid_step)
     layer_names = config.layers
 
-    # Calculate spacing for perpendicular offset
-    # Center-to-center spacing = track_width + diff_pair_gap
-    center_to_center = config.track_width + config.diff_pair_gap
-    spacing_mm = center_to_center / 2  # Half-spacing for each track from centerline
-
     # Get P and N source/target coordinates
     src = sources[0]
     tgt = targets[0]
@@ -1653,11 +1709,69 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     n_tgt_gx, n_tgt_gy = tgt[2], tgt[3]
     tgt_layer = tgt[4]
 
-    # Calculate centerline endpoints
-    center_src_gx = (p_src_gx + n_src_gx) // 2
-    center_src_gy = (p_src_gy + n_src_gy) // 2
-    center_tgt_gx = (p_tgt_gx + n_tgt_gx) // 2
-    center_tgt_gy = (p_tgt_gy + n_tgt_gy) // 2
+    # Get original stub positions (in mm)
+    p_src_x, p_src_y = src[5], src[6]
+    n_src_x, n_src_y = src[7], src[8]
+    p_tgt_x, p_tgt_y = tgt[5], tgt[6]
+    n_tgt_x, n_tgt_y = tgt[7], tgt[8]
+
+    # Calculate spacing from actual P-N stub distance (use average of source and target)
+    src_pn_dist = math.sqrt((p_src_x - n_src_x)**2 + (p_src_y - n_src_y)**2)
+    tgt_pn_dist = math.sqrt((p_tgt_x - n_tgt_x)**2 + (p_tgt_y - n_tgt_y)**2)
+    avg_pn_dist = (src_pn_dist + tgt_pn_dist) / 2
+    spacing_mm = avg_pn_dist / 2  # Half-spacing for each track from centerline
+    print(f"  P-N spacing: src={src_pn_dist:.3f}mm, tgt={tgt_pn_dist:.3f}mm, using={avg_pn_dist:.3f}mm (offset={spacing_mm:.3f}mm)")
+
+    # Get segments for P and N nets to find stub directions
+    p_segments = [s for s in pcb_data.segments if s.net_id == p_net_id]
+    n_segments = [s for s in pcb_data.segments if s.net_id == n_net_id]
+
+    src_layer_name = layer_names[src_layer]
+    tgt_layer_name = layer_names[tgt_layer]
+
+    # Get stub directions at source and target
+    p_src_dir = get_stub_direction(p_segments, p_src_x, p_src_y, src_layer_name)
+    n_src_dir = get_stub_direction(n_segments, n_src_x, n_src_y, src_layer_name)
+    p_tgt_dir = get_stub_direction(p_segments, p_tgt_x, p_tgt_y, tgt_layer_name)
+    n_tgt_dir = get_stub_direction(n_segments, n_tgt_x, n_tgt_y, tgt_layer_name)
+
+    # Average P and N directions at each end (they should be similar for a diff pair)
+    src_dir_x = (p_src_dir[0] + n_src_dir[0]) / 2
+    src_dir_y = (p_src_dir[1] + n_src_dir[1]) / 2
+    tgt_dir_x = (p_tgt_dir[0] + n_tgt_dir[0]) / 2
+    tgt_dir_y = (p_tgt_dir[1] + n_tgt_dir[1]) / 2
+
+    # Normalize the averaged directions
+    src_dir_len = math.sqrt(src_dir_x*src_dir_x + src_dir_y*src_dir_y)
+    tgt_dir_len = math.sqrt(tgt_dir_x*tgt_dir_x + tgt_dir_y*tgt_dir_y)
+    if src_dir_len > 0:
+        src_dir_x /= src_dir_len
+        src_dir_y /= src_dir_len
+    if tgt_dir_len > 0:
+        tgt_dir_x /= tgt_dir_len
+        tgt_dir_y /= tgt_dir_len
+
+    # Calculate centerline midpoints between P and N stubs
+    center_src_x = (p_src_x + n_src_x) / 2
+    center_src_y = (p_src_y + n_src_y) / 2
+    center_tgt_x = (p_tgt_x + n_tgt_x) / 2
+    center_tgt_y = (p_tgt_y + n_tgt_y) / 2
+
+    # Apply setback - move centerline start/end in front of stubs
+    setback = config.diff_pair_centerline_setback
+    if src_dir_len > 0:
+        center_src_x += src_dir_x * setback
+        center_src_y += src_dir_y * setback
+    if tgt_dir_len > 0:
+        center_tgt_x += tgt_dir_x * setback
+        center_tgt_y += tgt_dir_y * setback
+
+    # Convert to grid coordinates
+    center_src_gx, center_src_gy = coord.to_grid(center_src_x, center_src_y)
+    center_tgt_gx, center_tgt_gy = coord.to_grid(center_tgt_x, center_tgt_y)
+
+    print(f"  Centerline setback: {setback}mm")
+    print(f"  Source direction: ({src_dir_x:.2f}, {src_dir_y:.2f}), target direction: ({tgt_dir_x:.2f}, {tgt_dir_y:.2f})")
 
     # Add source and target positions as allowed cells (around centerline)
     allow_radius = 15
@@ -1695,36 +1809,62 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     simplified_path = simplify_path(path)
     print(f"Route found in {total_iterations} iterations, path: {len(path)} -> {len(simplified_path)} points")
 
-    # Determine which side of the centerline P is on at the source end.
-    # Use cross product of (centerline direction) x (centerline-to-P vector) to get the sign.
-    # This ensures the offset paths align with the actual stub positions.
+
+    # Determine which side of the centerline P is on
+    # Use the first segment direction of the simplified path
     if len(simplified_path) >= 2:
-        # Get centerline direction at source (first segment direction)
-        c0_x, c0_y = coord.to_float(simplified_path[0][0], simplified_path[0][1])
-        c1_x, c1_y = coord.to_float(simplified_path[1][0], simplified_path[1][1])
-        centerline_dx = c1_x - c0_x
-        centerline_dy = c1_y - c0_y
-
-        # Get P source position relative to centerline start
-        p_src_x, p_src_y = coord.to_float(p_src_gx, p_src_gy)
-        to_p_dx = p_src_x - c0_x
-        to_p_dy = p_src_y - c0_y
-
-        # Cross product: positive if P is on the "left" side (counterclockwise from centerline direction)
-        cross = centerline_dx * to_p_dy - centerline_dy * to_p_dx
-        p_sign = +1 if cross >= 0 else -1
+        first_gx, first_gy, _ = simplified_path[0]
+        second_gx, second_gy, _ = simplified_path[1]
+        first_x, first_y = coord.to_float(first_gx, first_gy)
+        second_x, second_y = coord.to_float(second_gx, second_gy)
+        path_dir_x = second_x - first_x
+        path_dir_y = second_y - first_y
     else:
-        p_sign = +1  # fallback
+        path_dir_x, path_dir_y = 1.0, 0.0
+
+    # Vector from source midpoint to P source position
+    src_midpoint_x = (p_src_x + n_src_x) / 2
+    src_midpoint_y = (p_src_y + n_src_y) / 2
+    to_p_dx = p_src_x - src_midpoint_x
+    to_p_dy = p_src_y - src_midpoint_y
+
+    # Cross product: determines which side of the path direction P is on
+    cross = path_dir_x * to_p_dy - path_dir_y * to_p_dx
+    p_sign = +1 if cross >= 0 else -1
+
+    print(f"  Source polarity: path_dir=({path_dir_x:.2f},{path_dir_y:.2f}), to_P=({to_p_dx:.2f},{to_p_dy:.2f}), cross={cross:.3f}, p_sign={p_sign}")
 
     n_sign = -p_sign
 
     # Create P and N paths using perpendicular offsets from centerline
-    p_float_path = create_parallel_path_float(simplified_path, coord, sign=p_sign, spacing_mm=spacing_mm)
-    n_float_path = create_parallel_path_float(simplified_path, coord, sign=n_sign, spacing_mm=spacing_mm)
+    # Use stub directions at endpoints so perpendicular offsets align with stub P-N axis
+    start_stub_dir = (src_dir_x, src_dir_y)
+    end_stub_dir = (-tgt_dir_x, -tgt_dir_y)  # Negate because we arrive at target stubs
+    p_float_path = create_parallel_path_float(simplified_path, coord, sign=p_sign, spacing_mm=spacing_mm,
+                                               start_dir=start_stub_dir, end_dir=end_stub_dir)
+    n_float_path = create_parallel_path_float(simplified_path, coord, sign=n_sign, spacing_mm=spacing_mm,
+                                               start_dir=start_stub_dir, end_dir=end_stub_dir)
+
+    # DEBUG: Check endpoint spacing
+    if p_float_path and n_float_path:
+        p_start = p_float_path[0]
+        n_start = n_float_path[0]
+        p_end = p_float_path[-1]
+        n_end = n_float_path[-1]
+        start_dist = math.sqrt((p_start[0]-n_start[0])**2 + (p_start[1]-n_start[1])**2)
+        end_dist = math.sqrt((p_end[0]-n_end[0])**2 + (p_end[1]-n_end[1])**2)
+        print(f"  DEBUG: P start=({p_start[0]:.3f},{p_start[1]:.3f}), N start=({n_start[0]:.3f},{n_start[1]:.3f}), dist={start_dist:.3f}mm")
+        print(f"  DEBUG: P end=({p_end[0]:.3f},{p_end[1]:.3f}), N end=({n_end[0]:.3f},{n_end[1]:.3f}), dist={end_dist:.3f}mm")
+        print(f"  DEBUG: Expected spacing={spacing_mm*2:.3f}mm (2x offset={spacing_mm:.3f}mm)")
 
     # Convert floating-point paths to segments and vias
     new_segments = []
     new_vias = []
+
+    # DEBUG: Use different layers to visualize different segment types
+    DEBUG_LAYERS = True
+    DEBUG_CENTERLINE_LAYER = 'In3.Cu'  # Centerline parallel path segments
+    DEBUG_CONNECTOR_LAYER = 'In4.Cu'   # Connectors from stubs to centerline
 
     def float_path_to_geometry(float_path, net_id, original_start, original_end):
         """Convert floating-point path (x, y, layer) to segments and vias."""
@@ -1736,11 +1876,12 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
             first_x, first_y, first_layer = float_path[0]
             orig_x, orig_y = original_start
             if abs(orig_x - first_x) > 0.001 or abs(orig_y - first_y) > 0.001:
+                seg_layer = DEBUG_CONNECTOR_LAYER if DEBUG_LAYERS else layer_names[first_layer]
                 segs.append(Segment(
                     start_x=orig_x, start_y=orig_y,
                     end_x=first_x, end_y=first_y,
                     width=config.track_width,
-                    layer=layer_names[first_layer],
+                    layer=seg_layer,
                     net_id=net_id
                 ))
 
@@ -1758,11 +1899,12 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     net_id=net_id
                 ))
             elif abs(x1 - x2) > 0.001 or abs(y1 - y2) > 0.001:
+                seg_layer = DEBUG_CENTERLINE_LAYER if DEBUG_LAYERS else layer_names[layer1]
                 segs.append(Segment(
                     start_x=x1, start_y=y1,
                     end_x=x2, end_y=y2,
                     width=config.track_width,
-                    layer=layer_names[layer1],
+                    layer=seg_layer,
                     net_id=net_id
                 ))
 
@@ -1771,11 +1913,12 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
             last_x, last_y, last_layer = float_path[-1]
             orig_x, orig_y = original_end
             if abs(orig_x - last_x) > 0.001 or abs(orig_y - last_y) > 0.001:
+                seg_layer = DEBUG_CONNECTOR_LAYER if DEBUG_LAYERS else layer_names[last_layer]
                 segs.append(Segment(
                     start_x=last_x, start_y=last_y,
                     end_x=orig_x, end_y=orig_y,
                     width=config.track_width,
-                    layer=layer_names[last_layer],
+                    layer=seg_layer,
                     net_id=net_id
                 ))
 
@@ -1830,7 +1973,8 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
                 stub_proximity_radius: float = 1.0,
                 stub_proximity_cost: float = 3.0,
                 diff_pair_patterns: Optional[List[str]] = None,
-                diff_pair_gap: float = 0.1) -> Tuple[int, int, float]:
+                diff_pair_gap: float = 0.1,
+                diff_pair_centerline_setback: float = 0.4) -> Tuple[int, int, float]:
     """
     Route multiple nets using the Rust router.
 
@@ -1899,6 +2043,7 @@ def batch_route(input_file: str, output_file: str, net_names: List[str],
         stub_proximity_radius=stub_proximity_radius,
         stub_proximity_cost=stub_proximity_cost,
         diff_pair_gap=diff_pair_gap,
+        diff_pair_centerline_setback=diff_pair_centerline_setback,
     )
     if direction_order is not None:
         config_kwargs['direction_order'] = direction_order
@@ -2314,6 +2459,8 @@ Differential pair routing:
                         help="Glob patterns for nets to route as differential pairs (e.g., '*lvds*')")
     parser.add_argument("--diff-pair-gap", type=float, default=0.1,
                         help="Gap between P and N traces of differential pairs in mm (default: 0.1)")
+    parser.add_argument("--diff-pair-centerline-setback", type=float, default=0.4,
+                        help="Distance in front of stubs to start centerline route in mm (default: 0.4)")
 
     args = parser.parse_args()
 
@@ -2344,4 +2491,5 @@ Differential pair routing:
                 stub_proximity_radius=args.stub_proximity_radius,
                 stub_proximity_cost=args.stub_proximity_cost,
                 diff_pair_patterns=args.diff_pairs,
-                diff_pair_gap=args.diff_pair_gap)
+                diff_pair_gap=args.diff_pair_gap,
+                diff_pair_centerline_setback=args.diff_pair_centerline_setback)
