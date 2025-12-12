@@ -1965,25 +1965,39 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                 # Use larger spacing for vias if needed to meet minimum via-via clearance
                 via_spacing = max(spacing_mm, min_via_spacing / 2)
 
-                # Calculate P and N via positions along the via-via axis
+                # Calculate P and N via positions along the via-via axis (at wider spacing)
                 p_via_x = cx + perp_x * p_sign * via_spacing
                 p_via_y = cy + perp_y * p_sign * via_spacing
                 n_via_x = cx + perp_x * n_sign * via_spacing
                 n_via_y = cy + perp_y * n_sign * via_spacing
 
-                # Update position at index i (via placed here, on layer1)
-                p_float_path[i] = (p_via_x, p_via_y, layer1)
-                n_float_path[i] = (n_via_x, n_via_y, layer1)
+                # Calculate "old" via positions at original track spacing
+                # These keep the tracks parallel on both sides of the via
+                p_old_x = cx + perp_x * p_sign * spacing_mm
+                p_old_y = cy + perp_y * p_sign * spacing_mm
+                n_old_x = cx + perp_x * n_sign * spacing_mm
+                n_old_y = cy + perp_y * n_sign * spacing_mm
 
-                # Also update position at index i+1 (same X,Y but on layer2)
-                # This ensures the segment on layer2 starts from the via position
-                p_float_path[i + 1] = (p_via_x, p_via_y, layer2)
-                n_float_path[i + 1] = (n_via_x, n_via_y, layer2)
+                # Update position at index i to old position (track approaches via from here on layer1)
+                p_float_path[i] = (p_old_x, p_old_y, layer1)
+                n_float_path[i] = (n_old_x, n_old_y, layer1)
+
+                # Insert via position after old position (short transition segment on layer1)
+                p_float_path.insert(i + 1, (p_via_x, p_via_y, layer1))
+                n_float_path.insert(i + 1, (n_via_x, n_via_y, layer1))
+
+                # Update what was i+1 (now i+2) to via position on layer2
+                p_float_path[i + 2] = (p_via_x, p_via_y, layer2)
+                n_float_path[i + 2] = (n_via_x, n_via_y, layer2)
+
+                # Insert old position after via on layer2 (short transition segment on layer2)
+                p_float_path.insert(i + 3, (p_old_x, p_old_y, layer2))
+                n_float_path.insert(i + 3, (n_old_x, n_old_y, layer2))
 
                 print(f"  Via alignment at index {i}: centerline=({cx:.3f},{cy:.3f})")
-                print(f"    Via spacing: {via_spacing:.3f}mm (track={spacing_mm:.3f}mm, min_via={min_via_spacing/2:.3f}mm)")
-                print(f"    P via: ({p_via_x:.3f},{p_via_y:.3f})")
-                print(f"    N via: ({n_via_x:.3f},{n_via_y:.3f})")
+                print(f"    Via spacing: {via_spacing:.3f}mm, track spacing: {spacing_mm:.3f}mm")
+                print(f"    P: old=({p_old_x:.3f},{p_old_y:.3f}) -> via=({p_via_x:.3f},{p_via_y:.3f}) -> old")
+                print(f"    N: old=({n_old_x:.3f},{n_old_y:.3f}) -> via=({n_via_x:.3f},{n_via_y:.3f}) -> old")
 
     # DEBUG: Check endpoint spacing
     if p_float_path and n_float_path:
