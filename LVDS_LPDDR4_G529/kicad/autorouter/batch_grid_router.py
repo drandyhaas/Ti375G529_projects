@@ -1851,11 +1851,44 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     to_p_dx = p_src_x - src_midpoint_x
     to_p_dy = p_src_y - src_midpoint_y
 
-    # Cross product: determines which side of the path direction P is on
-    cross = path_dir_x * to_p_dy - path_dir_y * to_p_dx
-    p_sign = +1 if cross >= 0 else -1
+    # Cross product: determines which side of the path direction P is on at source
+    src_cross = path_dir_x * to_p_dy - path_dir_y * to_p_dx
+    src_p_sign = +1 if src_cross >= 0 else -1
 
-    print(f"  Source polarity: path_dir=({path_dir_x:.2f},{path_dir_y:.2f}), to_P=({to_p_dx:.2f},{to_p_dy:.2f}), cross={cross:.3f}, p_sign={p_sign}")
+    # Calculate target polarity using path direction at target end
+    # Path arrives at target, so use negative of last segment direction
+    if len(simplified_path) >= 2:
+        last_gx1, last_gy1, _ = simplified_path[-2]
+        last_gx2, last_gy2, _ = simplified_path[-1]
+        last_cx1, last_cy1 = coord.grid_to_mm(last_gx1, last_gy1)
+        last_cx2, last_cy2 = coord.grid_to_mm(last_gx2, last_gy2)
+        last_len = math.sqrt((last_cx2 - last_cx1)**2 + (last_cy2 - last_cy1)**2)
+        if last_len > 0.001:
+            tgt_path_dir_x = (last_cx2 - last_cx1) / last_len
+            tgt_path_dir_y = (last_cy2 - last_cy1) / last_len
+        else:
+            tgt_path_dir_x, tgt_path_dir_y = path_dir_x, path_dir_y
+    else:
+        tgt_path_dir_x, tgt_path_dir_y = path_dir_x, path_dir_y
+
+    # Vector from target midpoint to P target position
+    tgt_midpoint_x = (p_tgt_x + n_tgt_x) / 2
+    tgt_midpoint_y = (p_tgt_y + n_tgt_y) / 2
+    tgt_to_p_dx = p_tgt_x - tgt_midpoint_x
+    tgt_to_p_dy = p_tgt_y - tgt_midpoint_y
+
+    # Cross product: determines which side of the path direction P is on at target
+    tgt_cross = tgt_path_dir_x * tgt_to_p_dy - tgt_path_dir_y * tgt_to_p_dx
+    tgt_p_sign = +1 if tgt_cross >= 0 else -1
+
+    # Check if polarity differs between source and target
+    polarity_swap_needed = (src_p_sign != tgt_p_sign)
+
+    # Use source polarity for the path (will swap at via if needed)
+    p_sign = src_p_sign
+    print(f"  Source polarity: path_dir=({path_dir_x:.2f},{path_dir_y:.2f}), to_P=({to_p_dx:.2f},{to_p_dy:.2f}), cross={src_cross:.3f}, p_sign={p_sign}")
+    if polarity_swap_needed:
+        print(f"  Target polarity differs! tgt_p_sign={tgt_p_sign}, will swap at via")
 
     n_sign = -p_sign
 
