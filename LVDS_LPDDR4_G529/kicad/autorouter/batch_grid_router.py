@@ -1904,6 +1904,7 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     # Also ensure minimum via-via spacing is met
     # When vias are on a bend, use the average of incoming and outgoing perpendiculars
     min_via_spacing = config.via_size + config.clearance  # Minimum center-to-center distance
+    debug_segment_info = None  # Will store debug segment info if layer change found
 
     if p_float_path and n_float_path and len(simplified_path) >= 2:
         for i in range(len(simplified_path) - 1):
@@ -1971,14 +1972,53 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                 n_via_x = cx + perp_x * n_sign * via_spacing
                 n_via_y = cy + perp_y * n_sign * via_spacing
 
-                # Calculate "old" via positions at original track spacing
-                # These keep the tracks parallel on both sides of the via
-                p_old_x = cx + perp_x * p_sign * spacing_mm
-                p_old_y = cy + perp_y * p_sign * spacing_mm
-                n_old_x = cx + perp_x * n_sign * spacing_mm
-                n_old_y = cy + perp_y * n_sign * spacing_mm
+                # Calculate approach positions on the line perpendicular to INCOMING direction
+                # through the INNER via. Outer approach is track-via clearance from inner via.
+                if in_dir_x is not None and out_dir_x is not None:
+                    # Perpendicular to incoming direction
+                    in_perp_x, in_perp_y = -in_dir_y, in_dir_x
 
-                # Update position at index i to old position (track approaches via from here on layer1)
+                    # Determine which via is inner (on inside of bend)
+                    cross = in_dir_x * out_dir_y - in_dir_y * out_dir_x
+                    if cross < 0:
+                        # Turning right - inner is P if p_sign < 0, else N
+                        inner_via_x = p_via_x if p_sign < 0 else n_via_x
+                        inner_via_y = p_via_y if p_sign < 0 else n_via_y
+                        inner_is_p = (p_sign < 0)
+                    else:
+                        # Turning left - inner is P if p_sign > 0, else N
+                        inner_via_x = p_via_x if p_sign > 0 else n_via_x
+                        inner_via_y = p_via_y if p_sign > 0 else n_via_y
+                        inner_is_p = (p_sign > 0)
+
+                    # Track-via clearance distance
+                    track_via_clearance = config.clearance + config.track_width / 2 + config.via_size / 2
+                    diff_pair_spacing = spacing_mm * 2
+
+                    # Outer approach is on debug line, track-via clearance from inner via
+                    # Inner approach is on debug line, diff pair spacing from outer approach
+                    if inner_is_p:
+                        # N is outer - place on debug line, track-via clearance from inner (P) via
+                        n_old_x = inner_via_x + in_perp_x * track_via_clearance
+                        n_old_y = inner_via_y + in_perp_y * track_via_clearance
+                        # P is inner - place on debug line, diff pair spacing from N approach (toward center)
+                        p_old_x = n_old_x - in_perp_x * diff_pair_spacing
+                        p_old_y = n_old_y - in_perp_y * diff_pair_spacing
+                    else:
+                        # P is outer - place on debug line, track-via clearance from inner (N) via
+                        p_old_x = inner_via_x - in_perp_x * track_via_clearance
+                        p_old_y = inner_via_y - in_perp_y * track_via_clearance
+                        # N is inner - place on debug line, diff pair spacing from P approach (toward center)
+                        n_old_x = p_old_x + in_perp_x * diff_pair_spacing
+                        n_old_y = p_old_y + in_perp_y * diff_pair_spacing
+                else:
+                    # No bend - use averaged perpendicular
+                    p_old_x = cx + perp_x * p_sign * spacing_mm
+                    p_old_y = cy + perp_y * p_sign * spacing_mm
+                    n_old_x = cx + perp_x * n_sign * spacing_mm
+                    n_old_y = cy + perp_y * n_sign * spacing_mm
+
+                # Update position at index i to approach position (track approaches via from here on layer1)
                 p_float_path[i] = (p_old_x, p_old_y, layer1)
                 n_float_path[i] = (n_old_x, n_old_y, layer1)
 
@@ -1999,6 +2039,38 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                 print(f"    P: old=({p_old_x:.3f},{p_old_y:.3f}) -> via=({p_via_x:.3f},{p_via_y:.3f}) -> old")
                 print(f"    N: old=({n_old_x:.3f},{n_old_y:.3f}) -> via=({n_via_x:.3f},{n_via_y:.3f}) -> old")
 
+                # DEBUG: Store info for debug segment to add later (after new_segments is created)
+                if in_dir_x is not None and out_dir_x is not None:
+                    # Perpendicular to incoming direction
+                    in_perp_x, in_perp_y = -in_dir_y, in_dir_x
+
+                    # Determine which via is on the inside of the bend using cross product
+                    # cross = in_dir × out_dir = in_dir_x * out_dir_y - in_dir_y * out_dir_x
+                    cross = in_dir_x * out_dir_y - in_dir_y * out_dir_x
+                    # cross > 0: turning left (CCW), inner is on the right of incoming direction
+                    # cross < 0: turning right (CW), inner is on the left of incoming direction
+
+                    # The perpendicular (-in_dir_y, in_dir_x) points to the left of incoming direction
+                    # So if cross < 0 (turning right), inner via is in the -perp direction
+                    if cross < 0:
+                        # Turning right - inner via is in -perp direction (p_sign * perp if p_sign < 0)
+                        inner_via_x = p_via_x if p_sign < 0 else n_via_x
+                        inner_via_y = p_via_y if p_sign < 0 else n_via_y
+                    else:
+                        # Turning left - inner via is in +perp direction (p_sign * perp if p_sign > 0)
+                        inner_via_x = p_via_x if p_sign > 0 else n_via_x
+                        inner_via_y = p_via_y if p_sign > 0 else n_via_y
+
+                    # Store debug segment info to add later
+                    debug_half_len = 0.5  # 0.5mm each side = 1mm total
+                    debug_segment_info = {
+                        'start_x': inner_via_x - in_perp_x * debug_half_len,
+                        'start_y': inner_via_y - in_perp_y * debug_half_len,
+                        'end_x': inner_via_x + in_perp_x * debug_half_len,
+                        'end_y': inner_via_y + in_perp_y * debug_half_len,
+                    }
+                    print(f"    DEBUG: Inner via at ({inner_via_x:.3f},{inner_via_y:.3f}), cross={cross:.3f}")
+
     # DEBUG: Check endpoint spacing
     if p_float_path and n_float_path:
         p_start = p_float_path[0]
@@ -2014,6 +2086,19 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     # Convert floating-point paths to segments and vias
     new_segments = []
     new_vias = []
+
+    # Add debug segment if we stored info for one
+    if debug_segment_info is not None:
+        debug_seg = Segment(
+            start_x=debug_segment_info['start_x'],
+            start_y=debug_segment_info['start_y'],
+            end_x=debug_segment_info['end_x'],
+            end_y=debug_segment_info['end_y'],
+            width=0.1,
+            layer='In4.Cu',
+            net_id=p_net_id
+        )
+        new_segments.append(debug_seg)
 
     # DEBUG: Use different layers to visualize different segment types
     DEBUG_LAYERS = False
