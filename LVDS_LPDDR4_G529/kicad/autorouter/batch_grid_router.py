@@ -1884,11 +1884,26 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     # Check if polarity differs between source and target
     polarity_swap_needed = (src_p_sign != tgt_p_sign)
 
-    # Use source polarity for the path (will swap at via if needed)
-    p_sign = src_p_sign
-    print(f"  Source polarity: path_dir=({path_dir_x:.2f},{path_dir_y:.2f}), to_P=({to_p_dx:.2f},{to_p_dy:.2f}), cross={src_cross:.3f}, p_sign={p_sign}")
+    # Check if path has layer changes (vias)
+    has_layer_change = False
+    for i in range(len(simplified_path) - 1):
+        if simplified_path[i][2] != simplified_path[i + 1][2]:
+            has_layer_change = True
+            break
+
+    # Choose polarity based on whether we have vias for the swap
+    if polarity_swap_needed and has_layer_change:
+        # Use TARGET polarity - the swap happens on the source/approach side (F.Cu)
+        # This keeps the target/exit side (In1.Cu) clean with no crossover needed
+        p_sign = tgt_p_sign
+        print(f"  Polarity swap with vias: using TARGET polarity p_sign={p_sign}")
+    else:
+        # Use source polarity (no swap needed, or no vias to handle the swap)
+        p_sign = src_p_sign
+        print(f"  Source polarity: p_sign={p_sign}")
+
     if polarity_swap_needed:
-        print(f"  Target polarity differs! tgt_p_sign={tgt_p_sign}, will swap at via")
+        print(f"  (src_p_sign={src_p_sign}, tgt_p_sign={tgt_p_sign}, has_vias={has_layer_change})")
 
     n_sign = -p_sign
 
@@ -1999,10 +2014,19 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                 via_spacing = max(spacing_mm, min_via_spacing / 2)
 
                 # Calculate P and N via positions along the via-via axis (at wider spacing)
+                # These are at TARGET polarity positions initially
                 p_via_x = cx + perp_x * p_sign * via_spacing
                 p_via_y = cy + perp_y * p_sign * via_spacing
                 n_via_x = cx + perp_x * n_sign * via_spacing
                 n_via_y = cy + perp_y * n_sign * via_spacing
+
+                # For polarity swap: swap via positions to match SOURCE polarity
+                # Centerline uses TARGET polarity, but vias need to be at SOURCE positions
+                # so the F.Cu approach side works correctly
+                if polarity_swap_needed:
+                    p_via_x, n_via_x = n_via_x, p_via_x
+                    p_via_y, n_via_y = n_via_y, p_via_y
+                    print(f"  Swapped via positions for polarity swap (vias at SOURCE positions)")
 
                 # Calculate approach positions on the line perpendicular to INCOMING direction
                 # through the INNER via. Outer approach is track-via clearance from inner via.
@@ -2011,6 +2035,7 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     in_perp_x, in_perp_y = -in_dir_y, in_dir_x
 
                     # Determine which via is inner (on inside of bend)
+                    # Use current (possibly swapped) via positions
                     cross = in_dir_x * out_dir_y - in_dir_y * out_dir_x
                     if cross < 0:
                         # Turning right - inner is P if p_sign < 0, else N
@@ -2022,6 +2047,17 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                         inner_via_x = p_via_x if p_sign > 0 else n_via_x
                         inner_via_y = p_via_y if p_sign > 0 else n_via_y
                         inner_is_p = (p_sign > 0)
+
+                    # For polarity swap: vias are swapped, so flip inner_is_p and inner_via
+                    # The via labeled "P" is now at what was N's position and vice versa
+                    if polarity_swap_needed:
+                        inner_is_p = not inner_is_p
+                        # Also update inner_via to match the flipped inner_is_p
+                        if inner_is_p:
+                            inner_via_x, inner_via_y = p_via_x, p_via_y
+                        else:
+                            inner_via_x, inner_via_y = n_via_x, n_via_y
+                        print(f"  Flipped inner_is_p for polarity swap: inner_is_p={inner_is_p}")
 
                     # Track-via clearance distance
                     track_via_clearance = config.clearance + config.track_width / 2 + config.via_size / 2
