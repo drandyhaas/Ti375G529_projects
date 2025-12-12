@@ -1902,6 +1902,7 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
     # Fix via positions at layer changes to be perpendicular to centerline direction
     # This ensures P and N vias form a line perpendicular to the centerline path
     # Also ensure minimum via-via spacing is met
+    # When vias are on a bend, use the average of incoming and outgoing perpendiculars
     min_via_spacing = config.via_size + config.clearance  # Minimum center-to-center distance
 
     if p_float_path and n_float_path and len(simplified_path) >= 2:
@@ -1910,48 +1911,79 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
             gx2, gy2, layer2 = simplified_path[i + 1]
 
             if layer1 != layer2:
-                # Layer change detected - calculate centerline position and direction
+                # Layer change detected - calculate centerline position
                 cx, cy = coord.to_float(gx1, gy1)
 
-                # Get centerline direction at this point (use incoming segment direction)
+                # Get incoming direction (from previous point to via)
                 if i > 0:
                     prev_gx, prev_gy, _ = simplified_path[i - 1]
                     prev_x, prev_y = coord.to_float(prev_gx, prev_gy)
-                    dir_x, dir_y = cx - prev_x, cy - prev_y
+                    in_dir_x, in_dir_y = cx - prev_x, cy - prev_y
+                    in_len = math.sqrt(in_dir_x**2 + in_dir_y**2)
+                    if in_len > 0.001:
+                        in_dir_x, in_dir_y = in_dir_x / in_len, in_dir_y / in_len
+                    else:
+                        in_dir_x, in_dir_y = 1.0, 0.0
                 else:
-                    next_x, next_y = coord.to_float(gx2, gy2)
-                    dir_x, dir_y = next_x - cx, next_y - cy
+                    in_dir_x, in_dir_y = None, None
 
-                # Normalize direction
-                dir_len = math.sqrt(dir_x * dir_x + dir_y * dir_y)
-                if dir_len > 0.001:
-                    dir_x, dir_y = dir_x / dir_len, dir_y / dir_len
+                # Get outgoing direction (from via to next point after layer change)
+                if i + 2 < len(simplified_path):
+                    next_gx, next_gy, _ = simplified_path[i + 2]
+                    next_x, next_y = coord.to_float(next_gx, next_gy)
+                    out_dir_x, out_dir_y = next_x - cx, next_y - cy
+                    out_len = math.sqrt(out_dir_x**2 + out_dir_y**2)
+                    if out_len > 0.001:
+                        out_dir_x, out_dir_y = out_dir_x / out_len, out_dir_y / out_len
+                    else:
+                        out_dir_x, out_dir_y = None, None
+                else:
+                    out_dir_x, out_dir_y = None, None
 
-                    # Calculate perpendicular direction (rotate 90 degrees)
-                    perp_x, perp_y = -dir_y, dir_x
+                # Calculate perpendicular direction for via-via axis
+                # If both directions available, use average of their perpendiculars
+                if in_dir_x is not None and out_dir_x is not None:
+                    # Perpendicular to incoming: (-in_dir_y, in_dir_x)
+                    # Perpendicular to outgoing: (-out_dir_y, out_dir_x)
+                    # Average them
+                    perp_x = (-in_dir_y + -out_dir_y) / 2
+                    perp_y = (in_dir_x + out_dir_x) / 2
+                    # Normalize the average
+                    perp_len = math.sqrt(perp_x**2 + perp_y**2)
+                    if perp_len > 0.001:
+                        perp_x, perp_y = perp_x / perp_len, perp_y / perp_len
+                    else:
+                        perp_x, perp_y = -in_dir_y, in_dir_x
+                    print(f"  Via at bend: in=({in_dir_x:.2f},{in_dir_y:.2f}), out=({out_dir_x:.2f},{out_dir_y:.2f}), avg_perp=({perp_x:.2f},{perp_y:.2f})")
+                elif in_dir_x is not None:
+                    perp_x, perp_y = -in_dir_y, in_dir_x
+                elif out_dir_x is not None:
+                    perp_x, perp_y = -out_dir_y, out_dir_x
+                else:
+                    perp_x, perp_y = 1.0, 0.0
 
-                    # Use larger spacing for vias if needed to meet minimum via-via clearance
-                    via_spacing = max(spacing_mm, min_via_spacing / 2)
+                # Use larger spacing for vias if needed to meet minimum via-via clearance
+                via_spacing = max(spacing_mm, min_via_spacing / 2)
 
-                    # Calculate P and N via positions perpendicular to centerline
-                    p_via_x = cx + perp_x * p_sign * via_spacing
-                    p_via_y = cy + perp_y * p_sign * via_spacing
-                    n_via_x = cx + perp_x * n_sign * via_spacing
-                    n_via_y = cy + perp_y * n_sign * via_spacing
+                # Calculate P and N via positions along the via-via axis
+                p_via_x = cx + perp_x * p_sign * via_spacing
+                p_via_y = cy + perp_y * p_sign * via_spacing
+                n_via_x = cx + perp_x * n_sign * via_spacing
+                n_via_y = cy + perp_y * n_sign * via_spacing
 
-                    # Update position at index i (via placed here, on layer1)
-                    p_float_path[i] = (p_via_x, p_via_y, layer1)
-                    n_float_path[i] = (n_via_x, n_via_y, layer1)
+                # Update position at index i (via placed here, on layer1)
+                p_float_path[i] = (p_via_x, p_via_y, layer1)
+                n_float_path[i] = (n_via_x, n_via_y, layer1)
 
-                    # Also update position at index i+1 (same X,Y but on layer2)
-                    # This ensures the segment on layer2 starts from the via position
-                    p_float_path[i + 1] = (p_via_x, p_via_y, layer2)
-                    n_float_path[i + 1] = (n_via_x, n_via_y, layer2)
+                # Also update position at index i+1 (same X,Y but on layer2)
+                # This ensures the segment on layer2 starts from the via position
+                p_float_path[i + 1] = (p_via_x, p_via_y, layer2)
+                n_float_path[i + 1] = (n_via_x, n_via_y, layer2)
 
-                    print(f"  Via alignment at index {i}: centerline=({cx:.3f},{cy:.3f}), dir=({dir_x:.2f},{dir_y:.2f})")
-                    print(f"    Via spacing: {via_spacing:.3f}mm (track={spacing_mm:.3f}mm, min_via={min_via_spacing/2:.3f}mm)")
-                    print(f"    P via: ({p_via_x:.3f},{p_via_y:.3f})")
-                    print(f"    N via: ({n_via_x:.3f},{n_via_y:.3f})")
+                print(f"  Via alignment at index {i}: centerline=({cx:.3f},{cy:.3f})")
+                print(f"    Via spacing: {via_spacing:.3f}mm (track={spacing_mm:.3f}mm, min_via={min_via_spacing/2:.3f}mm)")
+                print(f"    P via: ({p_via_x:.3f},{p_via_y:.3f})")
+                print(f"    N via: ({n_via_x:.3f},{n_via_y:.3f})")
 
     # DEBUG: Check endpoint spacing
     if p_float_path and n_float_path:
