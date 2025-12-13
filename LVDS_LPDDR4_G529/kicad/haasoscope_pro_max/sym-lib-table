@@ -1,7 +1,0 @@
-(sym_lib_table
-  (version 7)
-  (lib (name "Ti90G529_Functions")(type "KiCad")(uri "G:/gitwork/Ti375G529_projects/LVDS_LPDDR4_G529/kicad/Ti90G529_Functions.kicad_sym")(options "")(descr ""))
-  (lib (name "ADC12DL500ACF")(type "KiCad")(uri "G:/gitwork/Ti375G529_projects/LVDS_LPDDR4_G529/kicad/ADC12DL/ADC12DL500ACF.kicad_sym")(options "")(descr ""))
-  (lib (name "MT53D512M16D1DS")(type "KiCad")(uri "G:/gitwork/Ti375G529_projects/LVDS_LPDDR4_G529/kicad/MT53D512M32D2DS-053 WT_D/IC_MT53D512M16D1DS.kicad_sym")(options "")(descr ""))
-  (lib (name "Aligned_Peripheral_Symbols")(type "KiCad")(uri "G:/gitwork/Ti375G529_projects/LVDS_LPDDR4_G529/kicad/Aligned_Peripheral_Symbols.kicad_sym")(options "")(descr ""))
-)
