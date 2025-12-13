@@ -2209,6 +2209,43 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     p_detour3_x = n_via_pos_x + via_axis_x * track_via_clearance - via_perp_x * track_via_clearance
                     p_detour3_y = n_via_pos_y + via_axis_y * track_via_clearance - via_perp_y * track_via_clearance
 
+                    # Check if detour3 comes within track-track clearance of the N track
+                    # The N track goes from n_exit in direction out_dir (after the short via-to-exit segment)
+                    # Track-track clearance = clearance + track_width (center to center distance)
+                    track_track_clearance = config.clearance + config.track_width
+
+                    # N track continues from n_exit in direction out_dir
+                    # Compute signed distance from detour3 to this line using cross product
+                    det3_to_nexit_x = p_detour3_x - n_exit_x
+                    det3_to_nexit_y = p_detour3_y - n_exit_y
+                    dist_detour3 = det3_to_nexit_x * out_dir_y - det3_to_nexit_y * out_dir_x
+
+                    # Check distance from p_exit to N track line for comparison
+                    pexit_to_nexit_x = p_exit_x - n_exit_x
+                    pexit_to_nexit_y = p_exit_y - n_exit_y
+                    dist_p_exit = pexit_to_nexit_x * out_dir_y - pexit_to_nexit_y * out_dir_x
+
+                    print(f"  DEBUG In7: detour3=({p_detour3_x:.3f},{p_detour3_y:.3f}), dist={dist_detour3:.3f}")
+                    print(f"  DEBUG In7: p_exit=({p_exit_x:.3f},{p_exit_y:.3f}), dist={dist_p_exit:.3f}, clearance={track_track_clearance:.3f}")
+
+                    # If detour3 is too close to the N track, end early at clearance distance
+                    if abs(dist_detour3) < track_track_clearance:
+                        # Distance from detour2 to N track line (through n_exit)
+                        det2_to_nexit_x = p_detour2_x - n_exit_x
+                        det2_to_nexit_y = p_detour2_y - n_exit_y
+                        dist_detour2 = det2_to_nexit_x * out_dir_y - det2_to_nexit_y * out_dir_x
+
+                        # Rate of distance change as we move in -via_perp direction
+                        dist_rate = -(via_perp_x * out_dir_y - via_perp_y * out_dir_x)
+
+                        # Find t where distance = ±track_track_clearance (same sign as detour2)
+                        target_dist = track_track_clearance if dist_detour2 > 0 else -track_track_clearance
+                        if abs(dist_rate) > 0.001:
+                            t = (target_dist - dist_detour2) / dist_rate
+                            p_detour3_x = p_detour2_x - t * via_perp_x
+                            p_detour3_y = p_detour2_y - t * via_perp_y
+                            print(f"  In7 ended early at track-track clearance (dist={abs(dist_detour3):.3f} -> {track_track_clearance:.3f})")
+
                     print(f"  Polarity detour: P via ({p_via_x:.3f},{p_via_y:.3f}) -> detour1 ({p_detour1_x:.3f},{p_detour1_y:.3f}) -> detour2 ({p_detour2_x:.3f},{p_detour2_y:.3f}) -> detour3 ({p_detour3_x:.3f},{p_detour3_y:.3f})")
 
                     # Update P path with detour points:
