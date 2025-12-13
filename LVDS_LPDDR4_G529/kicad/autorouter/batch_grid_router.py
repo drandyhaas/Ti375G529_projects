@@ -2225,10 +2225,47 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     pexit_to_nexit_y = p_exit_y - n_exit_y
                     dist_p_exit = pexit_to_nexit_x * out_dir_y - pexit_to_nexit_y * out_dir_x
 
-                    print(f"  DEBUG In7: detour3=({p_detour3_x:.3f},{p_detour3_y:.3f}), dist={dist_detour3:.3f}")
-                    print(f"  DEBUG In7: p_exit=({p_exit_x:.3f},{p_exit_y:.3f}), dist={dist_p_exit:.3f}, clearance={track_track_clearance:.3f}")
+                    # Get continuation points (next points after via/exit in each path)
+                    # After p_exit insertion but before detour insertions, i+4 has the original P continuation
+                    p_cont_x, p_cont_y, _ = p_float_path[i + 4]
+                    n_cont_x, n_cont_y, _ = n_float_path[i + 4]
 
-                    # If detour3 is too close to the N track, end early at clearance distance
+                    # N continuation direction (from n_exit to n_cont)
+                    n_cont_dx = n_cont_x - n_exit_x
+                    n_cont_dy = n_cont_y - n_exit_y
+                    n_cont_len = math.sqrt(n_cont_dx*n_cont_dx + n_cont_dy*n_cont_dy)
+                    if n_cont_len > 0.001:
+                        n_cont_dir_x = n_cont_dx / n_cont_len
+                        n_cont_dir_y = n_cont_dy / n_cont_len
+                    else:
+                        n_cont_dir_x, n_cont_dir_y = out_dir_x, out_dir_y
+
+                    # Find intersection of:
+                    # - Line 1: through p_cont in direction n_cont_dir (parallel to N continuation)
+                    # - Line 2: through detour2 in direction -via_perp (the In7 line)
+                    # This makes In5 (detour3 -> p_cont) parallel to N continuation (n_exit -> n_cont)
+                    #
+                    # p_cont + s*n_cont_dir = detour2 - t*via_perp
+                    # Cross with n_cont_dir: (detour2 - p_cont) × n_cont_dir = t*(via_perp × n_cont_dir)
+                    dx = p_detour2_x - p_cont_x
+                    dy = p_detour2_y - p_cont_y
+                    cross_diff = dx * n_cont_dir_y - dy * n_cont_dir_x
+                    cross_perp = via_perp_x * n_cont_dir_y - via_perp_y * n_cont_dir_x
+
+                    if abs(cross_perp) > 0.001:
+                        t = cross_diff / cross_perp
+                        p_detour3_x = p_detour2_x - t * via_perp_x
+                        p_detour3_y = p_detour2_y - t * via_perp_y
+                    print(f"  DEBUG In7 segment: ({p_detour2_x:.3f},{p_detour2_y:.3f}) -> ({p_detour3_x:.3f},{p_detour3_y:.3f})")
+                    print(f"  DEBUG In5 (detour3->p_cont): ({p_detour3_x:.3f},{p_detour3_y:.3f}) -> ({p_cont_x:.3f},{p_cont_y:.3f})")
+                    print(f"  DEBUG N (n_exit->n_cont): ({n_exit_x:.3f},{n_exit_y:.3f}) -> ({n_cont_x:.3f},{n_cont_y:.3f})")
+
+                    # Recompute distance from adjusted detour3 to N track line
+                    det3_to_nexit_x = p_detour3_x - n_exit_x
+                    det3_to_nexit_y = p_detour3_y - n_exit_y
+                    dist_detour3 = det3_to_nexit_x * n_cont_dir_y - det3_to_nexit_y * n_cont_dir_x
+
+                    # If detour3 is too close to the N track, warn
                     if abs(dist_detour3) < track_track_clearance:
                         # Distance from detour2 to N track line (through n_exit)
                         det2_to_nexit_x = p_detour2_x - n_exit_x
