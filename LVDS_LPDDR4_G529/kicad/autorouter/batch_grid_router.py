@@ -2197,12 +2197,22 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                         p_detour1_x = detour_target_x
                         p_detour1_y = detour_target_y
 
-                    print(f"  Polarity detour: P via ({p_via_x:.3f},{p_via_y:.3f}) -> detour1 ({p_detour1_x:.3f},{p_detour1_y:.3f})")
+                    # Detour2: from detour1, go parallel to via_axis (away from P, towards/past N)
+                    # until track_via_clearance past N via
+                    # End point is: N via + via_axis * clearance + via_perp * clearance (same perp offset as detour1)
+                    p_detour2_x = n_via_pos_x + via_axis_x * track_via_clearance + via_perp_x * track_via_clearance
+                    p_detour2_y = n_via_pos_y + via_axis_y * track_via_clearance + via_perp_y * track_via_clearance
 
-                    # Update P exit to be the detour point (segment 1 on In4.Cu)
-                    # Keep segment 2 going to original exit for now (on In5.Cu)
+                    print(f"  Polarity detour: P via ({p_via_x:.3f},{p_via_y:.3f}) -> detour1 ({p_detour1_x:.3f},{p_detour1_y:.3f}) -> detour2 ({p_detour2_x:.3f},{p_detour2_y:.3f})")
+
+                    # Update P path with detour points:
+                    # - P via to detour1: In4.Cu (-4)
+                    # - detour1 to detour2: In6.Cu (-6)
+                    # - detour2 to continuation: In5.Cu (-5)
                     p_float_path[i + 2] = (p_via_x, p_via_y, -4)  # P via on "In4.Cu"
-                    p_float_path[i + 3] = (p_detour1_x, p_detour1_y, -5)  # Detour point starts "In5.Cu"
+                    p_float_path[i + 3] = (p_detour1_x, p_detour1_y, -6)  # detour1 starts "In6.Cu"
+                    # Insert detour2 point
+                    p_float_path.insert(i + 4, (p_detour2_x, p_detour2_y, -5))  # detour2 starts "In5.Cu"
 
     # Convert floating-point paths to segments and vias
     new_segments = []
@@ -2219,11 +2229,13 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
         vias = []
 
         def get_layer_name(layer_idx):
-            """Get layer name, handling special debug indices (-4=In4.Cu, -5=In5.Cu)."""
+            """Get layer name, handling special debug indices (-4=In4.Cu, -5=In5.Cu, -6=In6.Cu)."""
             if layer_idx == -4:
                 return 'In4.Cu'
             elif layer_idx == -5:
                 return 'In5.Cu'
+            elif layer_idx == -6:
+                return 'In6.Cu'
             else:
                 return layer_names[layer_idx]
 
