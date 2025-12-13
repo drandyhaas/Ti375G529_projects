@@ -2169,9 +2169,10 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     else:
                         via_perp_x, via_perp_y = perp2_x, perp2_y
 
-                    # 45-degree diagonal: combination of via_axis and via_perp
-                    diag_x = via_axis_x + via_perp_x
-                    diag_y = via_axis_y + via_perp_y
+                    # 60-degree diagonal from via_axis (closer to vertical/via_perp)
+                    # cos(60°) = 0.5 for via_axis, sin(60°) ≈ 0.866 for via_perp
+                    diag_x = 0.5 * via_axis_x + 0.866 * via_perp_x
+                    diag_y = 0.5 * via_axis_y + 0.866 * via_perp_y
                     diag_len = math.sqrt(diag_x*diag_x + diag_y*diag_y)
                     if diag_len > 0.001:
                         diag_x /= diag_len
@@ -2256,9 +2257,6 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                         t = cross_diff / cross_perp
                         p_detour3_x = p_detour2_x - t * via_perp_x
                         p_detour3_y = p_detour2_y - t * via_perp_y
-                    print(f"  DEBUG In7 segment: ({p_detour2_x:.3f},{p_detour2_y:.3f}) -> ({p_detour3_x:.3f},{p_detour3_y:.3f})")
-                    print(f"  DEBUG In5 (detour3->p_cont): ({p_detour3_x:.3f},{p_detour3_y:.3f}) -> ({p_cont_x:.3f},{p_cont_y:.3f})")
-                    print(f"  DEBUG N (n_exit->n_cont): ({n_exit_x:.3f},{n_exit_y:.3f}) -> ({n_cont_x:.3f},{n_cont_y:.3f})")
 
                     # Recompute distance from adjusted detour3 to N track line
                     det3_to_nexit_x = p_detour3_x - n_exit_x
@@ -2285,16 +2283,26 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
 
                     print(f"  Polarity detour: P via ({p_via_x:.3f},{p_via_y:.3f}) -> detour1 ({p_detour1_x:.3f},{p_detour1_y:.3f}) -> detour2 ({p_detour2_x:.3f},{p_detour2_y:.3f}) -> detour3 ({p_detour3_x:.3f},{p_detour3_y:.3f})")
 
-                    # Update P path with detour points:
-                    # - P via to detour1: In4.Cu (-4)
-                    # - detour1 to detour2: In6.Cu (-6)
-                    # - detour2 to detour3: In7.Cu (-7)
-                    # - detour3 to continuation: In5.Cu (-5)
-                    p_float_path[i + 2] = (p_via_x, p_via_y, -4)  # P via on "In4.Cu"
-                    p_float_path[i + 3] = (p_detour1_x, p_detour1_y, -6)  # detour1 starts "In6.Cu"
-                    # Insert detour2 and detour3 points
-                    p_float_path.insert(i + 4, (p_detour2_x, p_detour2_y, -7))  # detour2 starts "In7.Cu"
-                    p_float_path.insert(i + 5, (p_detour3_x, p_detour3_y, -5))  # detour3 starts "In5.Cu"
+                    # Update P path with detour points
+                    # DEBUG_DETOUR_LAYERS: Use special layer indices to visualize each detour segment
+                    # on a different layer (In4, In5, In6, In7) for debugging
+                    DEBUG_DETOUR_LAYERS = False
+                    if DEBUG_DETOUR_LAYERS:
+                        # Debug mode: each segment on a different layer for visualization
+                        # - P via to detour1: In4.Cu (-4)
+                        # - detour1 to detour2: In6.Cu (-6)
+                        # - detour2 to detour3: In7.Cu (-7)
+                        # - detour3 to continuation: In5.Cu (-5)
+                        p_float_path[i + 2] = (p_via_x, p_via_y, -4)
+                        p_float_path[i + 3] = (p_detour1_x, p_detour1_y, -6)
+                        p_float_path.insert(i + 4, (p_detour2_x, p_detour2_y, -7))
+                        p_float_path.insert(i + 5, (p_detour3_x, p_detour3_y, -5))
+                    else:
+                        # Normal mode: all detour segments on layer2 (the post-via layer)
+                        p_float_path[i + 2] = (p_via_x, p_via_y, layer2)
+                        p_float_path[i + 3] = (p_detour1_x, p_detour1_y, layer2)
+                        p_float_path.insert(i + 4, (p_detour2_x, p_detour2_y, layer2))
+                        p_float_path.insert(i + 5, (p_detour3_x, p_detour3_y, layer2))
 
     # Convert floating-point paths to segments and vias
     new_segments = []
