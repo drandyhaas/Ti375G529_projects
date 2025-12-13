@@ -2124,6 +2124,70 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                 p_float_path.insert(i + 3, (p_exit_x, p_exit_y, layer2))
                 n_float_path.insert(i + 3, (n_exit_x, n_exit_y, layer2))
 
+                # For polarity swap: P needs to detour around N via
+                # First segment goes at 45 deg towards incoming side and towards N via,
+                # until one track_via_clearance below the N via
+                if polarity_swap_needed:
+                    # N via is the one we need to go around
+                    n_via_pos_x, n_via_pos_y = n_via_x, n_via_y
+
+                    # Via axis: direction from P via to N via (normalized)
+                    to_n_x = n_via_pos_x - p_via_x
+                    to_n_y = n_via_pos_y - p_via_y
+                    via_axis_len = math.sqrt(to_n_x*to_n_x + to_n_y*to_n_y)
+                    if via_axis_len > 0.001:
+                        via_axis_x = to_n_x / via_axis_len
+                        via_axis_y = to_n_y / via_axis_len
+                    else:
+                        via_axis_x, via_axis_y = 1, 0
+
+                    # Two perpendicular options to via axis
+                    perp1_x, perp1_y = via_axis_y, -via_axis_x
+                    perp2_x, perp2_y = -via_axis_y, via_axis_x
+
+                    # Choose perpendicular that points away from outgoing (towards incoming side)
+                    # i.e., has positive dot product with -out_dir
+                    dot1 = perp1_x * (-out_dir_x) + perp1_y * (-out_dir_y)
+                    if dot1 > 0:
+                        via_perp_x, via_perp_y = perp1_x, perp1_y
+                    else:
+                        via_perp_x, via_perp_y = perp2_x, perp2_y
+
+                    # 45-degree diagonal: combination of via_axis and via_perp
+                    diag_x = via_axis_x + via_perp_x
+                    diag_y = via_axis_y + via_perp_y
+                    diag_len = math.sqrt(diag_x*diag_x + diag_y*diag_y)
+                    if diag_len > 0.001:
+                        diag_x /= diag_len
+                        diag_y /= diag_len
+
+                    # "Below" the N via = in the via_perp direction (away from outgoing)
+                    # Target line perpendicular to via_axis, at track_via_clearance from N via
+                    detour_target_x = n_via_pos_x + via_perp_x * track_via_clearance
+                    detour_target_y = n_via_pos_y + via_perp_y * track_via_clearance
+
+                    # From P via, go at 45 deg until we reach the line perpendicular to via_perp
+                    # (i.e., parallel to via_axis) through detour_target.
+                    # Line equation: via_perp · (point - detour_target) = 0
+                    # Solve: via_perp · (P_via + t*diag - detour_target) = 0
+                    dot_diag = via_perp_x * diag_x + via_perp_y * diag_y
+                    if abs(dot_diag) > 0.001:
+                        dx = detour_target_x - p_via_x
+                        dy = detour_target_y - p_via_y
+                        t = (via_perp_x * dx + via_perp_y * dy) / dot_diag
+                        p_detour1_x = p_via_x + t * diag_x
+                        p_detour1_y = p_via_y + t * diag_y
+                    else:
+                        p_detour1_x = detour_target_x
+                        p_detour1_y = detour_target_y
+
+                    print(f"  Polarity detour: P via ({p_via_x:.3f},{p_via_y:.3f}) -> detour1 ({p_detour1_x:.3f},{p_detour1_y:.3f})")
+
+                    # Update P exit to be the detour point (segment 1 on In4.Cu)
+                    # Keep segment 2 going to original exit for now (on In5.Cu)
+                    p_float_path[i + 2] = (p_via_x, p_via_y, -4)  # P via on "In4.Cu"
+                    p_float_path[i + 3] = (p_detour1_x, p_detour1_y, -5)  # Detour point starts "In5.Cu"
+
     # Convert floating-point paths to segments and vias
     new_segments = []
     new_vias = []
@@ -2138,12 +2202,21 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
         segs = []
         vias = []
 
+        def get_layer_name(layer_idx):
+            """Get layer name, handling special debug indices (-4=In4.Cu, -5=In5.Cu)."""
+            if layer_idx == -4:
+                return 'In4.Cu'
+            elif layer_idx == -5:
+                return 'In5.Cu'
+            else:
+                return layer_names[layer_idx]
+
         # Add connecting segment from original start if needed
         if original_start and len(float_path) > 0:
             first_x, first_y, first_layer = float_path[0]
             orig_x, orig_y = original_start
             if abs(orig_x - first_x) > 0.001 or abs(orig_y - first_y) > 0.001:
-                seg_layer = DEBUG_CONNECTOR_LAYER if DEBUG_LAYERS else layer_names[first_layer]
+                seg_layer = DEBUG_CONNECTOR_LAYER if DEBUG_LAYERS else get_layer_name(first_layer)
                 segs.append(Segment(
                     start_x=orig_x, start_y=orig_y,
                     end_x=first_x, end_y=first_y,
@@ -2157,16 +2230,20 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
             x1, y1, layer1 = float_path[i]
             x2, y2, layer2 = float_path[i + 1]
 
-            if layer1 != layer2:
+            # Check if this is a real layer change (not debug layer transition)
+            real_layer1 = layer1 if layer1 >= 0 else 1  # Map debug layers to In1.Cu for via logic
+            real_layer2 = layer2 if layer2 >= 0 else 1
+
+            if real_layer1 != real_layer2:
                 vias.append(Via(
                     x=x1, y=y1,
                     size=config.via_size,
                     drill=config.via_drill,
-                    layers=[layer_names[layer1], layer_names[layer2]],
+                    layers=[get_layer_name(layer1), get_layer_name(layer2)],
                     net_id=net_id
                 ))
             elif abs(x1 - x2) > 0.001 or abs(y1 - y2) > 0.001:
-                seg_layer = DEBUG_CENTERLINE_LAYER if DEBUG_LAYERS else layer_names[layer1]
+                seg_layer = DEBUG_CENTERLINE_LAYER if DEBUG_LAYERS else get_layer_name(layer1)
                 segs.append(Segment(
                     start_x=x1, start_y=y1,
                     end_x=x2, end_y=y2,
