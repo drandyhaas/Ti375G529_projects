@@ -7,6 +7,7 @@ A fast Rust-accelerated A* autorouter for KiCad PCB files using integer grid coo
 - **Grid-based A* pathfinding** - Integer coordinates for fast collision detection
 - **Octilinear routing** - Horizontal, vertical, and 45-degree diagonal moves
 - **Multi-layer routing** - Configurable layers with automatic via insertion
+- **Differential pair routing** - Centerline-based routing with automatic P/N pairing, polarity swap handling, and via pairs
 - **Obstacle avoidance** - Respects existing tracks, vias, and pads with configurable clearance
 - **Rectangular pad blocking** - Proper clearance for non-square pads with rotation handling
 - **Auto-detected BGA exclusion zones** - Prevents vias under BGA packages (detected from footprint)
@@ -45,7 +46,8 @@ For manual building, see [rust_router/README.md](rust_router/README.md).
 | `kicad_parser.py` | Parses .kicad_pcb files into Python data structures (handles pad rotation) |
 | `kicad_writer.py` | Generates KiCad S-expressions for segments and vias |
 | `check_drc.py` | DRC checker for detecting clearance violations |
-| `test_diffpair.py` | Test script for differential pair routing |
+| `test_diffpair.py` | Test script for single differential pair routing |
+| `test_all_diffpairs.py` | Batch test script for all differential pairs |
 | `bga_fanout.py` | BGA fanout stub generation for differential pairs |
 | `qfn_fanout.py` | QFN fanout stub generation |
 | `list_nets.py` | List all net names on a component (sorted alphabetically) |
@@ -309,6 +311,99 @@ MPS ordering is most effective when:
 
 For BGA fanout routing where nets radiate from center, `inside_out` ordering typically performs better.
 
+## Differential Pair Routing
+
+The router supports differential pair routing with automatic P/N track pairing, polarity swap detection, and via pair handling.
+
+### Basic Usage
+
+```bash
+# Route LVDS differential pairs
+python batch_grid_router.py input.kicad_pcb output.kicad_pcb "*lvds_rx4_1*" \
+    --diff-pairs "*lvds*" --no-bga-zones
+```
+
+### Command-Line Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--diff-pairs` | (none) | Pattern to match differential pair net names (e.g., `*lvds*`) |
+| `--diff-pair-centerline-setback` | `1.5` | Distance from via to start centerline routing (mm) |
+
+### How It Works
+
+1. **Pair Detection**: Nets matching the `--diff-pairs` pattern are grouped by base name. Nets ending in `_P` and `_N` are paired together (e.g., `lvds_rx4_1_P` and `lvds_rx4_1_N`).
+
+2. **Centerline Routing**: The A* pathfinder routes the centerline between the P and N tracks. Both tracks are then generated at equal offsets from this centerline.
+
+3. **Spacing Detection**: The P-N spacing is automatically detected from the source and target stub endpoints, ensuring the routed pair maintains the same spacing as the existing stubs.
+
+4. **Polarity Detection**: The router detects if P and N positions are swapped between source and target (polarity swap) and handles the crossover automatically.
+
+### Polarity Swap Handling
+
+When differential pairs need to swap polarity (P becomes N and vice versa), the router:
+
+1. **Detects polarity swap**: Compares P/N positions at source vs target endpoints
+2. **Places via pairs**: When layer changes occur, places paired vias with correct spacing
+3. **Executes crossover**: Uses a circular arc detour around the outer via to swap track positions
+
+The crossover is implemented as:
+- Inner track goes straight through the via
+- Outer track arcs around the other via at 1.25× track-via clearance
+- Arc continues until tracks are at proper differential pair spacing
+- Interpolation ensures the arc ends at exactly the right distance for parallel tracks
+
+### Via Pair Handling
+
+When a differential pair changes layers:
+
+1. **Via positions**: Vias are placed at the correct P-N spacing perpendicular to the track direction
+2. **Short exit segments**: Small segments connect vias to the main track path
+3. **Layer continuity**: Both P and N tracks transition together, maintaining spacing
+
+### Testing Differential Pairs
+
+Test scripts are provided for validating differential pair routing:
+
+```bash
+# Test a single differential pair
+python test_diffpair.py lvds_rx4_1
+
+# Test all differential pairs matching a pattern
+python test_all_diffpairs.py --pattern "*lvds*"
+
+# Test with verbose output
+python test_all_diffpairs.py --verbose
+```
+
+The test scripts:
+1. Route the specified differential pair(s)
+2. Run DRC checking on the output
+3. Report success/failure for each pair
+
+### Example Output
+
+```
+[1/1] Routing diff pair /fpga_adc/lvds_rx4_1
+  P: /fpga_adc/lvds_rx4_1_P (id=822)
+  N: /fpga_adc/lvds_rx4_1_N (id=840)
+----------------------------------------
+  P-N spacing: src=0.216mm, tgt=0.217mm, using=0.216mm (offset=0.108mm)
+  Centerline setback: 1.5mm
+  Source direction: (-0.71, -0.71), target direction: (-0.32, -0.95)
+Route found in 486 iterations, path: 486 -> 4 points
+  Polarity swap with vias: using TARGET polarity p_sign=1
+  Arc stopped at diff pair spacing after 12 segments (interpolated to dist=0.216mm)
+  Circular arc detour: 13 points around N via at radius 0.375mm
+  SUCCESS: 28 segments, 2 vias, 486 iterations (0.01s)
+```
+
+### Known Limitations
+
+- **Polarity swap without vias**: If polarity swap is needed but no layer change occurs, the tracks will cross (known limitation)
+- **Fixed arc radius**: The circular arc uses 1.25× track-via clearance, which works for most cases but may need adjustment for unusual geometries
+
 ## BGA Fanout Generation
 
 The `bga_fanout.py` script generates differential pair fanout stubs from BGA pads to channel exit points. It creates 45° stubs that route pairs from their pads to vertical or horizontal channels between pad rows/columns.
@@ -505,7 +600,7 @@ Nets on U3 (144 total):
 
 - Requires existing stub tracks to identify connection points
 - Grid-based (0.1mm default) - may miss very tight fits
-- No length matching or differential pair support
+- No length matching (differential pair support is available, see below)
 - No push-and-shove (routes around obstacles, doesn't move them)
 - No rip-up and reroute (failed nets stay failed)
 
