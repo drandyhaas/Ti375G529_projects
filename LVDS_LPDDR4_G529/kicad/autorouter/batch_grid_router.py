@@ -2184,9 +2184,6 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     else:
                         via_perp_x, via_perp_y = perp2_x, perp2_y
 
-                    print(f"  Via perp chosen: ({via_perp_x:.2f},{via_perp_y:.2f}), to_cont: ({to_cont_x:.2f},{to_cont_y:.2f}), dot1={dot1:.3f}")
-                    print(f"  Via axis: ({via_axis_x:.2f},{via_axis_y:.2f}), N via: ({n_via_pos_x:.3f},{n_via_pos_y:.3f})")
-                    print(f"  P cont: ({p_cont_for_perp_x:.3f},{p_cont_for_perp_y:.3f})")
 
                     # 60-degree diagonal from via_axis (closer to vertical/via_perp)
                     # cos(60°) = 0.5 for via_axis, sin(60°) ≈ 0.866 for via_perp
@@ -2272,17 +2269,52 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     cross_diff = dx * n_cont_dir_y - dy * n_cont_dir_x
                     cross_perp = via_perp_x * n_cont_dir_y - via_perp_y * n_cont_dir_x
 
-                    print(f"  Intersection calc: n_cont_dir=({n_cont_dir_x:.2f},{n_cont_dir_y:.2f}), cross_perp={cross_perp:.4f}, cross_diff={cross_diff:.4f}")
                     if abs(cross_perp) > 0.001:
                         t = cross_diff / cross_perp
-                        print(f"  Intersection t={t:.3f}, detour3 offset=({-t*via_perp_x:.3f},{-t*via_perp_y:.3f})")
                         # Only apply intersection if t > 0 (going in intended -via_perp direction)
-                        # If t < 0, intersection is on wrong side and would cause self-crossing
+                        # If t < 0, intersection is on wrong side - need different approach
                         if t > 0:
                             p_detour3_x = p_detour2_x - t * via_perp_x
                             p_detour3_y = p_detour2_y - t * via_perp_y
                         else:
-                            print(f"  WARNING: Intersection on wrong side (t<0), using default detour3")
+                            # t < 0 means the -via_perp line doesn't intersect the P continuation in the right direction
+                            # Instead, project detour3 onto the P continuation line by going in n_cont_dir
+                            # Find P continuation direction (from p_cont to next point in path)
+                            if i + 5 < len(p_float_path):
+                                p_cont2_x, p_cont2_y, _ = p_float_path[i + 5]
+                                p_cont_dx = p_cont2_x - p_cont_x
+                                p_cont_dy = p_cont2_y - p_cont_y
+                                p_cont_len = math.sqrt(p_cont_dx*p_cont_dx + p_cont_dy*p_cont_dy)
+                                if p_cont_len > 0.001:
+                                    p_cont_dir_x = p_cont_dx / p_cont_len
+                                    p_cont_dir_y = p_cont_dy / p_cont_len
+                                    
+                                    # Find intersection of:
+                                    # - Line through default detour3 in direction n_cont_dir
+                                    # - Line through p_cont in direction p_cont_dir
+                                    # detour3 + s*n_cont_dir = p_cont + r*p_cont_dir
+                                    dx = p_cont_x - p_detour3_x
+                                    dy = p_cont_y - p_detour3_y
+                                    cross_dirs = n_cont_dir_x * p_cont_dir_y - n_cont_dir_y * p_cont_dir_x
+                                    
+                                    if abs(cross_dirs) > 0.001:
+                                        s = (dx * p_cont_dir_y - dy * p_cont_dir_x) / cross_dirs
+                                        if s > 0:  # Intersection is in the right direction (toward P continuation)
+                                            # New target point on P continuation
+                                            new_target_x = p_detour3_x + s * n_cont_dir_x
+                                            new_target_y = p_detour3_y + s * n_cont_dir_y
+                                            print(f"  Projected detour3 onto P continuation: ({new_target_x:.3f},{new_target_y:.3f})")
+                                            # Insert this as a new waypoint - detour3 stays, but we add a point on P continuation
+                                            # Actually, we need to update p_cont to be this new point
+                                            p_float_path[i + 4] = (new_target_x, new_target_y, p_float_path[i + 4][2])
+                                        else:
+                                            print(f"  WARNING: Projection failed (s={s:.3f}<0), using default detour3")
+                                    else:
+                                        print(f"  WARNING: P continuation parallel to n_cont_dir, using default detour3")
+                                else:
+                                    print(f"  WARNING: P continuation too short, using default detour3")
+                            else:
+                                print(f"  WARNING: No next point for P continuation, using default detour3")
 
                     # Recompute distance from adjusted detour3 to N track line
                     det3_to_nexit_x = p_detour3_x - n_exit_x
