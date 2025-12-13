@@ -2185,69 +2185,19 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                         via_perp_x, via_perp_y = perp2_x, perp2_y
 
 
-                    # 60-degree diagonal from via_axis (closer to vertical/via_perp)
-                    # cos(60°) = 0.5 for via_axis, sin(60°) ≈ 0.866 for via_perp
-                    diag_x = 0.5 * via_axis_x + 0.866 * via_perp_x
-                    diag_y = 0.5 * via_axis_y + 0.866 * via_perp_y
-                    diag_len = math.sqrt(diag_x*diag_x + diag_y*diag_y)
-                    if diag_len > 0.001:
-                        diag_x /= diag_len
-                        diag_y /= diag_len
+                    # ===== CIRCULAR ARC DETOUR AROUND N VIA =====
+                    # Instead of rectangular detour, use circular arc around N via
 
-                    # "Below" the N via = in the via_perp direction (away from outgoing)
-                    # Target line perpendicular to via_axis, at track_via_clearance from N via
-                    detour_target_x = n_via_pos_x + via_perp_x * track_via_clearance
-                    detour_target_y = n_via_pos_y + via_perp_y * track_via_clearance
-
-                    # From P via, go at 45 deg until we reach the line perpendicular to via_perp
-                    # (i.e., parallel to via_axis) through detour_target.
-                    # Line equation: via_perp · (point - detour_target) = 0
-                    # Solve: via_perp · (P_via + t*diag - detour_target) = 0
-                    dot_diag = via_perp_x * diag_x + via_perp_y * diag_y
-                    if abs(dot_diag) > 0.001:
-                        dx = detour_target_x - p_via_x
-                        dy = detour_target_y - p_via_y
-                        t = (via_perp_x * dx + via_perp_y * dy) / dot_diag
-                        p_detour1_x = p_via_x + t * diag_x
-                        p_detour1_y = p_via_y + t * diag_y
-                    else:
-                        p_detour1_x = detour_target_x
-                        p_detour1_y = detour_target_y
-
-                    # Detour2: from detour1, go parallel to via_axis (away from P, towards/past N)
-                    # until track_via_clearance past N via
-                    # End point is: N via + via_axis * clearance + via_perp * clearance (same perp offset as detour1)
-                    p_detour2_x = n_via_pos_x + via_axis_x * track_via_clearance + via_perp_x * track_via_clearance
-                    p_detour2_y = n_via_pos_y + via_axis_y * track_via_clearance + via_perp_y * track_via_clearance
-
-                    # Detour3: from detour2, go perpendicular to In6 (i.e., -via_perp direction, towards via axis)
-                    # until track_via_clearance past N via in the perpendicular direction
-                    # End point is: same via_axis position as detour2, but via_perp offset is -clearance from N via
-                    p_detour3_x = n_via_pos_x + via_axis_x * track_via_clearance - via_perp_x * track_via_clearance
-                    p_detour3_y = n_via_pos_y + via_axis_y * track_via_clearance - via_perp_y * track_via_clearance
-
-                    # Check if detour3 comes within track-track clearance of the N track
-                    # The N track goes from n_exit in direction out_dir (after the short via-to-exit segment)
-                    # Track-track clearance = clearance + track_width (center to center distance)
+                    # Arc parameters
+                    arc_radius = 1.25 * track_via_clearance  # Radius of arc around N via
+                    num_arc_segments = 20  # Number of segments to approximate arc
                     track_track_clearance = config.clearance + config.track_width
 
-                    # N track continues from n_exit in direction out_dir
-                    # Compute signed distance from detour3 to this line using cross product
-                    det3_to_nexit_x = p_detour3_x - n_exit_x
-                    det3_to_nexit_y = p_detour3_y - n_exit_y
-                    dist_detour3 = det3_to_nexit_x * out_dir_y - det3_to_nexit_y * out_dir_x
-
-                    # Check distance from p_exit to N track line for comparison
-                    pexit_to_nexit_x = p_exit_x - n_exit_x
-                    pexit_to_nexit_y = p_exit_y - n_exit_y
-                    dist_p_exit = pexit_to_nexit_x * out_dir_y - pexit_to_nexit_y * out_dir_x
-
-                    # Get continuation points (next points after via/exit in each path)
-                    # After p_exit insertion but before detour insertions, i+4 has the original P continuation
-                    p_cont_x, p_cont_y, _ = p_float_path[i + 4]
+                    # Get P continuation info for stopping condition
+                    p_cont_x, p_cont_y, p_cont_layer = p_float_path[i + 4]
                     n_cont_x, n_cont_y, _ = n_float_path[i + 4]
 
-                    # N continuation direction (from n_exit to n_cont)
+                    # N continuation direction (for distance check)
                     n_cont_dx = n_cont_x - n_exit_x
                     n_cont_dy = n_cont_y - n_exit_y
                     n_cont_len = math.sqrt(n_cont_dx*n_cont_dx + n_cont_dy*n_cont_dy)
@@ -2257,110 +2207,181 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     else:
                         n_cont_dir_x, n_cont_dir_y = out_dir_x, out_dir_y
 
-                    # Find intersection of:
-                    # - Line 1: through p_cont in direction n_cont_dir (parallel to N continuation)
-                    # - Line 2: through detour2 in direction -via_perp (the In7 line)
-                    # This makes In5 (detour3 -> p_cont) parallel to N continuation (n_exit -> n_cont)
-                    #
-                    # p_cont + s*n_cont_dir = detour2 - t*via_perp
-                    # Cross with n_cont_dir: (detour2 - p_cont) × n_cont_dir = t*(via_perp × n_cont_dir)
-                    dx = p_detour2_x - p_cont_x
-                    dy = p_detour2_y - p_cont_y
-                    cross_diff = dx * n_cont_dir_y - dy * n_cont_dir_x
-                    cross_perp = via_perp_x * n_cont_dir_y - via_perp_y * n_cont_dir_x
-
-                    if abs(cross_perp) > 0.001:
-                        t = cross_diff / cross_perp
-                        # Only apply intersection if t > 0 (going in intended -via_perp direction)
-                        # If t < 0, intersection is on wrong side - need different approach
-                        if t > 0:
-                            p_detour3_x = p_detour2_x - t * via_perp_x
-                            p_detour3_y = p_detour2_y - t * via_perp_y
-                        else:
-                            # t < 0 means the -via_perp line doesn't intersect the P continuation in the right direction
-                            # Instead, project detour3 onto the P continuation line by going in n_cont_dir
-                            # Find P continuation direction (from p_cont to next point in path)
-                            if i + 5 < len(p_float_path):
-                                p_cont2_x, p_cont2_y, _ = p_float_path[i + 5]
-                                p_cont_dx = p_cont2_x - p_cont_x
-                                p_cont_dy = p_cont2_y - p_cont_y
-                                p_cont_len = math.sqrt(p_cont_dx*p_cont_dx + p_cont_dy*p_cont_dy)
-                                if p_cont_len > 0.001:
-                                    p_cont_dir_x = p_cont_dx / p_cont_len
-                                    p_cont_dir_y = p_cont_dy / p_cont_len
-                                    
-                                    # Find intersection of:
-                                    # - Line through default detour3 in direction n_cont_dir
-                                    # - Line through p_cont in direction p_cont_dir
-                                    # detour3 + s*n_cont_dir = p_cont + r*p_cont_dir
-                                    dx = p_cont_x - p_detour3_x
-                                    dy = p_cont_y - p_detour3_y
-                                    cross_dirs = n_cont_dir_x * p_cont_dir_y - n_cont_dir_y * p_cont_dir_x
-                                    
-                                    if abs(cross_dirs) > 0.001:
-                                        s = (dx * p_cont_dir_y - dy * p_cont_dir_x) / cross_dirs
-                                        if s > 0:  # Intersection is in the right direction (toward P continuation)
-                                            # New target point on P continuation
-                                            new_target_x = p_detour3_x + s * n_cont_dir_x
-                                            new_target_y = p_detour3_y + s * n_cont_dir_y
-                                            print(f"  Projected detour3 onto P continuation: ({new_target_x:.3f},{new_target_y:.3f})")
-                                            # Insert this as a new waypoint - detour3 stays, but we add a point on P continuation
-                                            # Actually, we need to update p_cont to be this new point
-                                            p_float_path[i + 4] = (new_target_x, new_target_y, p_float_path[i + 4][2])
-                                        else:
-                                            print(f"  WARNING: Projection failed (s={s:.3f}<0), using default detour3")
-                                    else:
-                                        print(f"  WARNING: P continuation parallel to n_cont_dir, using default detour3")
-                                else:
-                                    print(f"  WARNING: P continuation too short, using default detour3")
-                            else:
-                                print(f"  WARNING: No next point for P continuation, using default detour3")
-
-                    # Recompute distance from adjusted detour3 to N track line
-                    det3_to_nexit_x = p_detour3_x - n_exit_x
-                    det3_to_nexit_y = p_detour3_y - n_exit_y
-                    dist_detour3 = det3_to_nexit_x * n_cont_dir_y - det3_to_nexit_y * n_cont_dir_x
-
-                    # If detour3 is too close to the N track, warn
-                    if abs(dist_detour3) < track_track_clearance:
-                        # Distance from detour2 to N track line (through n_exit)
-                        det2_to_nexit_x = p_detour2_x - n_exit_x
-                        det2_to_nexit_y = p_detour2_y - n_exit_y
-                        dist_detour2 = det2_to_nexit_x * out_dir_y - det2_to_nexit_y * out_dir_x
-
-                        # Rate of distance change as we move in -via_perp direction
-                        dist_rate = -(via_perp_x * out_dir_y - via_perp_y * out_dir_x)
-
-                        # Find t where distance = ±track_track_clearance (same sign as detour2)
-                        target_dist = track_track_clearance if dist_detour2 > 0 else -track_track_clearance
-                        if abs(dist_rate) > 0.001:
-                            t = (target_dist - dist_detour2) / dist_rate
-                            p_detour3_x = p_detour2_x - t * via_perp_x
-                            p_detour3_y = p_detour2_y - t * via_perp_y
-                            print(f"  In7 ended early at track-track clearance (dist={abs(dist_detour3):.3f} -> {track_track_clearance:.3f})")
-
-                    print(f"  Polarity detour: P via ({p_via_x:.3f},{p_via_y:.3f}) -> detour1 ({p_detour1_x:.3f},{p_detour1_y:.3f}) -> detour2 ({p_detour2_x:.3f},{p_detour2_y:.3f}) -> detour3 ({p_detour3_x:.3f},{p_detour3_y:.3f})")
-
-                    # Update P path with detour points
-                    # DEBUG_DETOUR_LAYERS: Use special layer indices to visualize each detour segment
-                    # on a different layer (In4, In5, In6, In7) for debugging
-                    DEBUG_DETOUR_LAYERS = False
-                    if DEBUG_DETOUR_LAYERS:
-                        # Debug mode: each segment on a different layer for visualization
-                        # - P via to detour1: In4.Cu (-4)
-                        # - detour1 to detour2: In6.Cu (-6)
-                        # - detour2 to detour3: In7.Cu (-7)
-                        # - detour3 to continuation: In5.Cu (-5)
-                        p_float_path[i + 2] = (p_via_x, p_via_y, -4)
-                        p_float_path[i + 3] = (p_detour1_x, p_detour1_y, -6)
-                        p_float_path.insert(i + 4, (p_detour2_x, p_detour2_y, -7))
-                        p_float_path.insert(i + 5, (p_detour3_x, p_detour3_y, -5))
+                    # P continuation direction (for intersection check)
+                    if i + 5 < len(p_float_path):
+                        p_cont2_x, p_cont2_y, _ = p_float_path[i + 5]
+                        p_cont_dx = p_cont2_x - p_cont_x
+                        p_cont_dy = p_cont2_y - p_cont_y
                     else:
-                        # Normal mode: all detour segments on layer2 (the post-via layer)
-                        p_float_path[i + 2] = (p_via_x, p_via_y, layer2)
-                        p_float_path[i + 3] = (p_detour1_x, p_detour1_y, layer2)
-                        p_float_path.insert(i + 4, (p_detour2_x, p_detour2_y, layer2))
-                        p_float_path.insert(i + 5, (p_detour3_x, p_detour3_y, layer2))
+                        # Use n_cont_dir as fallback
+                        p_cont_dx = n_cont_dir_x
+                        p_cont_dy = n_cont_dir_y
+                    p_cont_line_len = math.sqrt(p_cont_dx*p_cont_dx + p_cont_dy*p_cont_dy)
+                    if p_cont_line_len > 0.001:
+                        p_cont_dir_x = p_cont_dx / p_cont_line_len
+                        p_cont_dir_y = p_cont_dy / p_cont_line_len
+                    else:
+                        p_cont_dir_x, p_cont_dir_y = n_cont_dir_x, n_cont_dir_y
+
+                    # Starting angle: direction from N via to P via
+                    start_angle = math.atan2(p_via_y - n_via_pos_y, p_via_x - n_via_pos_x)
+
+                    # Determine rotation direction based on via_perp
+                    # via_perp points away from continuation, so we rotate TOWARD continuation
+                    # Cross product of via_axis and via_perp tells us rotation direction
+                    # via_axis × via_perp > 0 means via_perp is counterclockwise from via_axis
+                    cross_sign = via_axis_x * via_perp_y - via_axis_y * via_perp_x
+                    # We want to go in the OPPOSITE direction of via_perp (toward continuation)
+                    if cross_sign > 0:
+                        angle_step = -2 * math.pi / num_arc_segments  # Clockwise
+                    else:
+                        angle_step = 2 * math.pi / num_arc_segments   # Counterclockwise
+
+                    # First point: from P via, go toward N via until arc_radius from N via
+                    # This is the point where the arc starts
+                    arc_start_x = n_via_pos_x + arc_radius * math.cos(start_angle)
+                    arc_start_y = n_via_pos_y + arc_radius * math.sin(start_angle)
+
+                    # Generate arc points
+                    arc_points = [(arc_start_x, arc_start_y)]
+                    final_target_x, final_target_y = p_cont_x, p_cont_y  # Where to connect after arc
+
+                    for seg_idx in range(1, num_arc_segments + 1):
+                        angle = start_angle + seg_idx * angle_step
+                        arc_x = n_via_pos_x + arc_radius * math.cos(angle)
+                        arc_y = n_via_pos_y + arc_radius * math.sin(angle)
+
+                        # Check stopping conditions BEFORE adding this point
+
+                        # Condition 1: Check if we intersect the P continuation line
+                        # P continuation line goes through p_cont in direction p_cont_dir
+                        # Check if segment from last arc point to this arc point crosses that line
+                        last_x, last_y = arc_points[-1]
+
+                        # Vector from p_cont to last arc point
+                        to_last_x = last_x - p_cont_x
+                        to_last_y = last_y - p_cont_y
+                        # Vector from p_cont to current arc point
+                        to_curr_x = arc_x - p_cont_x
+                        to_curr_y = arc_y - p_cont_y
+
+                        # Signed distances to the P continuation line (perpendicular distance)
+                        # Using cross product: distance = (point - line_point) × line_dir
+                        dist_last = to_last_x * p_cont_dir_y - to_last_y * p_cont_dir_x
+                        dist_curr = to_curr_x * p_cont_dir_y - to_curr_y * p_cont_dir_x
+
+                        # If signs differ, we crossed the line
+                        if dist_last * dist_curr < 0:
+                            # Find intersection point
+                            # Parametric: last + t*(curr - last) crosses line at t where distance = 0
+                            t = dist_last / (dist_last - dist_curr)
+                            intersect_x = last_x + t * (arc_x - last_x)
+                            intersect_y = last_y + t * (arc_y - last_y)
+                            
+                            # Check if intersection is far enough from N track
+                            int_to_nexit_x = intersect_x - n_exit_x
+                            int_to_nexit_y = intersect_y - n_exit_y
+                            int_dot = int_to_nexit_x * n_cont_dir_x + int_to_nexit_y * n_cont_dir_y
+                            int_dist = abs(int_to_nexit_x * n_cont_dir_y - int_to_nexit_y * n_cont_dir_x)
+                            
+                            # Only stop if intersection is on opposite side of n_exit OR far enough from N track
+                            if int_dot <= 0 or int_dist >= track_track_clearance:
+                                arc_points.append((intersect_x, intersect_y))
+                                final_target_x, final_target_y = intersect_x, intersect_y
+                                print(f"  Arc stopped at P continuation intersection after {seg_idx} segments")
+                                break
+                            else:
+                                # Intersection too close to N track, continue arc
+                                print(f"  P continuation intersection at ({intersect_x:.3f},{intersect_y:.3f}) too close to N track (dist={int_dist:.3f}mm), continuing arc")
+
+                        # Condition 2: Check if we're within track_track_clearance of N track
+                        # N track goes from n_exit in direction n_cont_dir
+                        # Only check if arc point is on the correct side (in the n_cont_dir direction from n_exit)
+                        arc_to_nexit_x = arc_x - n_exit_x
+                        arc_to_nexit_y = arc_y - n_exit_y
+                        
+                        # Check if arc point is in the direction of N continuation (dot product > 0)
+                        dot_to_n_cont = arc_to_nexit_x * n_cont_dir_x + arc_to_nexit_y * n_cont_dir_y
+                        
+                        if dot_to_n_cont > 0:
+                            # Arc point is on the side where the N track goes - check clearance
+                            dist_to_n_track = abs(arc_to_nexit_x * n_cont_dir_y - arc_to_nexit_y * n_cont_dir_x)
+                            if dist_to_n_track < track_track_clearance:
+                                print(f"  Arc stopped at N track clearance after {seg_idx} segments (dist={dist_to_n_track:.3f}mm)")
+                                break
+
+                        arc_points.append((arc_x, arc_y))
+
+                    # Now we have the arc points. Need to insert them into the path.
+                    # The path currently has:
+                    # i+2: (p_via_x, p_via_y, layer2) - the via position
+                    # i+3: (p_exit_x, p_exit_y, layer2) - the exit position (short segment from via)
+                    # i+4: (p_cont_x, p_cont_y, layer2) - the continuation point
+                    
+                    # Check if the segment from last arc point to p_cont would violate N track clearance
+                    # If so, extend p_cont further along the P continuation direction
+                    if len(arc_points) > 0:
+                        last_arc_x, last_arc_y = arc_points[-1]
+                        
+                        # Check if p_cont is on the "wrong side" of n_exit (in n_cont_dir direction)
+                        # and too close to N track
+                        pcont_to_nexit_x = p_cont_x - n_exit_x
+                        pcont_to_nexit_y = p_cont_y - n_exit_y
+                        pcont_dot = pcont_to_nexit_x * n_cont_dir_x + pcont_to_nexit_y * n_cont_dir_y
+                        pcont_dist = abs(pcont_to_nexit_x * n_cont_dir_y - pcont_to_nexit_y * n_cont_dir_x)
+                        
+                        if pcont_dot > 0 and pcont_dist < track_track_clearance:
+                            # p_cont is too close to N track, need to extend it along P continuation
+                            # Project p_cont along p_cont_dir until it has proper clearance
+                            # We need to move p_cont by distance d such that new position has dist >= track_track_clearance
+                            # Since p_cont_dir might not be perpendicular to n_cont_dir, calculate properly
+                            
+                            # Move p_cont along p_cont_dir by enough to reach track_track_clearance from N line
+                            # Rate of distance change as we move in p_cont_dir
+                            dist_rate = p_cont_dir_x * n_cont_dir_y - p_cont_dir_y * n_cont_dir_x
+                            if abs(dist_rate) > 0.001:
+                                # Find how far to move to reach track_track_clearance
+                                # We want: pcont_dist + d * dist_rate = track_track_clearance (with correct sign)
+                                target_dist = track_track_clearance if pcont_dist > 0 else -track_track_clearance
+                                # But actually we want to move away from N track, so:
+                                d = (track_track_clearance - pcont_dist) / abs(dist_rate)
+                                if d > 0:
+                                    new_pcont_x = p_cont_x + d * p_cont_dir_x
+                                    new_pcont_y = p_cont_y + d * p_cont_dir_y
+                                    print(f"  Extended p_cont from ({p_cont_x:.3f},{p_cont_y:.3f}) to ({new_pcont_x:.3f},{new_pcont_y:.3f}) for N track clearance")
+                                    p_cont_x, p_cont_y = new_pcont_x, new_pcont_y
+                                    p_float_path[i + 4] = (p_cont_x, p_cont_y, p_cont_layer)
+
+                    # We want to replace i+3 (exit) with: arc_start, then arc points, then final_target
+                    # The segment from p_via to arc_start goes toward N via
+
+                    # Build the detour points list
+                    detour_points = []
+                    for ax, ay in arc_points:
+                        detour_points.append((ax, ay, layer2))
+
+                    # Update the path
+                    # i+2 stays as via
+                    # i+3 becomes arc_start (first point going toward N via)
+                    # Then insert arc points
+                    # Final point connects to continuation
+
+                    p_float_path[i + 3] = (arc_points[0][0], arc_points[0][1], layer2)
+
+                    # Insert remaining arc points after i+3
+                    insert_idx = i + 4
+                    for j, (ax, ay) in enumerate(arc_points[1:]):
+                        p_float_path.insert(insert_idx + j, (ax, ay, layer2))
+
+                    # Update the continuation point if we found an intersection
+                    if final_target_x != p_cont_x or final_target_y != p_cont_y:
+                        # The final arc point IS the new connection point
+                        # It will connect to the original p_cont
+                        pass
+
+                    print(f"  Circular arc detour: {len(arc_points)} points around N via at radius {arc_radius:.3f}mm")
+
+                    # Path already updated in arc detour code above
 
     # Convert floating-point paths to segments and vias
     new_segments = []
