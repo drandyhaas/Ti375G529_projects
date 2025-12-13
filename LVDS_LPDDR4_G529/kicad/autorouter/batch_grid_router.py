@@ -1897,8 +1897,13 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
         # This keeps the target/exit side (In1.Cu) clean with no crossover needed
         p_sign = tgt_p_sign
         print(f"  Polarity swap with vias: using TARGET polarity p_sign={p_sign}")
+    elif polarity_swap_needed and not has_layer_change:
+        # WARNING: Polarity swap needed but no layer change (no vias) to perform the swap
+        # This will result in crossing tracks on the same layer
+        p_sign = src_p_sign
+        print(f"  WARNING: Polarity swap needed but no vias - tracks will cross!")
     else:
-        # Use source polarity (no swap needed, or no vias to handle the swap)
+        # Use source polarity (no swap needed)
         p_sign = src_p_sign
         print(f"  Source polarity: p_sign={p_sign}")
 
