@@ -2063,42 +2063,58 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     track_via_clearance = config.clearance + config.track_width / 2 + config.via_size / 2
                     diff_pair_spacing = spacing_mm * 2
 
+                    # Calculate direction from inner via to outer via (for correct perpendicular sign)
+                    if inner_is_p:
+                        outer_via_x, outer_via_y = n_via_x, n_via_y
+                    else:
+                        outer_via_x, outer_via_y = p_via_x, p_via_y
+                    inner_to_outer_x = outer_via_x - inner_via_x
+                    inner_to_outer_y = outer_via_y - inner_via_y
+
+                    # Project onto in_perp to get the correct sign for perpendicular offset
+                    perp_dot = inner_to_outer_x * in_perp_x + inner_to_outer_y * in_perp_y
+                    perp_sign = 1 if perp_dot >= 0 else -1
+
                     # Outer approach is on debug line, track-via clearance from inner via
                     # Inner approach is on debug line, diff pair spacing from outer approach
                     if inner_is_p:
                         # N is outer - place on debug line, track-via clearance from inner (P) via
-                        n_old_x = inner_via_x + in_perp_x * track_via_clearance
-                        n_old_y = inner_via_y + in_perp_y * track_via_clearance
+                        n_old_x = inner_via_x + in_perp_x * perp_sign * track_via_clearance
+                        n_old_y = inner_via_y + in_perp_y * perp_sign * track_via_clearance
                         # P is inner - place on debug line, diff pair spacing from N approach (toward center)
-                        p_old_x = n_old_x - in_perp_x * diff_pair_spacing
-                        p_old_y = n_old_y - in_perp_y * diff_pair_spacing
+                        p_old_x = n_old_x - in_perp_x * perp_sign * diff_pair_spacing
+                        p_old_y = n_old_y - in_perp_y * perp_sign * diff_pair_spacing
                     else:
                         # P is outer - place on debug line, track-via clearance from inner (N) via
-                        p_old_x = inner_via_x - in_perp_x * track_via_clearance
-                        p_old_y = inner_via_y - in_perp_y * track_via_clearance
+                        p_old_x = inner_via_x + in_perp_x * perp_sign * track_via_clearance
+                        p_old_y = inner_via_y + in_perp_y * perp_sign * track_via_clearance
                         # N is inner - place on debug line, diff pair spacing from P approach (toward center)
-                        n_old_x = p_old_x + in_perp_x * diff_pair_spacing
-                        n_old_y = p_old_y + in_perp_y * diff_pair_spacing
+                        n_old_x = p_old_x - in_perp_x * perp_sign * diff_pair_spacing
+                        n_old_y = p_old_y - in_perp_y * perp_sign * diff_pair_spacing
 
                     # Calculate EXIT positions using OUTGOING perpendicular through inner via
                     out_perp_x, out_perp_y = -out_dir_y, out_dir_x
+
+                    # Project inner_to_outer onto out_perp for correct sign
+                    out_perp_dot = inner_to_outer_x * out_perp_x + inner_to_outer_y * out_perp_y
+                    out_perp_sign = 1 if out_perp_dot >= 0 else -1
 
                     # Same logic for exit: outer is track-via clearance from inner via,
                     # inner is diff pair spacing from outer
                     if inner_is_p:
                         # N is outer - place on outgoing debug line, track-via clearance from inner (P) via
-                        n_exit_x = inner_via_x + out_perp_x * track_via_clearance
-                        n_exit_y = inner_via_y + out_perp_y * track_via_clearance
+                        n_exit_x = inner_via_x + out_perp_x * out_perp_sign * track_via_clearance
+                        n_exit_y = inner_via_y + out_perp_y * out_perp_sign * track_via_clearance
                         # P is inner - place on outgoing debug line, diff pair spacing from N exit (toward center)
-                        p_exit_x = n_exit_x - out_perp_x * diff_pair_spacing
-                        p_exit_y = n_exit_y - out_perp_y * diff_pair_spacing
+                        p_exit_x = n_exit_x - out_perp_x * out_perp_sign * diff_pair_spacing
+                        p_exit_y = n_exit_y - out_perp_y * out_perp_sign * diff_pair_spacing
                     else:
                         # P is outer - place on outgoing debug line, track-via clearance from inner (N) via
-                        p_exit_x = inner_via_x - out_perp_x * track_via_clearance
-                        p_exit_y = inner_via_y - out_perp_y * track_via_clearance
+                        p_exit_x = inner_via_x + out_perp_x * out_perp_sign * track_via_clearance
+                        p_exit_y = inner_via_y + out_perp_y * out_perp_sign * track_via_clearance
                         # N is inner - place on outgoing debug line, diff pair spacing from P exit (toward center)
-                        n_exit_x = p_exit_x + out_perp_x * diff_pair_spacing
-                        n_exit_y = p_exit_y + out_perp_y * diff_pair_spacing
+                        n_exit_x = p_exit_x - out_perp_x * out_perp_sign * diff_pair_spacing
+                        n_exit_y = p_exit_y - out_perp_y * out_perp_sign * diff_pair_spacing
                 else:
                     # No bend - use averaged perpendicular for both approach and exit
                     p_old_x = cx + perp_x * p_sign * spacing_mm
