@@ -55,6 +55,56 @@ def segment_to_segment_distance(seg1: Segment, seg2: Segment) -> float:
     return min(d1, d2, d3, d4)
 
 
+def segments_cross(seg1: Segment, seg2: Segment, tolerance: float = 0.001) -> Tuple[bool, Optional[Tuple[float, float]]]:
+    """Check if two segments on the same layer cross each other.
+
+    Returns (True, intersection_point) if they cross, (False, None) otherwise.
+    Segments that share an endpoint are not considered crossing.
+    """
+    if seg1.layer != seg2.layer:
+        return False, None
+
+    x1, y1 = seg1.start_x, seg1.start_y
+    x2, y2 = seg1.end_x, seg1.end_y
+    x3, y3 = seg2.start_x, seg2.start_y
+    x4, y4 = seg2.end_x, seg2.end_y
+
+    # Check if segments share an endpoint (not a crossing)
+    def points_equal(ax, ay, bx, by):
+        return abs(ax - bx) < tolerance and abs(ay - by) < tolerance
+
+    if (points_equal(x1, y1, x3, y3) or points_equal(x1, y1, x4, y4) or
+        points_equal(x2, y2, x3, y3) or points_equal(x2, y2, x4, y4)):
+        return False, None
+
+    # Direction vectors
+    dx1, dy1 = x2 - x1, y2 - y1
+    dx2, dy2 = x4 - x3, y4 - y3
+
+    # Cross product of direction vectors
+    cross = dx1 * dy2 - dy1 * dx2
+
+    if abs(cross) < 1e-10:
+        # Parallel segments - no crossing
+        return False, None
+
+    # Solve for parameters t and u where:
+    # (x1, y1) + t * (dx1, dy1) = (x3, y3) + u * (dx2, dy2)
+    dx3, dy3 = x3 - x1, y3 - y1
+    t = (dx3 * dy2 - dy3 * dx2) / cross
+    u = (dx3 * dy1 - dy3 * dx1) / cross
+
+    # Check if intersection is within both segments (exclusive of endpoints)
+    eps = 0.001  # Small margin to exclude near-endpoint intersections
+    if eps < t < 1 - eps and eps < u < 1 - eps:
+        # Calculate intersection point
+        ix = x1 + t * dx1
+        iy = y1 + t * dy1
+        return True, (ix, iy)
+
+    return False, None
+
+
 def check_segment_overlap(seg1: Segment, seg2: Segment, clearance: float, tolerance: float = 0.001) -> Tuple[bool, float]:
     """Check if two segments on the same layer violate clearance.
 
@@ -196,6 +246,45 @@ def run_drc(pcb_file: str, clearance: float = 0.1, net_patterns: Optional[List[s
                             'loc1': (seg1.start_x, seg1.start_y, seg1.end_x, seg1.end_y),
                             'loc2': (seg2.start_x, seg2.start_y, seg2.end_x, seg2.end_y),
                         })
+                    # Also check for segment crossings (different nets)
+                    crosses, cross_point = segments_cross(seg1, seg2)
+                    if crosses:
+                        net1_name = pcb_data.nets.get(net1, None)
+                        net2_name = pcb_data.nets.get(net2, None)
+                        net1_str = net1_name.name if net1_name else f"net_{net1}"
+                        net2_str = net2_name.name if net2_name else f"net_{net2}"
+                        violations.append({
+                            'type': 'segment-crossing',
+                            'net1': net1_str,
+                            'net2': net2_str,
+                            'layer': seg1.layer,
+                            'cross_point': cross_point,
+                            'loc1': (seg1.start_x, seg1.start_y, seg1.end_x, seg1.end_y),
+                            'loc2': (seg2.start_x, seg2.start_y, seg2.end_x, seg2.end_y),
+                        })
+
+    # Check for same-net segment crossings (self-intersections)
+    print("Checking for same-net segment crossings...")
+    for net_id in net_ids:
+        if matching_seg_nets is not None and net_id not in matching_seg_nets:
+            continue
+        segs = segments_by_net[net_id]
+        for i in range(len(segs)):
+            for j in range(i + 1, len(segs)):
+                seg1, seg2 = segs[i], segs[j]
+                crosses, cross_point = segments_cross(seg1, seg2)
+                if crosses:
+                    net_name = pcb_data.nets.get(net_id, None)
+                    net_str = net_name.name if net_name else f"net_{net_id}"
+                    violations.append({
+                        'type': 'segment-crossing-same-net',
+                        'net1': net_str,
+                        'net2': net_str,
+                        'layer': seg1.layer,
+                        'cross_point': cross_point,
+                        'loc1': (seg1.start_x, seg1.start_y, seg1.end_x, seg1.end_y),
+                        'loc2': (seg2.start_x, seg2.start_y, seg2.end_x, seg2.end_y),
+                    })
 
     # Check via-to-segment violations (different nets only)
     print("Checking via-to-segment clearances...")
@@ -317,6 +406,11 @@ def run_drc(pcb_file: str, clearance: float = 0.1, net_patterns: Optional[List[s
                     print(f"    Overlap: {v['overlap_mm']:.3f}mm")
                     print(f"    Via1: ({v['loc1'][0]:.2f},{v['loc1'][1]:.2f})")
                     print(f"    Via2: ({v['loc2'][0]:.2f},{v['loc2'][1]:.2f})")
+                elif vtype in ('segment-crossing', 'segment-crossing-same-net'):
+                    print(f"  {v['net1']} <-> {v['net2']}")
+                    print(f"    Layer: {v['layer']}, Cross at: ({v['cross_point'][0]:.3f},{v['cross_point'][1]:.3f})")
+                    print(f"    Seg1: ({v['loc1'][0]:.2f},{v['loc1'][1]:.2f})-({v['loc1'][2]:.2f},{v['loc1'][3]:.2f})")
+                    print(f"    Seg2: ({v['loc2'][0]:.2f},{v['loc2'][1]:.2f})-({v['loc2'][2]:.2f},{v['loc2'][3]:.2f})")
 
             if len(vlist) > 20:
                 print(f"  ... and {len(vlist) - 20} more")
