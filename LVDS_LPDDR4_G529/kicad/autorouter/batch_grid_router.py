@@ -2294,7 +2294,7 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                                 # Intersection too close to N track, continue arc
                                 print(f"  P continuation intersection at ({intersect_x:.3f},{intersect_y:.3f}) too close to N track (dist={int_dist:.3f}mm), continuing arc")
 
-                        # Condition 2: Check if we're within track_track_clearance of N track
+                        # Condition 2: Check if we're within diff_pair_spacing of N track
                         # N track goes from n_exit in direction n_cont_dir
                         # Only check if arc point is on the correct side (in the n_cont_dir direction from n_exit)
                         arc_to_nexit_x = arc_x - n_exit_x
@@ -2304,24 +2304,24 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                         dot_to_n_cont = arc_to_nexit_x * n_cont_dir_x + arc_to_nexit_y * n_cont_dir_y
 
                         if dot_to_n_cont > 0:
-                            # Arc point is on the side where the N track goes - check clearance
+                            # Arc point is on the side where the N track goes - check diff pair spacing
                             dist_to_n_track = abs(arc_to_nexit_x * n_cont_dir_y - arc_to_nexit_y * n_cont_dir_x)
-                            if dist_to_n_track < track_track_clearance:
-                                # Interpolate to find exact point at track_track_clearance
+                            if dist_to_n_track < diff_pair_spacing:
+                                # Interpolate to find exact point at diff_pair_spacing
                                 # Get distance of last arc point to N track
                                 last_to_nexit_x = last_x - n_exit_x
                                 last_to_nexit_y = last_y - n_exit_y
                                 dist_last = abs(last_to_nexit_x * n_cont_dir_y - last_to_nexit_y * n_cont_dir_x)
 
                                 if dist_last > dist_to_n_track:  # Sanity check - we're getting closer
-                                    # Interpolate: find t where dist = track_track_clearance
-                                    t = (dist_last - track_track_clearance) / (dist_last - dist_to_n_track)
+                                    # Interpolate: find t where dist = diff_pair_spacing
+                                    t = (dist_last - diff_pair_spacing) / (dist_last - dist_to_n_track)
                                     interp_x = last_x + t * (arc_x - last_x)
                                     interp_y = last_y + t * (arc_y - last_y)
                                     arc_points.append((interp_x, interp_y))
-                                    print(f"  Arc stopped at N track clearance after {seg_idx} segments (interpolated to dist={track_track_clearance:.3f}mm)")
+                                    print(f"  Arc stopped at diff pair spacing after {seg_idx} segments (interpolated to dist={diff_pair_spacing:.3f}mm)")
                                 else:
-                                    print(f"  Arc stopped at N track clearance after {seg_idx} segments (dist={dist_to_n_track:.3f}mm)")
+                                    print(f"  Arc stopped at diff pair spacing after {seg_idx} segments (dist={dist_to_n_track:.3f}mm)")
                                 break
 
                         arc_points.append((arc_x, arc_y))
