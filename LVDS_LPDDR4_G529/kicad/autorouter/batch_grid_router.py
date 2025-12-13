@@ -2299,15 +2299,29 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                         # Only check if arc point is on the correct side (in the n_cont_dir direction from n_exit)
                         arc_to_nexit_x = arc_x - n_exit_x
                         arc_to_nexit_y = arc_y - n_exit_y
-                        
+
                         # Check if arc point is in the direction of N continuation (dot product > 0)
                         dot_to_n_cont = arc_to_nexit_x * n_cont_dir_x + arc_to_nexit_y * n_cont_dir_y
-                        
+
                         if dot_to_n_cont > 0:
                             # Arc point is on the side where the N track goes - check clearance
                             dist_to_n_track = abs(arc_to_nexit_x * n_cont_dir_y - arc_to_nexit_y * n_cont_dir_x)
                             if dist_to_n_track < track_track_clearance:
-                                print(f"  Arc stopped at N track clearance after {seg_idx} segments (dist={dist_to_n_track:.3f}mm)")
+                                # Interpolate to find exact point at track_track_clearance
+                                # Get distance of last arc point to N track
+                                last_to_nexit_x = last_x - n_exit_x
+                                last_to_nexit_y = last_y - n_exit_y
+                                dist_last = abs(last_to_nexit_x * n_cont_dir_y - last_to_nexit_y * n_cont_dir_x)
+
+                                if dist_last > dist_to_n_track:  # Sanity check - we're getting closer
+                                    # Interpolate: find t where dist = track_track_clearance
+                                    t = (dist_last - track_track_clearance) / (dist_last - dist_to_n_track)
+                                    interp_x = last_x + t * (arc_x - last_x)
+                                    interp_y = last_y + t * (arc_y - last_y)
+                                    arc_points.append((interp_x, interp_y))
+                                    print(f"  Arc stopped at N track clearance after {seg_idx} segments (interpolated to dist={track_track_clearance:.3f}mm)")
+                                else:
+                                    print(f"  Arc stopped at N track clearance after {seg_idx} segments (dist={dist_to_n_track:.3f}mm)")
                                 break
 
                         arc_points.append((arc_x, arc_y))
