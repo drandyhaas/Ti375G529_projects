@@ -2166,13 +2166,27 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     perp1_x, perp1_y = via_axis_y, -via_axis_x
                     perp2_x, perp2_y = -via_axis_y, via_axis_x
 
-                    # Choose perpendicular that points away from outgoing (towards incoming side)
-                    # i.e., has positive dot product with -out_dir
-                    dot1 = perp1_x * (-out_dir_x) + perp1_y * (-out_dir_y)
-                    if dot1 > 0:
+                    # Get the continuation point to determine which side to detour on
+                    # After p_exit insertion (i+3), the original continuation is at i+4
+                    p_cont_for_perp_x, p_cont_for_perp_y, _ = p_float_path[i + 4]
+
+                    # Vector from P via to continuation point
+                    to_cont_x = p_cont_for_perp_x - p_via_x
+                    to_cont_y = p_cont_for_perp_y - p_via_y
+
+                    # Choose perpendicular that points AWAY from continuation
+                    # The detour (via -> detour1 -> detour2) goes in +via_perp direction
+                    # The return segment (detour3 -> p_cont) should NOT cross the detour
+                    # So via_perp should point away from p_cont (negative dot product with to_cont)
+                    dot1 = perp1_x * to_cont_x + perp1_y * to_cont_y
+                    if dot1 < 0:
                         via_perp_x, via_perp_y = perp1_x, perp1_y
                     else:
                         via_perp_x, via_perp_y = perp2_x, perp2_y
+
+                    print(f"  Via perp chosen: ({via_perp_x:.2f},{via_perp_y:.2f}), to_cont: ({to_cont_x:.2f},{to_cont_y:.2f}), dot1={dot1:.3f}")
+                    print(f"  Via axis: ({via_axis_x:.2f},{via_axis_y:.2f}), N via: ({n_via_pos_x:.3f},{n_via_pos_y:.3f})")
+                    print(f"  P cont: ({p_cont_for_perp_x:.3f},{p_cont_for_perp_y:.3f})")
 
                     # 60-degree diagonal from via_axis (closer to vertical/via_perp)
                     # cos(60°) = 0.5 for via_axis, sin(60°) ≈ 0.866 for via_perp
@@ -2258,10 +2272,17 @@ def route_diff_pair_with_obstacles(pcb_data: PCBData, diff_pair: DiffPair,
                     cross_diff = dx * n_cont_dir_y - dy * n_cont_dir_x
                     cross_perp = via_perp_x * n_cont_dir_y - via_perp_y * n_cont_dir_x
 
+                    print(f"  Intersection calc: n_cont_dir=({n_cont_dir_x:.2f},{n_cont_dir_y:.2f}), cross_perp={cross_perp:.4f}, cross_diff={cross_diff:.4f}")
                     if abs(cross_perp) > 0.001:
                         t = cross_diff / cross_perp
-                        p_detour3_x = p_detour2_x - t * via_perp_x
-                        p_detour3_y = p_detour2_y - t * via_perp_y
+                        print(f"  Intersection t={t:.3f}, detour3 offset=({-t*via_perp_x:.3f},{-t*via_perp_y:.3f})")
+                        # Only apply intersection if t > 0 (going in intended -via_perp direction)
+                        # If t < 0, intersection is on wrong side and would cause self-crossing
+                        if t > 0:
+                            p_detour3_x = p_detour2_x - t * via_perp_x
+                            p_detour3_y = p_detour2_y - t * via_perp_y
+                        else:
+                            print(f"  WARNING: Intersection on wrong side (t<0), using default detour3")
 
                     # Recompute distance from adjusted detour3 to N track line
                     det3_to_nexit_x = p_detour3_x - n_exit_x
