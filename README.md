@@ -14,7 +14,6 @@ Make sure to use Zadig to choose the libusb-win32 driver for the Ti dev board in
 | [FT601_loopback](FT601_loopback/) | FT60X USB3 loopback test - verify USB communication |
 | [LPDDR4](LPDDR4/) | DDR memory test with hardware auto-init and 74+ Gb/s bandwidth verification |
 | [LVDS_LPDDR4](LVDS_LPDDR4/) | Digital scope with LVDS inputs, DDR buffering, USB3 readback (Ti375C529) |
-| [LVDS_LPDDR4_G529](LVDS_LPDDR4_G529/) | Digital scope for Ti375G529 - 52-channel LVDS, 7 PLLs, extended I/O |
 | [ti_lpddr4_debug_tools](ti_lpddr4_debug_tools/) | Python tools for DDR calibration and debugging via JTAG |
 
 ## Project Details
