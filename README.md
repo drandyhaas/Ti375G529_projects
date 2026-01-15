@@ -40,14 +40,6 @@ High-speed data acquisition system for Ti375C529:
 - USB3 readout (~280 MB/s)
 - Command processor with 8-byte protocol
 
-### [LVDS_LPDDR4_G529](LVDS_LPDDR4_G529/)
-Extended digital scope for Ti375G529 FPGA:
-- 52-channel LVDS input (4 groups x 13 channels)
-- 7 PLLs for clock generation
-- Dynamic PLL clock selection
-- Extended GPIO (debug, board I/O, SPI)
-- See [FPGA_Pinout.md](LVDS_LPDDR4_G529/FPGA_Pinout.md) for pin assignments
-
 ### [ti_lpddr4_debug_tools](ti_lpddr4_debug_tools/)
 Python-based DDR debugging and calibration tools:
 - JTAG interface for register access
